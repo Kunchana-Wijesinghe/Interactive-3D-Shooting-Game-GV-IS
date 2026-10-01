@@ -1,8 +1,8 @@
-# Interactive 3D Shooting Game - Facility Breach
+# Interactive 3D Shooting Game
 
 ## Project Overview
 - **Assignment Theme**: Interactive 3D Shooting Game
-- **Proposed Game Concept**: Facility Breach
+- **Project Status**: Working project: Interactive 3D Shooting Game. The final game name, story, and setting have not yet been decided by the team.
 - **Joint Modules**:
   - **SE3032**: Graphics and Visualization (GV)
   - **SE3062**: Intelligent Systems (IS)
@@ -30,7 +30,7 @@
    ```
 2. Open **Unity Hub**.
 3. Click **Add** -> **Add project from disk**.
-4. Select the cloned repository root folder (`Interactive-3D-Shooting-Game-GV-IS` or `FacilityBreach`).
+4. Select the cloned repository root folder.
 5. Ensure the Editor version is set to **`6000.6.2f1`**.
 6. Open the project and allow Unity to import initial package dependencies.
 

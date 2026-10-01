@@ -1,5 +1,10 @@
 # Team Development Guidelines & Ownership Rules
 
+> **Working Project**: Interactive 3D Shooting Game  
+> **Status**: The final game name, story, and setting have not yet been decided by the team.
+
+---
+
 ## 1. Team Ownership & Scene Management
 - **Main Scene Coordination**: **Pesanjith** coordinates and approves all modifications to the main level scene (`.unity` files) to prevent merge conflicts in scene YAML files.
 - **Prefabs & Sub-scenes**: Team members should construct their components as standalone Prefabs or dedicated sub-scenes in their respective feature folders instead of making direct uncoordinated edits to the main scene.
