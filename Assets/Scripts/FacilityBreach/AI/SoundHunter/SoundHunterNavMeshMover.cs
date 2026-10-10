@@ -81,7 +81,7 @@ namespace FacilityBreach.AI.SoundHunter
                 var door = hit.GetComponentInParent<InteractiveDoor>();
                 if (door && !door.IsOpen)
                 {
-                    door.OpenDoor();
+                    door.RequestOpen(true);
                 }
             }
         }

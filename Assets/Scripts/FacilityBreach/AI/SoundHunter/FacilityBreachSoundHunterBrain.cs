@@ -53,7 +53,6 @@ namespace FacilityBreach.AI.SoundHunter
 
             ranker = new SoundRanker();
             memory = new SoundMemory(ranker, MemoryExpirySeconds, 4);
-            evaluator = new HearingEvaluator();
 
             SetupChestVisual();
             SetupPatrolWaypoints();
@@ -63,6 +62,10 @@ namespace FacilityBreach.AI.SoundHunter
         {
             runtime = FindAnyObjectByType<FacilityBreachRuntime>();
             graphSetup.BuildGraph();
+            if (graphSetup.Graph != null)
+            {
+                evaluator = new HearingEvaluator(graphSetup.Graph);
+            }
         }
 
         private void OnEnable()
@@ -110,15 +113,18 @@ namespace FacilityBreach.AI.SoundHunter
             if (!isActive || !runtime || combatAdapter.IsDead) return;
             if (float.IsNaN(stimulus.Position.x) || float.IsInfinity(stimulus.Position.x)) return;
 
+            if (evaluator == null && graphSetup.Graph != null)
+            {
+                evaluator = new HearingEvaluator(graphSetup.Graph);
+            }
+
+            if (evaluator == null) return;
+
             int sourceNode = graphSetup.GetNearestNode(stimulus.Position);
             int listenerNode = graphSetup.GetNearestNode(transform.position);
 
-            evaluator.Evaluate(graphSetup.Graph, sourceNode, listenerNode, SoundBudget);
-            float cost = evaluator.AudibleCost;
-
-            if (cost <= SoundBudget && !float.IsInfinity(cost))
+            if (evaluator.TryHear(stimulus, sourceNode, listenerNode, out var heard))
             {
-                var heard = new HeardSound(stimulus, cost, SoundBudget - cost);
                 memory.Remember(heard, runtime.GameplayTime);
             }
         }
