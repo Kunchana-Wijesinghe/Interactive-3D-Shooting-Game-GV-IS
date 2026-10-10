@@ -84,18 +84,31 @@ namespace FacilityBreach
                 obstacle.size = Vector3.one; obstacle.carving = true;
                 Label(gate, "CARD REQUIRED"); gates.Add(gate);
             }
-            // Add FB_Agents root and Sound Hunter SH-01
+            // Add FB_Agents root and all 4 security robots (PG-01, SH-01, CD-03, FL-04)
             var agentsRoot = new GameObject("FB_Agents"); agentsRoot.transform.SetParent(transform);
-            var shObj = GameObject.CreatePrimitive(PrimitiveType.Capsule); shObj.name = "FB_Agent_SH01"; shObj.transform.SetParent(agentsRoot.transform);
-            shObj.transform.position = new Vector3(18, 1, -18);
-            var shMaterial = new Material(Shader.Find("Standard")); shMaterial.color = new Color(1, 0.5f, 0); ownedMaterials.Add(shMaterial);
-            shObj.GetComponent<Renderer>().sharedMaterial = shMaterial;
-            var shAdapter = shObj.AddComponent<EnemyCombatAdapter>(); shAdapter.Identity = "SH-01"; shAdapter.MaximumHealth = 80;
+            
+            // PG-01 Patrol Guard (60 HP, Teal)
+            CreateAgent(agentsRoot, "FB_Agent_PG01", "PG-01", 60, new Vector3(0, 1, 0), new Color(0, 0.8f, 0.8f));
+            // SH-01 Sound Hunter (80 HP, Orange) with IS decision brain
+            var shObj = CreateAgent(agentsRoot, "FB_Agent_SH01", "SH-01", 80, new Vector3(18, 1, -18), new Color(1, 0.5f, 0));
             shObj.AddComponent<FacilityBreach.AI.SoundHunter.FacilityBreachSoundHunterBrain>();
+            // CD-03 Cover Defender (90 HP, Violet)
+            CreateAgent(agentsRoot, "FB_Agent_CD03", "CD-03", 90, new Vector3(-8, 1, 12), new Color(0.6f, 0.2f, 0.8f));
+            // FL-04 Flanker (70 HP, Lime)
+            CreateAgent(agentsRoot, "FB_Agent_FL04", "FL-04", 70, new Vector3(-2, 1, 15), new Color(0.7f, 1, 0.2f));
 
             foreach (var collider in FindObjectsByType<BoxCollider>())
                 if (collider.transform.parent && collider.transform.parent.name == "Generated_Facility" && collider.bounds.size.y >= 3) mapWalls.Add(collider);
             SetPause(false); Time.timeScale = 0; Cursor.lockState = CursorLockMode.None; Cursor.visible = true;
+        }
+        private GameObject CreateAgent(GameObject parent, string name, string identity, int hp, Vector3 position, Color color)
+        {
+            var obj = GameObject.CreatePrimitive(PrimitiveType.Capsule); obj.name = name; obj.transform.SetParent(parent.transform);
+            obj.transform.position = position;
+            var mat = new Material(Shader.Find("Standard")); mat.color = color; ownedMaterials.Add(mat);
+            obj.GetComponent<Renderer>().sharedMaterial = mat;
+            var adapter = obj.AddComponent<EnemyCombatAdapter>(); adapter.Identity = identity; adapter.MaximumHealth = hp;
+            return obj;
         }
         private GameObject Box(string label, Vector3 position, Vector3 scale, Color color)
         {
