@@ -84,6 +84,15 @@ namespace FacilityBreach
                 obstacle.size = Vector3.one; obstacle.carving = true;
                 Label(gate, "CARD REQUIRED"); gates.Add(gate);
             }
+            // Add FB_Agents root and Sound Hunter SH-01
+            var agentsRoot = new GameObject("FB_Agents"); agentsRoot.transform.SetParent(transform);
+            var shObj = GameObject.CreatePrimitive(PrimitiveType.Capsule); shObj.name = "FB_Agent_SH01"; shObj.transform.SetParent(agentsRoot.transform);
+            shObj.transform.position = new Vector3(18, 1, -18);
+            var shMaterial = new Material(Shader.Find("Standard")); shMaterial.color = new Color(1, 0.5f, 0); ownedMaterials.Add(shMaterial);
+            shObj.GetComponent<Renderer>().sharedMaterial = shMaterial;
+            var shAdapter = shObj.AddComponent<EnemyCombatAdapter>(); shAdapter.Identity = "SH-01"; shAdapter.MaximumHealth = 80;
+            shObj.AddComponent<FacilityBreach.AI.SoundHunter.FacilityBreachSoundHunterBrain>();
+
             foreach (var collider in FindObjectsByType<BoxCollider>())
                 if (collider.transform.parent && collider.transform.parent.name == "Generated_Facility" && collider.bounds.size.y >= 3) mapWalls.Add(collider);
             SetPause(false); Time.timeScale = 0; Cursor.lockState = CursorLockMode.None; Cursor.visible = true;
@@ -263,7 +272,10 @@ namespace FacilityBreach
             Dot(rect, exit, Run.ExitUnlocked ? Color.green : Color.red, "Exit");
             Dot(rect, player.transform.position, Color.white, "▲");
             Vector2 facing = MapPoint(rect, player.transform.position + player.transform.forward * 2); GUI.DrawTexture(new Rect(facing.x, facing.y, 3, 3), Texture2D.whiteTexture);
-            GUI.Label(new Rect(rect.x, rect.yMax + 5, rect.width, 50), "PG teal • SH orange\nCD violet • FL lime (team AI pending)");
+            foreach (var enemy in FindObjectsByType<EnemyCombatAdapter>())
+                if (!enemy.IsDead)
+                    Dot(rect, enemy.transform.position, enemy.Identity.StartsWith("SH") ? new Color(1, 0.5f, 0) : enemy.Identity.StartsWith("PG") ? new Color(0, 0.8f, 0.8f) : enemy.Identity.StartsWith("CD") ? new Color(0.6f, 0.2f, 0.8f) : new Color(0.7f, 1, 0.2f), enemy.Identity);
+            GUI.Label(new Rect(rect.x, rect.yMax + 5, rect.width, 50), "PG teal • SH orange\nCD violet • FL lime");
         }
     }
 }
