@@ -8,6 +8,7 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.AI;
 using FacilityBreach.AI.SoundHunter;
+using FacilityBreach.AI.Roles;
 
 namespace FacilityBreach
 {
@@ -105,16 +106,16 @@ namespace FacilityBreach
             var agentsRoot = new GameObject("FB_Agents"); agentsRoot.transform.SetParent(transform);
             
             // PG-01 Patrol Guard (60 HP, Teal)
-            var pg = CreateAgent(agentsRoot, "FB_Agent_PG01", "PG-01", 60, new Vector3(-11, 0, 7), new Color(0, 0.8f, 0.8f), 0);
+            var pg = CreateAgent(agentsRoot, "FB_Agent_PG01", "PG-01", 60, new Vector3(5, 0, 18), new Color(0, 0.8f, 0.8f), 0);
             pg.AddComponent<SoundHunterNavMeshMover>();
-            pg.AddComponent<TemporaryPatrolGuardAdapter>().Route = new[] { new Vector3(-11, 0, 7), new Vector3(-11, 0, 13), new Vector3(-8, 0, 13) };
+            pg.AddComponent<PatrolGuardBrain>().Route = new[] { new Vector3(5, 0, 18), new Vector3(5, 0, 22), new Vector3(7, 0, 22), new Vector3(7, 0, 18) };
             // SH-01 Sound Hunter (80 HP, Orange) with IS decision brain
             var shObj = CreateAgent(agentsRoot, "FB_Agent_SH01", "SH-01", 80, exit + Vector3.left * 3, new Color(1, 0.5f, 0), 1);
             shObj.AddComponent<FacilityBreach.AI.SoundHunter.FacilityBreachSoundHunterBrain>();
             // CD-03 Cover Defender (90 HP, Violet)
-            CreateAgent(agentsRoot, "FB_Agent_CD03", "CD-03", 90, new Vector3(-8, 0, 12), new Color(0.6f, 0.2f, 0.8f), 2);
+            CreateAgent(agentsRoot, "FB_Agent_CD03", "CD-03", 90, new Vector3(17.5f, 0, 19.5f), new Color(0.6f, 0.2f, 0.8f), 2).AddComponent<CoverDefenderBrain>();
             // FL-04 Flanker (70 HP, Lime)
-            CreateAgent(agentsRoot, "FB_Agent_FL04", "FL-04", 70, new Vector3(-2, 0, 15), new Color(0.7f, 1, 0.2f), 3);
+            CreateAgent(agentsRoot, "FB_Agent_FL04", "FL-04", 70, new Vector3(13, 0, 21), new Color(0.7f, 1, 0.2f), 3).AddComponent<FlankerBrain>();
 
             foreach (var collider in FindObjectsByType<BoxCollider>())
                 if (collider.transform.parent && collider.transform.parent.name == "Generated_Facility" && collider.bounds.size.y >= 3) mapWalls.Add(collider);
@@ -135,6 +136,11 @@ namespace FacilityBreach
                 obj.GetComponent<Renderer>().enabled = false;
             }
             else Debug.LogWarning("Missing robot visual: " + identity, obj);
+            if (identity == "CD-03")
+            {
+                Vector3 facing = device.transform.position - position; facing.y = 0;
+                if (facing.sqrMagnitude > .01f) obj.transform.rotation = Quaternion.LookRotation(facing);
+            }
             foreach (var gate in gates) Physics.IgnoreCollision(hitbox, gate.GetComponent<Collider>());
             var adapter = obj.AddComponent<EnemyCombatAdapter>(); adapter.Identity = identity; adapter.MaximumHealth = hp;
             obj.AddComponent<EnemyPresentation>();
@@ -149,7 +155,8 @@ namespace FacilityBreach
             if (equippedVisual) { equippedVisual.SetActive(false); Destroy(equippedVisual); }
             if (WeaponViewModels.Length <= Resources.Equipped || !WeaponViewModels[Resources.Equipped]) return;
             equippedVisual = Instantiate(WeaponViewModels[Resources.Equipped], view.transform);
-            equippedVisual.transform.localPosition = new Vector3(.22f, -.24f, .36f);
+            equippedVisual.transform.localPosition = new Vector3(.18f, -.22f, .5f);
+            equippedVisual.transform.localScale = Vector3.one * .7f;
             equippedVisual.transform.localRotation = Quaternion.identity;
             RemoveVisualColliders(equippedVisual);
             foreach (var node in equippedVisual.GetComponentsInChildren<Transform>()) if (node.name == "Muzzle") { muzzle = node; break; }
@@ -200,7 +207,7 @@ namespace FacilityBreach
                 return;
             }
             float dt = Time.deltaTime; Run.Tick(dt); GameplayTime += dt; Enemies.Tick(GameplayTime);
-            if (!Run.Running) return;
+            if (!Run.Running) { CancelEnemyAttacks(); return; }
             foreach (var station in stations) station.Tick(dt);
             foreach (var gate in gates) gate.SetActive(!Run.HasCard);
             feedbackTime -= dt; cadence = Mathf.Max(0, cadence - dt);
@@ -215,7 +222,7 @@ namespace FacilityBreach
             if (Input.GetKeyDown(KeyCode.R) || Resources.Magazine == 0) BeginReload();
             if (Input.GetMouseButton(0)) TryFire();
             if (Input.GetKeyDown(KeyCode.Q)) ThrowCan();
-            if (Run.ExitUnlocked && Vector2.Distance(new Vector2(player.transform.position.x, player.transform.position.z), new Vector2(exit.x, exit.z)) < 1.2f) Run.Exit(Resources.Alive);
+            if (Run.ExitUnlocked && Vector2.Distance(new Vector2(player.transform.position.x, player.transform.position.z), new Vector2(exit.x, exit.z)) < 1.2f && Run.Exit(Resources.Alive)) CancelEnemyAttacks();
         }
         public void BeginReload()
         { if (reload > 0) return; if (Resources.CanReload) reload = ReloadSeconds; else if (Resources.Reserve == 0) Say("NO RESERVE AMMO"); }
@@ -292,8 +299,11 @@ namespace FacilityBreach
             obj.AddComponent<CanImpact>();
         }
         private void Say(string message) { feedback = message; feedbackTime = 2; }
+        public void CancelEnemyAttacks()
+        { foreach (var enemy in GetComponentsInChildren<EnemyCombatAdapter>()) enemy.CancelPendingAttack(); }
         public void SetPause(bool paused)
         {
+            if (paused) CancelEnemyAttacks();
             Run.Paused = paused; waitForRelease = true; Input.ResetInputAxes();
             if (player) player.ClearInputs();
             Time.timeScale = Run.Running && !paused ? 1 : 0;

@@ -9,9 +9,9 @@ namespace FacilityBreach.Combat
         public bool IsDead => Runtime == null || !Runtime.Resources.Alive;
         public bool TakeDamage(in DamageInfo hit)
         {
-            if (IsDead || !Runtime.Run.Running || Runtime.Run.Paused || hit.Amount <= 0 || float.IsNaN(hit.Amount)) return false;
+            if (IsDead || !Runtime.Run.Running || Runtime.Run.Paused || hit.Amount <= 0 || !float.IsFinite(hit.Amount)) return false;
             Runtime.Resources.Hurt(Mathf.CeilToInt(hit.Amount));
-            if (IsDead) Runtime.Run.Lose("Player eliminated");
+            if (IsDead) { Runtime.Run.Lose("Player eliminated"); Runtime.CancelEnemyAttacks(); }
             return true;
         }
     }

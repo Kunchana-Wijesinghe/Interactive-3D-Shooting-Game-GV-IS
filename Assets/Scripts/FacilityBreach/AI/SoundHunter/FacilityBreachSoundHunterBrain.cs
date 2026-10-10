@@ -7,6 +7,7 @@ namespace FacilityBreach.AI.SoundHunter
 {
     public enum SoundHunterState { Patrol, Investigate, Search, Combat, Inactive }
     [RequireComponent(typeof(EnemyCombatAdapter))]
+    [DisallowMultipleComponent]
     public sealed class FacilityBreachSoundHunterBrain : MonoBehaviour,IEnemyActivitySink
     {
         public SoundHunterState CurrentState {get;private set;}=SoundHunterState.Patrol;
@@ -35,12 +36,12 @@ namespace FacilityBreach.AI.SoundHunter
         }
         private void Start()
         {
-            runtime=FindAnyObjectByType<FacilityBreachRuntime>();graph.BuildGraph();
+            runtime=FindAnyObjectByType<FacilityBreachRuntime>();combat.Range=14;graph.BuildGraph();
             var exit=GameObject.Find("Door_Main_Exit");
             if(exit){patrol.Add(exit.transform.position+new Vector3(-3,0,-2));patrol.Add(exit.transform.position+new Vector3(-6,0,-2));}
         }
         private void OnEnable(){SoundEventBus.Emitted-=OnSoundEmitted;SoundEventBus.Emitted+=OnSoundEmitted;}
-        private void OnDisable(){SoundEventBus.Emitted-=OnSoundEmitted;}
+        private void OnDisable(){SoundEventBus.Emitted-=OnSoundEmitted;if(combat)combat.CancelPendingAttack();mover?.Stop();}
         public void OnSoundEmitted(SoundStimulus stimulus)
         {
             if(!active||!runtime||!runtime.AcceptsGameplay||combat.IsDead||stimulus.SourceId==combat.GetEntityId().GetHashCode())return;
@@ -61,6 +62,7 @@ namespace FacilityBreach.AI.SoundHunter
                 InvestigationTarget=seen;lastSeenTarget=true;soundTarget=false;SetState(SoundHunterState.Combat);
                 mover.RequestMove(seen,6);combat.TryAttack(runtime.PlayerTransform);return;
             }
+            combat.CancelPendingAttack();
             if(CurrentState==SoundHunterState.Combat){mover.Stop();SetState(SoundHunterState.Investigate);}
             if(!lastSeenTarget&&memory.TryGetBest(now,out var best)&&(!soundTarget||best.Revision!=entry.Revision))
             {entry=best;soundTarget=true;InvestigationTarget=best.Position;mover.Stop();SetState(SoundHunterState.Investigate);}
@@ -86,6 +88,6 @@ namespace FacilityBreach.AI.SoundHunter
         {if(CurrentState==state)return;CurrentState=state;GameplayDiagnostics.Trace($"SH state={state} target={InvestigationTarget}",this);}
         public void SetEnemyActive(bool value)
         {active=value;if(!value){mover.Stop();memory.Clear();soundTarget=lastSeenTarget=false;SetState(SoundHunterState.Inactive);}}
-        public void ResetEnemyActions(){memory.Clear();mover.Stop();soundTarget=lastSeenTarget=false;nextDecision=0;patrolIndex=0;SetState(SoundHunterState.Patrol);}
+        public void ResetEnemyActions(){memory.Clear();mover.Stop();soundTarget=lastSeenTarget=false;InvestigationTarget=default;entry=default;searchEnd=0;nextDecision=0;patrolIndex=0;SetState(SoundHunterState.Patrol);}
     }
 }
