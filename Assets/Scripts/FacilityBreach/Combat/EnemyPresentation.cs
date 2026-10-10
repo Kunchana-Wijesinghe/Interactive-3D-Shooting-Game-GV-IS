@@ -1,5 +1,6 @@
 using UnityEngine;
 using FacilityBreach.AI.SoundHunter;
+using FacilityBreach.AI.Roles;
 
 namespace FacilityBreach.Combat
 {
@@ -37,8 +38,9 @@ namespace FacilityBreach.Combat
             stateLight.enabled = !combat.IsDead;
             if (combat.IsDead) return;
             var hunter = GetComponent<FacilityBreachSoundHunterBrain>();
-            Color color = combat.Warning ? Color.white : hunter && hunter.CurrentState == SoundHunterState.Combat ? Color.red :
-                hunter && (hunter.CurrentState == SoundHunterState.Investigate || hunter.CurrentState == SoundHunterState.Search) ? Color.yellow : Color.blue;
+            var role = GetComponent<RoleDecisionBrain>();
+            Color color = combat.Warning ? Color.white : (hunter && hunter.CurrentState == SoundHunterState.Combat || role && (role.State == RoleState.Combat || role.State == RoleState.Cover)) ? Color.red :
+                (hunter && (hunter.CurrentState == SoundHunterState.Investigate || hunter.CurrentState == SoundHunterState.Search) || role && (role.State == RoleState.Investigate || role.State == RoleState.Search || role.State == RoleState.Flank || role.State == RoleState.Detecting)) ? Color.yellow : Color.blue;
             lightMaterial.color = color;
             lightMaterial.SetColor("_EmissionColor", color * 2);
         }

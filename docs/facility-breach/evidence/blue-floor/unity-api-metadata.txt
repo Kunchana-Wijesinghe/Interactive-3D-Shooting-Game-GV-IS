@@ -1,0 +1,170 @@
+C:\Program Files\Unity\Hub\Editor\6000.6.2f1\Editor\Data\Managed\UnityEditor.dll UnityEditor.GameView
+ PROPERTY backingScale
+ PROPERTY minScale
+ PROPERTY maxScale
+ PROPERTY liveReloadPreferenceDefault
+ PROPERTY zoomAreaScale
+ PROPERTY lowResolutionForAspectRatios
+ PROPERTY forceLowResolutionAspectRatios
+ PROPERTY vSyncEnabled
+ PROPERTY selectedSizeIndex
+ PROPERTY currentSizeGroupType
+ PROPERTY currentGameViewSize
+ PROPERTY viewInWindow
+ PROPERTY targetRenderSize
+ PROPERTY targetInContent
+ PROPERTY targetInView
+ PROPERTY deviceFlippedTargetInView
+ PROPERTY viewInParent
+ PROPERTY targetInParent
+ PROPERTY warningPosition
+ PROPERTY gameMouseOffset
+ PROPERTY gameMouseScale
+ PROPERTY showToolbar
+ PROPERTY drawGizmos
+ FIELD kScaleSliderMinWidth
+ FIELD kScaleSliderMaxWidth
+ FIELD kScaleSliderSnapThreshold
+ FIELD kScaleLabelWidth
+ FIELD kWarningSize
+ FIELD kClearBlack
+ FIELD kMinScale
+ FIELD kMaxScale
+ FIELD kScrollZoomSnapDelay
+ FIELD prevSizeGroupType
+ FIELD m_VSyncEnabled
+ FIELD m_Gizmos
+ FIELD m_Stats
+ FIELD m_SelectedSizes
+ FIELD m_ZoomArea
+ FIELD m_defaultScale
+ FIELD m_TargetClamped
+ FIELD m_LastWindowPixelSize
+ FIELD m_ClearInEditMode
+ FIELD m_NoCameraWarning
+ FIELD m_LowResolutionForAspectRatios
+ FIELD m_XRRenderMode
+ FIELD m_RenderTexture
+ FIELD m_showToolbar
+ FIELD m_SizeChangeID
+ FIELD m_DisplaySubsystems
+ FIELD latestState
+ FIELD s_LastScrollTime
+ FIELD m_StatsWindowInstance
+ FIELD m_IndirectWarningBox
+ FIELD m_StatsData
+ METHOD get_drawGizmos Assembly, HideBySig, SpecialName
+ METHOD set_drawGizmos Assembly, HideBySig, SpecialName
+C:\Program Files\Unity\Hub\Editor\6000.6.2f1\Editor\Data\Managed\UnityEditor.dll UnityEditor.AI.NavMeshVisualizationSettings
+ PROPERTY showNavigation
+ PROPERTY showOnlySelectedSurfaces
+ PROPERTY heightMeshColor
+ PROPERTY selectedSurfacesOpacity
+ PROPERTY unselectedSurfacesOpacity
+ PROPERTY showNavMesh
+ PROPERTY showHeightMesh
+ PROPERTY showNavMeshPortals
+ PROPERTY showNavMeshLinks
+ PROPERTY showProximityGrid
+ PROPERTY showHeightMeshBVTree
+ PROPERTY showHeightMaps
+ PROPERTY showAgentPath
+ PROPERTY showAgentPathInfo
+ PROPERTY showAgentNeighbours
+ PROPERTY showAgentWalls
+ PROPERTY showAgentAvoidance
+ PROPERTY showObstacleCarveHull
+ FIELD <showNavigation>k__BackingField
+ METHOD get_showNavigation Public, Static, HideBySig, SpecialName
+ METHOD set_showNavigation Public, Static, HideBySig, SpecialName
+ METHOD get_showNavMesh Assembly, Static, HideBySig, SpecialName
+ METHOD set_showNavMesh Assembly, Static, HideBySig, SpecialName
+ METHOD get_showNavMeshPortals Assembly, Static, HideBySig, SpecialName
+ METHOD set_showNavMeshPortals Assembly, Static, HideBySig, SpecialName
+ METHOD get_showNavMeshLinks Assembly, Static, HideBySig, SpecialName
+ METHOD set_showNavMeshLinks Assembly, Static, HideBySig, SpecialName
+C:\Program Files\Unity\Hub\Editor\6000.6.2f1\Editor\Data\Managed\UnityEngine\UnityEditor.AIModule.dll UnityEditor.AI.NavMeshVisualizationSettings
+ PROPERTY showNavigation
+ PROPERTY showOnlySelectedSurfaces
+ PROPERTY heightMeshColor
+ PROPERTY selectedSurfacesOpacity
+ PROPERTY unselectedSurfacesOpacity
+ PROPERTY showNavMesh
+ PROPERTY showHeightMesh
+ PROPERTY showNavMeshPortals
+ PROPERTY showNavMeshLinks
+ PROPERTY showProximityGrid
+ PROPERTY showHeightMeshBVTree
+ PROPERTY showHeightMaps
+ PROPERTY showAgentPath
+ PROPERTY showAgentPathInfo
+ PROPERTY showAgentNeighbours
+ PROPERTY showAgentWalls
+ PROPERTY showAgentAvoidance
+ PROPERTY showObstacleCarveHull
+ FIELD <showNavigation>k__BackingField
+ METHOD get_showNavigation Public, Static, HideBySig, SpecialName
+ METHOD set_showNavigation Public, Static, HideBySig, SpecialName
+ METHOD get_showNavMesh Assembly, Static, HideBySig, SpecialName
+ METHOD set_showNavMesh Assembly, Static, HideBySig, SpecialName
+ METHOD get_showNavMeshPortals Assembly, Static, HideBySig, SpecialName
+ METHOD set_showNavMeshPortals Assembly, Static, HideBySig, SpecialName
+ METHOD get_showNavMeshLinks Assembly, Static, HideBySig, SpecialName
+ METHOD set_showNavMeshLinks Assembly, Static, HideBySig, SpecialName
+C:\Program Files\Unity\Hub\Editor\6000.6.2f1\Editor\Data\Managed\UnityEngine\UnityEditor.CoreModule.dll UnityEditor.GameView
+ PROPERTY backingScale
+ PROPERTY minScale
+ PROPERTY maxScale
+ PROPERTY liveReloadPreferenceDefault
+ PROPERTY zoomAreaScale
+ PROPERTY lowResolutionForAspectRatios
+ PROPERTY forceLowResolutionAspectRatios
+ PROPERTY vSyncEnabled
+ PROPERTY selectedSizeIndex
+ PROPERTY currentSizeGroupType
+ PROPERTY currentGameViewSize
+ PROPERTY viewInWindow
+ PROPERTY targetRenderSize
+ PROPERTY targetInContent
+ PROPERTY targetInView
+ PROPERTY deviceFlippedTargetInView
+ PROPERTY viewInParent
+ PROPERTY targetInParent
+ PROPERTY warningPosition
+ PROPERTY gameMouseOffset
+ PROPERTY gameMouseScale
+ PROPERTY showToolbar
+ PROPERTY drawGizmos
+ FIELD kScaleSliderMinWidth
+ FIELD kScaleSliderMaxWidth
+ FIELD kScaleSliderSnapThreshold
+ FIELD kScaleLabelWidth
+ FIELD kWarningSize
+ FIELD kClearBlack
+ FIELD kMinScale
+ FIELD kMaxScale
+ FIELD kScrollZoomSnapDelay
+ FIELD prevSizeGroupType
+ FIELD m_VSyncEnabled
+ FIELD m_Gizmos
+ FIELD m_Stats
+ FIELD m_SelectedSizes
+ FIELD m_ZoomArea
+ FIELD m_defaultScale
+ FIELD m_TargetClamped
+ FIELD m_LastWindowPixelSize
+ FIELD m_ClearInEditMode
+ FIELD m_NoCameraWarning
+ FIELD m_LowResolutionForAspectRatios
+ FIELD m_XRRenderMode
+ FIELD m_RenderTexture
+ FIELD m_showToolbar
+ FIELD m_SizeChangeID
+ FIELD m_DisplaySubsystems
+ FIELD latestState
+ FIELD s_LastScrollTime
+ FIELD m_StatsWindowInstance
+ FIELD m_IndirectWarningBox
+ FIELD m_StatsData
+ METHOD get_drawGizmos Assembly, HideBySig, SpecialName
+ METHOD set_drawGizmos Assembly, HideBySig, SpecialName

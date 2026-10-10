@@ -1,16 +1,18 @@
 ﻿using Perera.SoundHunter;
+using FacilityBreach.Combat;
 using UnityEngine;
 using UnityEngine.AI;
 namespace FacilityBreach.AI.SoundHunter
 {
     [RequireComponent(typeof(NavMeshAgent))]
-    public sealed class SoundHunterNavMeshMover : MonoBehaviour, IHunterMovement
+    [DisallowMultipleComponent]
+    public sealed class SoundHunterNavMeshMover : MonoBehaviour, IHunterMovement, IEnemyActivitySink
     {
         private NavMeshAgent agent;
         private FacilityBreachRuntime runtime;
         private Vector3 goal, windowPosition;
         private float stoppingDistance, nextRequest, started, windowTime;
-        private bool paused;
+        private bool paused, active = true;
         public MoveStatus Status { get; private set; }
         public string FailureReason { get; private set; } = "";
         public int PathRequests { get; private set; }
@@ -25,7 +27,7 @@ namespace FacilityBreach.AI.SoundHunter
         }
         public bool RequestMove(Vector3 target, float stop)
         {
-            if (!runtime || !runtime.AcceptsGameplay) return false;
+            if (!active || !runtime || !runtime.AcceptsGameplay || GetComponent<EnemyCombatAdapter>().IsDead) return false;
             float now = runtime.GameplayTime;
             bool same = (goal - target).sqrMagnitude < .16f && Mathf.Abs(stoppingDistance - stop) < .05f;
             if (same && (Status == MoveStatus.Moving || Status == MoveStatus.Arrived)) return true;
@@ -49,10 +51,13 @@ namespace FacilityBreach.AI.SoundHunter
         }
         public void Stop()
         { Status = MoveStatus.Idle; if (OnNavigation) { agent.isStopped = true; agent.ResetPath(); } }
+        public void ResetMovement() { Stop(); goal = transform.position; nextRequest = started = windowTime = 0; paused = false; FailureReason = ""; }
+        public void SetEnemyActive(bool value) { active = value; if (!value) Stop(); }
+        public void ResetEnemyActions() { ResetMovement(); }
         private void Update()
         {
             if (!runtime || !OnNavigation) return;
-            if (!runtime.AcceptsGameplay)
+            if (!active || GetComponent<EnemyCombatAdapter>().IsDead || !runtime.AcceptsGameplay)
             { if (!paused) { paused = true; agent.isStopped = true; } return; }
             if (paused) { paused = false; agent.isStopped = Status != MoveStatus.Moving; }
             if (Status != MoveStatus.Moving) return;

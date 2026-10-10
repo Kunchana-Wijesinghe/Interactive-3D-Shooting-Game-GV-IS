@@ -1,0 +1,10 @@
+{
+  "checked_files": 223,
+  "protected_perera_files": 86,
+  "unchanged": true,
+  "scene_sha256": "b2f7c1328914535da810aa229f2074aad353f70b8ef4237fd3db14e537f29f91",
+  "production_script_sha256": "4e4f02cdbc8e0995abe43d33b288203d33c25b60227d7636712e83a5c8e823ea",
+  "user_confirmation": "Restore normal view removes blue triangular overlay in main Game view",
+  "runtime_checks": 19,
+  "edit_checks": 2
+}

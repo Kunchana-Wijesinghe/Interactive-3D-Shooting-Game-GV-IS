@@ -1,0 +1,36 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+using FacilityBreach;
+using UnityEditor;
+using UnityEditor.SceneManagement;
+using UnityEngine;
+using UnityEngine.AI;
+public static class BlueFloorAudit
+{
+ static IEnumerator task; static double deadline; static readonly List<string> notes=new List<string>();
+ static readonly PropertyInfo nav=typeof(UnityEditor.AI.NavMeshVisualizationSettings).GetProperty("showNavMesh",BindingFlags.Static|BindingFlags.NonPublic);
+ static EditorWindow game; static readonly string output=Path.Combine(Path.GetTempPath(),"FB-BlueFloor-Audit-20261010");
+ public static void Run(){Directory.CreateDirectory(output);EditorSceneManager.OpenScene("Assets/Scenes/Prototype.unity"); SessionState.SetBool("BlueFloorAuditActive",true); Setup(); task=Edit();}
+ [InitializeOnLoadMethod] static void Reload(){if(SessionState.GetBool("BlueFloorAuditActive",false)){Setup(); if(EditorApplication.isPlaying)task=Play();}}
+ static void Setup(){deadline=EditorApplication.timeSinceStartup+150;EditorApplication.update-=Step;EditorApplication.update+=Step;EditorApplication.playModeStateChanged-=Changed;EditorApplication.playModeStateChanged+=Changed;Application.logMessageReceived-=Log;Application.logMessageReceived+=Log;}
+ static void Log(string msg,string stack,LogType type){if(type==LogType.Error||type==LogType.Exception)notes.Add("CONSOLE ERROR: "+msg);}
+ static void Changed(PlayModeStateChange state){if(state==PlayModeStateChange.EnteredPlayMode)task=Play();if(state==PlayModeStateChange.EnteredEditMode && File.Exists(Path.Combine(output,"play-complete.txt"))){Save();SessionState.SetBool("BlueFloorAuditActive",false);EditorApplication.Exit(0);}}
+ static void Step(){try{if(EditorApplication.timeSinceStartup>deadline)throw new Exception("deadline");if(task!=null&&!task.MoveNext())task=null;}catch(Exception e){notes.Add("FAILED: "+e);Save();SessionState.SetBool("BlueFloorAuditActive",false);EditorApplication.Exit(1);}}
+ static void Save()=>File.WriteAllLines(Path.Combine(output,"unity-visual-audit.txt"),notes);
+ static void Check(bool ok,string note){notes.Add((ok?"PASS: ":"FAIL: ")+note);if(!ok)throw new Exception(note);}
+ static void Floor(string phase){var floor=GameObject.Find("Facility_Floor");var r=floor.GetComponent<Renderer>();var mat=r.sharedMaterial;Check(r.enabled&&floor.GetComponent<Collider>().enabled,phase+" original floor renderer/collider enabled");Check(mat.name=="Facility_RoughConcrete_Floor"&&mat.mainTexture!=null&&mat.GetFloat("_Mode")==0,phase+" original opaque textured floor "+mat.name+" texture="+mat.mainTexture.name);notes.Add(phase+" floor material tint="+mat.color+" bounds="+r.bounds);}
+ static void CaptureTexture(RenderTexture rt,string name,bool flip=false){if(!rt){notes.Add("UNAVAILABLE: "+name+" view texture");return;}var previous=RenderTexture.active;RenderTexture.active=rt;var tex=new Texture2D(rt.width,rt.height,TextureFormat.RGB24,false);tex.ReadPixels(new Rect(0,0,rt.width,rt.height),0,0);if(flip){var pixels=tex.GetPixels();var corrected=new Color[pixels.Length];for(int y=0;y<rt.height;y++)Array.Copy(pixels,y*rt.width,corrected,(rt.height-1-y)*rt.width,rt.width);tex.SetPixels(corrected);}tex.Apply();File.WriteAllBytes(Path.Combine(output,name+".png"),tex.EncodeToPNG());RenderTexture.active=previous;UnityEngine.Object.DestroyImmediate(tex);notes.Add("CAPTURE: "+name+" "+rt.width+"x"+rt.height);}
+ static void CaptureGame(string name){var field=game.GetType().GetField("m_RenderTexture",BindingFlags.Instance|BindingFlags.NonPublic);CaptureTexture(field.GetValue(game)as RenderTexture,name,true);}
+ static void CaptureCamera(Camera cam,string name){var rt=new RenderTexture(1024,768,24);var prev=cam.targetTexture;cam.targetTexture=rt;cam.Render();CaptureTexture(rt,name);cam.targetTexture=prev;UnityEngine.Object.DestroyImmediate(rt);}
+ static void GameGizmos(bool value){game.GetType().GetProperty("drawGizmos",BindingFlags.Instance|BindingFlags.NonPublic).SetValue(game,value);game.Repaint();}
+ static IEnumerator Edit(){File.Delete(Path.Combine(output,"play-complete.txt"));game=EditorWindow.GetWindow(typeof(EditorApplication).Assembly.GetType("UnityEditor.GameView"));game.Show();game.Focus();Floor("edit");var cam=Camera.main;CaptureCamera(cam,"edit-camera");File.WriteAllLines(Path.Combine(output,"edit-audit.txt"),notes);Save();EditorApplication.isPlaying=true;yield break;}
+ static IEnumerator Play(){game=EditorWindow.GetWindow(typeof(EditorApplication).Assembly.GetType("UnityEditor.GameView"));game.Show();game.Focus();for(int i=0;i<40;i++)yield return null;var runtime=UnityEngine.Object.FindAnyObjectByType<FacilityBreachRuntime>();Floor("play");Check(NavMesh.CalculateTriangulation().indices.Length>0,"actual gameplay NavMesh loaded");Check(UnityEngine.Object.FindObjectsByType<LineRenderer>(FindObjectsSortMode.None).Length==0,"no runtime LineRenderers");notes.Add("Runtime renderer objects: "+string.Join(", ",runtime.GetComponentsInChildren<Renderer>().Select(r=>r.name+" bounds="+r.bounds.size)));
+ SessionState.SetBool("FacilityBreach.NavigationOverlayEnabled",true);nav.SetValue(null,true);GameGizmos(true);for(int i=0;i<30;i++){game.Repaint();yield return null;}CaptureGame("play-nav-on-gizmos-on");GameGizmos(false);for(int i=0;i<30;i++){game.Repaint();yield return null;}CaptureGame("play-nav-on-gizmos-off");Check((bool)nav.GetValue(null),"Gizmos toggle leaves separate Show NavMesh setting enabled");
+ Check(EditorApplication.ExecuteMenuItem("Facility Breach/Restore normal view"),"restore menu exists");for(int i=0;i<30;i++){game.Repaint();yield return null;}Check(!(bool)nav.GetValue(null),"restore turns actual native Show NavMesh off");CaptureGame("play-nav-off-gizmos-off");GameGizmos(true);for(int i=0;i<30;i++){game.Repaint();yield return null;}CaptureGame("play-nav-off-gizmos-on");CaptureCamera(runtime.GameplayCamera,"play-normal-camera");
+ runtime.StartMission();runtime.SetPause(true);Floor("pause");Check(!(bool)nav.GetValue(null),"pause retains normal display");runtime.SetPause(false);Check(!(bool)nav.GetValue(null),"resume retains normal display");var floorCollider=GameObject.Find("Facility_Floor").GetComponent<Collider>();Check(floorCollider.Raycast(new Ray(floorCollider.bounds.center+Vector3.up*2,Vector3.down),out _,5),"original floor collision ray hits");var path=new NavMeshPath();Check(NavMesh.CalculatePath(new Vector3(5,0,18),new Vector3(5,0,22),NavMesh.AllAreas,path)&&path.status==NavMeshPathStatus.PathComplete,"PG patrol remains navigable");var before=runtime;runtime.Restart();for(int i=0;i<45;i++)yield return null;runtime=UnityEngine.Object.FindAnyObjectByType<FacilityBreachRuntime>();Check(runtime!=before,"real Restart reloads scene");Floor("restart");Check(!(bool)nav.GetValue(null),"restart retains normal display");Check(NavMesh.CalculateTriangulation().indices.Length>0,"restart retains navigation");CaptureCamera(runtime.GameplayCamera,"restart-normal-camera");Check(!notes.Any(x=>x.StartsWith("CONSOLE ERROR:")),"no unexpected gameplay Console errors");File.WriteAllText(Path.Combine(output,"play-complete.txt"),"completed");Save();EditorApplication.isPlaying=false;yield break;}
+}
+
