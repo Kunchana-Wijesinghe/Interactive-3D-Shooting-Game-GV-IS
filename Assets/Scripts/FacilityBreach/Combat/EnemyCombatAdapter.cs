@@ -21,6 +21,8 @@ namespace FacilityBreach.Combat
         public bool IsDead => record == null || record.Life != EnemyLife.Active;
         public bool Warning => pending && !IsDead;
         public int Magazine { get; private set; } = 50;
+        public int CurrentHealth => record?.Health ?? 0;
+        public EnemyLife Life => record?.Life ?? EnemyLife.AwaitingSafeSpawn;
         private int reserve;
         private EnemyRecord record;
         private FacilityBreachRuntime runtime;
@@ -40,6 +42,7 @@ namespace FacilityBreach.Combat
         {
             if (!runtime || !runtime.Run.Running || runtime.Run.Paused || IsDead || info.Amount <= 0 || float.IsNaN(info.Amount)) return false;
             bool applied = runtime.Enemies.Damage(Identity, Mathf.CeilToInt(info.Amount), runtime.GameplayTime);
+            GameplayDiagnostics.Trace($"damage {Identity} amount={info.Amount} HP={CurrentHealth} life={Life} applied={applied}", this);
             Synchronize(); return applied;
         }
         public bool TryAttack(Transform perceivedTarget)
@@ -62,7 +65,7 @@ namespace FacilityBreach.Combat
         {
             if (!runtime || record == null) return;
             runtime.Enemies.Tick(runtime.GameplayTime); Synchronize();
-            if (record.Life == EnemyLife.AwaitingSafeSpawn) TryRevive();
+            if (runtime.AcceptsGameplay && record.Life == EnemyLife.AwaitingSafeSpawn) TryRevive();
             if (IsDead || !runtime.Run.Running || runtime.Run.Paused) return;
             float dt = Time.deltaTime; cadence = Mathf.Max(0, cadence - dt);
             if (reload > 0)

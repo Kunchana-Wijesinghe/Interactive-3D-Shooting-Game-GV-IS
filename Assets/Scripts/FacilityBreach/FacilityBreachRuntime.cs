@@ -6,6 +6,8 @@ using FacilityBreach.Combat;
 using Perera.Core;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.AI;
+using FacilityBreach.AI.SoundHunter;
 
 namespace FacilityBreach
 {
@@ -17,6 +19,17 @@ namespace FacilityBreach
         public PlayerResources Resources { get; private set; } = new PlayerResources();
         public EnemyRoster Enemies { get; private set; } = new EnemyRoster();
         public float InteractionRange = 2.5f, ShotRange = 50, ShotInterval = .2f, ReloadSeconds = 1.5f;
+        public GameObject[] EnemyVisuals = new GameObject[4];
+        public GameObject[] WeaponViewModels = new GameObject[3];
+        public GameObject[] WeaponPickupModels = new GameObject[3];
+        public NavMeshData Navigation;
+        public bool DevelopmentDiagnostics;
+        public bool AcceptsGameplay => Run.Running && !Run.Paused && Resources.Alive;
+        public Camera GameplayCamera => view;
+        public Collider LastShotCollider { get; private set; }
+        public string InteractionRejection { get; private set; }
+        private NavMeshDataInstance navigationInstance;
+        private GameObject equippedVisual;
         private readonly List<ResourceStation> stations = new List<ResourceStation>();
         private readonly List<GameObject> gates = new List<GameObject>();
         private readonly List<Collider> mapWalls = new List<Collider>();
@@ -44,6 +57,10 @@ namespace FacilityBreach
         {
             view = Camera.main;
             if (!view) throw new System.InvalidOperationException("Prototype requires its existing Main Camera");
+            GameplayDiagnostics.Enabled = DevelopmentDiagnostics;
+            if (Navigation) navigationInstance = NavMesh.AddNavMeshData(Navigation);
+            gameObject.AddComponent<DynamicNavigationObstacles>();
+            view.nearClipPlane = .05f;
             var spawn = Anchor("Door_Main_Entrance").position + Vector3.forward * 1.75f;
             exit = Anchor("Door_Main_Exit").position - Vector3.forward * 1.75f;
             var root = new GameObject("FB_TemporaryPlayer_BandaraAdapterPending");
@@ -54,6 +71,7 @@ namespace FacilityBreach
             view.transform.SetParent(root.transform); view.transform.localPosition = Vector3.up * 1.6f; view.transform.localRotation = Quaternion.identity;
             var muzzleObject = new GameObject("FB_Muzzle_VisualPending"); muzzleObject.transform.SetParent(view.transform);
             muzzleObject.transform.localPosition = new Vector3(.2f, -.15f, .45f); muzzle = muzzleObject.transform;
+            UpdateWeaponVisual();
             // The committed scene lacks the waste root despite shipping its generator.
             // Add only an obstacle here; never call the destructive world generators.
             Vector3 waste = new Vector3(-2, 0, 20);
@@ -80,35 +98,61 @@ namespace FacilityBreach
                 var anchor = Anchor(door);
                 var gate = Box("Card required — " + door, anchor.position + Vector3.up * 1.5f,
                     door.EndsWith("Left") ? new Vector3(.12f, 3, 2) : new Vector3(2, 3, .12f), new Color(1, .35f, 0));
-                var obstacle = gate.AddComponent<UnityEngine.AI.NavMeshObstacle>(); obstacle.shape = UnityEngine.AI.NavMeshObstacleShape.Box;
-                obstacle.size = Vector3.one; obstacle.carving = true;
+                // Player-only card barrier. Robot colliders explicitly ignore it below.
                 Label(gate, "CARD REQUIRED"); gates.Add(gate);
             }
             // Add FB_Agents root and all 4 security robots (PG-01, SH-01, CD-03, FL-04)
             var agentsRoot = new GameObject("FB_Agents"); agentsRoot.transform.SetParent(transform);
             
             // PG-01 Patrol Guard (60 HP, Teal)
-            CreateAgent(agentsRoot, "FB_Agent_PG01", "PG-01", 60, new Vector3(0, 1, 0), new Color(0, 0.8f, 0.8f));
+            var pg = CreateAgent(agentsRoot, "FB_Agent_PG01", "PG-01", 60, new Vector3(-11, 0, 7), new Color(0, 0.8f, 0.8f), 0);
+            pg.AddComponent<SoundHunterNavMeshMover>();
+            pg.AddComponent<TemporaryPatrolGuardAdapter>().Route = new[] { new Vector3(-11, 0, 7), new Vector3(-11, 0, 13), new Vector3(-8, 0, 13) };
             // SH-01 Sound Hunter (80 HP, Orange) with IS decision brain
-            var shObj = CreateAgent(agentsRoot, "FB_Agent_SH01", "SH-01", 80, new Vector3(18, 1, -18), new Color(1, 0.5f, 0));
+            var shObj = CreateAgent(agentsRoot, "FB_Agent_SH01", "SH-01", 80, exit + Vector3.left * 3, new Color(1, 0.5f, 0), 1);
             shObj.AddComponent<FacilityBreach.AI.SoundHunter.FacilityBreachSoundHunterBrain>();
             // CD-03 Cover Defender (90 HP, Violet)
-            CreateAgent(agentsRoot, "FB_Agent_CD03", "CD-03", 90, new Vector3(-8, 1, 12), new Color(0.6f, 0.2f, 0.8f));
+            CreateAgent(agentsRoot, "FB_Agent_CD03", "CD-03", 90, new Vector3(-8, 0, 12), new Color(0.6f, 0.2f, 0.8f), 2);
             // FL-04 Flanker (70 HP, Lime)
-            CreateAgent(agentsRoot, "FB_Agent_FL04", "FL-04", 70, new Vector3(-2, 1, 15), new Color(0.7f, 1, 0.2f));
+            CreateAgent(agentsRoot, "FB_Agent_FL04", "FL-04", 70, new Vector3(-2, 0, 15), new Color(0.7f, 1, 0.2f), 3);
 
             foreach (var collider in FindObjectsByType<BoxCollider>())
                 if (collider.transform.parent && collider.transform.parent.name == "Generated_Facility" && collider.bounds.size.y >= 3) mapWalls.Add(collider);
             SetPause(false); Time.timeScale = 0; Cursor.lockState = CursorLockMode.None; Cursor.visible = true;
         }
-        private GameObject CreateAgent(GameObject parent, string name, string identity, int hp, Vector3 position, Color color)
+        private GameObject CreateAgent(GameObject parent, string name, string identity, int hp, Vector3 position, Color color, int visualIndex)
         {
             var obj = GameObject.CreatePrimitive(PrimitiveType.Capsule); obj.name = name; obj.transform.SetParent(parent.transform);
+            if (Navigation && NavMesh.SamplePosition(position, out var safePost, 3, NavMesh.AllAreas)) position = safePost.position;
             obj.transform.position = position;
+            var hitbox = obj.GetComponent<CapsuleCollider>(); hitbox.center = Vector3.up * .9f; hitbox.height = 1.8f; hitbox.radius = .35f;
             var mat = new Material(Shader.Find("Standard")); mat.color = color; ownedMaterials.Add(mat);
             obj.GetComponent<Renderer>().sharedMaterial = mat;
+            if (EnemyVisuals.Length > visualIndex && EnemyVisuals[visualIndex])
+            {
+                var visual = Instantiate(EnemyVisuals[visualIndex], obj.transform); visual.name = "ModelVisual";
+                RemoveVisualColliders(visual);
+                obj.GetComponent<Renderer>().enabled = false;
+            }
+            else Debug.LogWarning("Missing robot visual: " + identity, obj);
+            foreach (var gate in gates) Physics.IgnoreCollision(hitbox, gate.GetComponent<Collider>());
             var adapter = obj.AddComponent<EnemyCombatAdapter>(); adapter.Identity = identity; adapter.MaximumHealth = hp;
+            obj.AddComponent<EnemyPresentation>();
             return obj;
+        }
+        private static void RemoveVisualColliders(GameObject visual)
+        {
+            foreach (var collider in visual.GetComponentsInChildren<Collider>()) { collider.enabled = false; Destroy(collider); }
+        }
+        private void UpdateWeaponVisual()
+        {
+            if (equippedVisual) { equippedVisual.SetActive(false); Destroy(equippedVisual); }
+            if (WeaponViewModels.Length <= Resources.Equipped || !WeaponViewModels[Resources.Equipped]) return;
+            equippedVisual = Instantiate(WeaponViewModels[Resources.Equipped], view.transform);
+            equippedVisual.transform.localPosition = new Vector3(.22f, -.24f, .36f);
+            equippedVisual.transform.localRotation = Quaternion.identity;
+            RemoveVisualColliders(equippedVisual);
+            foreach (var node in equippedVisual.GetComponentsInChildren<Transform>()) if (node.name == "Muzzle") { muzzle = node; break; }
         }
         private GameObject Box(string label, Vector3 position, Vector3 scale, Color color)
         {
@@ -121,7 +165,7 @@ namespace FacilityBreach
         {
             position = ClearPlacement(position, kind == StationKind.Card ? new Vector3(.2f, .05f, .125f) : Vector3.one * .25f);
             var obj = Box(name, position, kind == StationKind.Card ? new Vector3(.4f, .1f, .25f) : Vector3.one * .5f, color);
-            var station = obj.AddComponent<ResourceStation>(); station.Kind = kind; stations.Add(station); Label(obj, name); return station;
+            var station = obj.AddComponent<ResourceStation>(); station.Kind = kind; station.PickupModels = WeaponPickupModels; stations.Add(station); Label(obj, name); return station;
         }
         private Vector3 ClearPlacement(Vector3 desired, Vector3 halfSize)
         {
@@ -139,13 +183,15 @@ namespace FacilityBreach
         private void Label(GameObject obj, string text)
         {
             var label = new GameObject("Label"); label.transform.SetParent(obj.transform, false); label.transform.localPosition = Vector3.up * 1.5f;
-            var mesh = label.AddComponent<TextMesh>(); mesh.text = text; mesh.characterSize = .12f; mesh.fontSize = 40; mesh.anchor = TextAnchor.MiddleCenter;
+            // Pickup names are provided by the contextual HUD instead of giant world text.
+            label.SetActive(false);
         }
         private void Update()
         {
             if (!player) return;
+            GameplayDiagnostics.Enabled = DevelopmentDiagnostics;
             if (Run.Running && Input.GetKeyDown(KeyCode.Escape)) SetPause(!Run.Paused);
-            if (Run.Running && Cursor.lockState != CursorLockMode.Locked && !Run.Paused) SetPause(true);
+            if (!Application.isBatchMode && Run.Running && Cursor.lockState != CursorLockMode.Locked && !Run.Paused) SetPause(true);
             player.InputEnabled = Run.Running && !Run.Paused;
             if (!player.InputEnabled)
             {
@@ -164,36 +210,68 @@ namespace FacilityBreach
                 if (!Input.GetMouseButton(0) && !Input.GetKey(KeyCode.E) && !Input.GetKey(KeyCode.R) && !Input.GetKey(KeyCode.Q)) waitForRelease = false;
                 return;
             }
-            target = null;
-            if (Physics.Raycast(view.transform.position, view.transform.forward, out var interact, InteractionRange, ~0, QueryTriggerInteraction.Ignore))
-                target = interact.collider.GetComponentInParent<ResourceStation>();
-            if (target && Input.GetKeyDown(KeyCode.E))
-            {
-                bool used = target.Use(Run, Resources);
-                if (used && target.Kind == StationKind.Weapon) reload = 0;
-                Say(used ? "Interaction complete" : "Requirements not met");
-            }
+            target = FindInteractionTarget(out var rejection); InteractionRejection = rejection;
+            if (Input.GetKeyDown(KeyCode.E)) TryInteract();
             if (Input.GetKeyDown(KeyCode.R) || Resources.Magazine == 0) BeginReload();
-            if (Input.GetMouseButton(0)) Fire();
+            if (Input.GetMouseButton(0)) TryFire();
             if (Input.GetKeyDown(KeyCode.Q)) ThrowCan();
             if (Run.ExitUnlocked && Vector2.Distance(new Vector2(player.transform.position.x, player.transform.position.z), new Vector2(exit.x, exit.z)) < 1.2f) Run.Exit(Resources.Alive);
         }
-        private void BeginReload()
+        public void BeginReload()
         { if (reload > 0) return; if (Resources.CanReload) reload = ReloadSeconds; else if (Resources.Reserve == 0) Say("NO RESERVE AMMO"); }
-        private void Fire()
+        public ResourceStation FindInteractionTarget(out string rejection)
         {
-            if (reload > 0 || cadence > 0 || !Resources.Shoot()) return;
+            rejection = "Aim at a pickup within interaction range";
+            ResourceStation best = null; float bestScore = float.PositiveInfinity;
+            foreach (var station in stations)
+            {
+                if (!station.CanOfferInteraction) continue;
+                Vector3 delta = station.InteractionPoint - view.transform.position;
+                float distance = delta.magnitude;
+                if (distance > InteractionRange || Vector3.Dot(view.transform.forward, delta.normalized) < .55f) continue;
+                if (NearestHit(view.transform.position, delta.normalized, distance + .03f, out var hit) && !hit.transform.IsChildOf(station.transform))
+                { rejection = "Blocked by " + hit.collider.name; continue; }
+                float score = distance + 2 * (1 - Vector3.Dot(view.transform.forward, delta.normalized));
+                if (score < bestScore) { best = station; bestScore = score; }
+            }
+            return best;
+        }
+        public bool TryInteract()
+        {
+            target = FindInteractionTarget(out var rejection);
+            if (!AcceptsGameplay) rejection = "Mission inactive, paused or player eliminated";
+            bool used = AcceptsGameplay && target && target.Use(Run, Resources);
+            if (used && target.Kind == StationKind.Weapon) { reload = 0; UpdateWeaponVisual(); }
+            if (!used && AcceptsGameplay && target) rejection = target.RejectionReason;
+            InteractionRejection = used ? "" : rejection;
+            Say(used ? "Interaction complete" : rejection);
+            GameplayDiagnostics.Trace($"E state={Run.State} accepted={AcceptsGameplay} candidate={(target ? target.name : "none")} distance={(target ? Vector3.Distance(view.transform.position, target.InteractionPoint) : -1):F2} result={used} reason={rejection}", this);
+            return used;
+        }
+        public bool TryFire()
+        {
+            if (!AcceptsGameplay || reload > 0 || cadence > 0 || !Resources.Shoot()) return false;
+            LastShotCollider = null;
             cadence = ShotInterval;
             Vector3 aim = view.transform.position + view.transform.forward * ShotRange;
             if (NearestHit(view.transform.position, view.transform.forward, ShotRange, out var cameraHit)) aim = cameraHit.point;
             Vector3 direction = aim - muzzle.position;
-            if (NearestHit(muzzle.position, direction.normalized, Mathf.Min(ShotRange, direction.magnitude + .01f), out var hit))
+            // A long view model can put its muzzle inside/beyond nearby cover.
+            // First check the camera-to-muzzle segment so that cover cannot be skipped.
+            Vector3 muzzleOffset = muzzle.position - view.transform.position;
+            bool obstructed = NearestHit(view.transform.position, muzzleOffset.normalized, muzzleOffset.magnitude, out var hit);
+            if (obstructed || NearestHit(muzzle.position, direction.normalized, Mathf.Min(ShotRange, direction.magnitude + .01f), out hit))
             {
+                LastShotCollider = hit.collider;
                 var damageable = hit.collider.GetComponentInParent<IDamageable>();
+                var enemy = hit.collider.GetComponentInParent<EnemyCombatAdapter>(); int before = enemy ? enemy.CurrentHealth : -1;
                 bool damaged = damageable != null && damageable.TakeDamage(new DamageInfo(Resources.Damage[Resources.Equipped], hit.point, direction.normalized, player.gameObject));
-                Say(damaged ? "HIT" : "Impact");
+                GameplayDiagnostics.Trace($"shot camera={view.transform.position} muzzle={muzzle.position} dir={direction.normalized} collider={hit.collider.name} layer={hit.collider.gameObject.layer} receiver={damageable?.GetType().Name ?? "none"} applied={damaged} HP={before}->{(enemy ? enemy.CurrentHealth : -1)}", this);
+                Say(damaged ? enemy ? $"{enemy.Identity}: {enemy.CurrentHealth}/{enemy.MaximumHealth} HP{(enemy.IsDead ? " — INACTIVE" : "")}" : "HIT" : "Blocked: " + hit.collider.name);
             }
+            else GameplayDiagnostics.Trace($"shot miss camera={view.transform.position} muzzle={muzzle.position} dir={direction.normalized}", this);
             SoundEventBus.Emit(player.transform.position, 40, SoundCategory.Gunshot, player.GetEntityId().GetHashCode());
+            return true;
         }
         private bool NearestHit(Vector3 origin, Vector3 direction, float distance, out RaycastHit nearest)
         {
@@ -214,7 +292,7 @@ namespace FacilityBreach
             obj.AddComponent<CanImpact>();
         }
         private void Say(string message) { feedback = message; feedbackTime = 2; }
-        private void SetPause(bool paused)
+        public void SetPause(bool paused)
         {
             Run.Paused = paused; waitForRelease = true; Input.ResetInputAxes();
             if (player) player.ClearInputs();
@@ -223,14 +301,15 @@ namespace FacilityBreach
             Cursor.visible = Cursor.lockState != CursorLockMode.Locked;
         }
         private void OnApplicationFocus(bool focus) { if (!focus && Run.Running) SetPause(true); }
-        private void Restart() { Time.timeScale = 1; SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex); }
-        private void OnDestroy() { Time.timeScale = 1; foreach (var material in ownedMaterials) if (material) Destroy(material); }
+        public void StartMission() { Run.Start(); SetPause(false); }
+        public void Restart() { Time.timeScale = 1; SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex); }
+        private void OnDestroy() { if (navigationInstance.valid) navigationInstance.Remove(); Time.timeScale = 1; foreach (var material in ownedMaterials) if (material) Destroy(material); }
         private void OnGUI()
         {
             if (!player) return;
             GUI.Box(new Rect(15, 15, 355, 130), $"FACILITY BREACH\nHP {Resources.Health}/100\nAmmo{Resources.Equipped + 1}gun   {Resources.Magazine}/{Resources.Reserve}\n{(reload > 0 ? "RELOADING" : "")}\nCARD: {(Run.HasCard ? "ACQUIRED" : "MISSING")}");
             string objective = Run.State == MissionState.Escape ? "DEVICE DEACTIVATED — reach the exit" : Run.State == MissionState.Deactivating ? $"Deactivating: {5 - Run.ShutdownRemaining:F1}/5 seconds" : !Run.HasCard ? "Find the access card near toxic waste" : player.transform.position.x > 10 && player.transform.position.z > 12 && player.transform.position.z < 24 ? "Connect the card to deactivate the device" : "Use the card to enter Machinery";
-            GUI.Box(new Rect(15, Screen.height - 65, 570, 50), objective + "\n" + (target ? target.Prompt : feedbackTime > 0 ? feedback : ""));
+            GUI.Box(new Rect(15, Screen.height - 65, 570, 50), objective + "\n" + (feedbackTime > 0 ? feedback : target ? target.Prompt : ""));
             if (Run.State == MissionState.Deactivating)
             {
                 GUI.color = Color.cyan;
@@ -248,7 +327,7 @@ namespace FacilityBreach
                 if (Run.State == MissionState.Menu)
                 {
                     GUILayout.Label("Retrieve the card near toxic waste. Connect it to the fictional device in Machinery within five minutes. Escape alive. Combat is optional.");
-                    if (GUILayout.Button("Start Mission")) { Run.Start(); SetPause(false); }
+                    if (GUILayout.Button("Start Mission")) StartMission();
                     if (GUILayout.Button("Controls")) controls = !controls;
                     if (controls) GUILayout.Label("WASD move • Mouse look • Shift sprint • E interact\nLeft click shoot • R reload • Q can • Escape pause");
                 }
