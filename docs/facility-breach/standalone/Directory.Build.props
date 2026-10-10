@@ -1,0 +1,6 @@
+<Project>
+  <PropertyGroup>
+    <BaseOutputPath>$(TEMP)/FB-Standalone-Checks/bin/</BaseOutputPath>
+    <BaseIntermediateOutputPath>$(TEMP)/FB-Standalone-Checks/obj/</BaseIntermediateOutputPath>
+  </PropertyGroup>
+</Project>

@@ -1,0 +1,52 @@
+FB PASS: menu timer 05:00
+FB PASS: card required
+FB PASS: card once
+FB PASS: range and duplicate connection
+FB PASS: pause freezes both timers
+FB PASS: connection clock continues
+FB PASS: substep completion preserves clock
+FB PASS: escape unlimited and living victory
+FB PASS: victory terminal
+FB PASS: exact timeout tie loses
+FB PASS: timeout inside shutdown step
+FB PASS: exit locked before shutdown
+FB PASS: death after shutdown loses
+FB PASS: HP51 rejected
+FB PASS: HP50 heals to100
+FB PASS: HP30 heals to80
+FB PASS: no resurrection
+FB PASS: swaps conserve per weapon magazine
+FB PASS: reload tops up
+FB PASS: partial reserve transfer cap
+FB PASS: third weapon identity
+FB PASS: expired revival cannot count toward challenge
+FB PASS: all four temporary defeats become permanent
+FB PASS: safe spawn postponement and full revival
+FB PASS: one authored camera
+FB PASS: one authored listener
+FB PASS: one scene mission root
+ArgumentOutOfRangeException: Index was out of range. Must be non-negative and less than the size of the collection.
+FB PASS: Prototype runtime player created
+FB PASS: no duplicate runtime camera or listener
+FB PASS: seven foundation stations
+FB PASS: all three Machinery gates
+FB PASS: missing authored waste represented explicitly
+FB PASS: pickup clear geometry: Marked ammo crate 25; blockers=
+FB PASS: pickup clear geometry: Ammo2gun swap; blockers=
+FB PASS: pickup clear geometry: Connect card: fictional device; blockers=
+FB PASS: pickup clear geometry: Access card; blockers=
+FB PASS: pickup clear geometry: Marked ammo crate 50; blockers=
+FB PASS: pickup clear geometry: Entrance health +50 (HP <=50); blockers=
+FB PASS: pickup clear geometry: Ammo3gun swap; blockers=
+FB PASS: existing Entrance wall blocks shot; miss consumes and emits sound
+FB PASS: nearest exposed crate hit once
+FB PASS: muzzle obstruction blocks camera-visible target
+FB PASS: Prototype card interaction
+FB PASS: Prototype crate one shot
+FB PASS: crate partial pickup remains
+FB PASS: crate before15
+FB PASS: crate restores without stale ammo
+FB PASS: Prototype health interaction
+FB PASS: health respawn5
+FB PASS: Prototype victory contract scenario
+FB PASS: defeat scenario timer
