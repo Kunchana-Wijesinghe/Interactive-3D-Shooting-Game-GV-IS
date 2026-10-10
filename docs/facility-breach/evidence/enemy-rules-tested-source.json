@@ -1,0 +1,24 @@
+{
+  "production_commit": "1069fc4",
+  "normalization": "CRLF and LF normalized for Git working-tree conversion",
+  "sha256": {
+    "Assets/Editor/FacilityBreach/EnemyNavigationDebug.cs": "1db02287e5630dec298915e767ad941c0282cf6197aebf1038b6edec4fbc4c3a",
+    "Assets/Editor/FacilityBreach/EnemyNavigationDebug.cs.meta": "0745f2b596db395e405a646f3e7eab752eaa5c1ef8612333920118c40594138b",
+    "Assets/Scripts/FacilityBreach/AI/Roles.meta": "a0d5f86ef076ff830a0d3a607479d5588d40ce04da89c3787f12619c1ae2778e",
+    "Assets/Scripts/FacilityBreach/AI/Roles/CoverDefenderBrain.cs": "156580863c08ab1259c52dbbb01505c8ce06b3dc6413a91fb6212b3588fd984a",
+    "Assets/Scripts/FacilityBreach/AI/Roles/CoverDefenderBrain.cs.meta": "24f2ab4efd9f5ce0a9ecb75a82b7895a576058dc6ccc682dafccd30acddbbd4f",
+    "Assets/Scripts/FacilityBreach/AI/Roles/FlankerBrain.cs": "9b0010b9b38afff272977b8c1d4f34297bbb9f99ae5d7fb6c027aea15e016a61",
+    "Assets/Scripts/FacilityBreach/AI/Roles/FlankerBrain.cs.meta": "539b0d673d39d4bc136d6b4f75fba0aafc3f500b77e19b8d8b77e45b9ef13a57",
+    "Assets/Scripts/FacilityBreach/AI/Roles/PatrolGuardBrain.cs": "7bd4e103afe64e2890e6630c275335b737ac1e8b19ad40232561a8bd27e32059",
+    "Assets/Scripts/FacilityBreach/AI/Roles/PatrolGuardBrain.cs.meta": "125b17a46da0613daad68d606b6ea24e86551045936c8a6dbd92b77d5ae00352",
+    "Assets/Scripts/FacilityBreach/AI/Roles/RoleDecisionBrain.cs": "239a08739f7643e953fc19010d574c926ee05ddd50eef5c8084e63a5653b6d93",
+    "Assets/Scripts/FacilityBreach/AI/Roles/RoleDecisionBrain.cs.meta": "d1428748fd348d4d641b094ff40d185eb7bb607f732e48ebcf229ea580c3d574",
+    "Assets/Scripts/FacilityBreach/AI/SoundHunter/AgentPerception.cs": "0153ad7efff4461aee6ea9c4696b8401928796a65a6424d74d398433d6ebd4e4",
+    "Assets/Scripts/FacilityBreach/AI/SoundHunter/FacilityBreachSoundHunterBrain.cs": "6bbbc7a6c376b8d6332fbd293a9393f72c6d6738230b8f9654a4f6bb7584a8c2",
+    "Assets/Scripts/FacilityBreach/AI/SoundHunter/SoundHunterNavMeshMover.cs": "c5d18c8d2ba8178228f854edf5dd6887f793bfb62ade9b6abd049839376d4d0a",
+    "Assets/Scripts/FacilityBreach/Combat/EnemyCombatAdapter.cs": "21a13e8f79b4edca00d20dee17a4fb2ec7ec3cd6be727b9e4fe47edfe64447e7",
+    "Assets/Scripts/FacilityBreach/Combat/EnemyPresentation.cs": "d1353fb35c1267c6937a92028c00e4b5602fe112ac64dade7c8bfdb3afa4e50e",
+    "Assets/Scripts/FacilityBreach/Combat/PlayerDamageAdapter.cs": "575fa407b4cd801574afd2d1a90618208f4ed0373f2bd14afd6db5e579ab7297",
+    "Assets/Scripts/FacilityBreach/FacilityBreachRuntime.cs": "b5fcc67063958bacb7ca6f37c9a940518d26463e10dd9fe5121e1a997e2e1ff5"
+  }
+}

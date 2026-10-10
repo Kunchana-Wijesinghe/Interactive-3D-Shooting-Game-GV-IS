@@ -1,0 +1,93 @@
+92 checks
+PASS: real graphics device available for camera render
+PASS: view-model material opaque: Weapon steel
+PASS: view-model material opaque: Grip rubber
+PASS: view-model material opaque: Variant accent
+PASS: view-model material opaque: Weapon steel
+PASS: view-model material opaque: Weapon steel
+PASS: view-model material opaque: Weapon steel
+PASS: view-model material opaque: Variant accent
+PASS: SH-01 opaque material SH-01 accent
+PASS: SH-01 opaque material Graphite steel.001
+PASS: SH-01 opaque material SH-01 accent
+PASS: SH-01 opaque material SH-01 accent
+PASS: SH-01 opaque material Graphite steel.001
+PASS: SH-01 opaque material Joint rubber.001
+PASS: SH-01 opaque material Joint rubber.001
+PASS: SH-01 opaque material SH-01 accent
+PASS: SH-01 opaque material Graphite steel.001
+PASS: SH-01 opaque material SH-01 accent
+PASS: SH-01 opaque material Joint rubber.001
+PASS: SH-01 opaque material Graphite steel.001
+PASS: SH-01 opaque material Joint rubber.001
+PASS: SH-01 opaque material Joint rubber.001
+PASS: SH-01 opaque material SH-01 accent
+PASS: SH-01 opaque material Graphite steel.001
+PASS: SH-01 opaque material SH-01 accent
+PASS: SH-01 opaque material SH-01 accent
+PASS: SH-01 opaque material StateLight_BluePatrol.001
+PASS: SH-01 opaque material Graphite steel.001
+PASS: SH-01 opaque material Optical lens.001
+PASS: SH-01 live robot model bounds (0.88, 1.80, 0.66)
+PASS: CD-03 opaque material CD-03 accent
+PASS: CD-03 opaque material CD-03 accent
+PASS: CD-03 opaque material Graphite steel.002
+PASS: CD-03 opaque material Graphite steel.002
+PASS: CD-03 opaque material Joint rubber.002
+PASS: CD-03 opaque material Joint rubber.002
+PASS: CD-03 opaque material CD-03 accent
+PASS: CD-03 opaque material Graphite steel.002
+PASS: CD-03 opaque material CD-03 accent
+PASS: CD-03 opaque material Joint rubber.002
+PASS: CD-03 opaque material Graphite steel.002
+PASS: CD-03 opaque material Joint rubber.002
+PASS: CD-03 opaque material Joint rubber.002
+PASS: CD-03 opaque material CD-03 accent
+PASS: CD-03 opaque material Graphite steel.002
+PASS: CD-03 opaque material CD-03 accent
+PASS: CD-03 opaque material StateLight_BluePatrol.002
+PASS: CD-03 opaque material Graphite steel.002
+PASS: CD-03 opaque material Optical lens.002
+PASS: CD-03 live robot model bounds (1.08, 1.80, 1.22)
+PASS: PG-01 opaque material PG-01 accent
+PASS: PG-01 opaque material Graphite steel
+PASS: PG-01 opaque material Graphite steel
+PASS: PG-01 opaque material Joint rubber
+PASS: PG-01 opaque material Joint rubber
+PASS: PG-01 opaque material PG-01 accent
+PASS: PG-01 opaque material Graphite steel
+PASS: PG-01 opaque material PG-01 accent
+PASS: PG-01 opaque material Optical lens
+PASS: PG-01 opaque material Joint rubber
+PASS: PG-01 opaque material Graphite steel
+PASS: PG-01 opaque material Joint rubber
+PASS: PG-01 opaque material Joint rubber
+PASS: PG-01 opaque material PG-01 accent
+PASS: PG-01 opaque material Graphite steel
+PASS: PG-01 opaque material PG-01 accent
+PASS: PG-01 opaque material StateLight_BluePatrol
+PASS: PG-01 opaque material Graphite steel
+PASS: PG-01 opaque material Optical lens
+PASS: PG-01 live robot model bounds (1.00, 1.80, 0.75)
+PASS: FL-04 opaque material FL-04 accent
+PASS: FL-04 opaque material FL-04 accent
+PASS: FL-04 opaque material Graphite steel.003
+PASS: FL-04 opaque material Graphite steel.003
+PASS: FL-04 opaque material Joint rubber.003
+PASS: FL-04 opaque material Joint rubber.003
+PASS: FL-04 opaque material FL-04 accent
+PASS: FL-04 opaque material Graphite steel.003
+PASS: FL-04 opaque material FL-04 accent
+PASS: FL-04 opaque material Joint rubber.003
+PASS: FL-04 opaque material Graphite steel.003
+PASS: FL-04 opaque material Joint rubber.003
+PASS: FL-04 opaque material Joint rubber.003
+PASS: FL-04 opaque material FL-04 accent
+PASS: FL-04 opaque material Graphite steel.003
+PASS: FL-04 opaque material FL-04 accent
+PASS: FL-04 opaque material StateLight_BluePatrol.003
+PASS: FL-04 opaque material FL-04 accent
+PASS: FL-04 opaque material Graphite steel.003
+PASS: FL-04 opaque material Optical lens.003
+PASS: FL-04 live robot model bounds (0.88, 1.80, 0.82)
+PASS: no unexpected visual audit Console errors: 

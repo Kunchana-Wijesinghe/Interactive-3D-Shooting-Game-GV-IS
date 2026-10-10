@@ -83,7 +83,7 @@ namespace FacilityBreach.Editor
             var pgMover = pg.GetComponent<SoundHunterNavMeshMover>(); var shMover = sh.GetComponent<SoundHunterNavMeshMover>();
             Check(pgMover.OnNavigation && shMover.OnNavigation, "PG and SH agents on scoped facility navigation");
             Vector3 pgStart = pg.transform.position; yield return Wait(2);
-            Check(Vector3.Distance(pgStart, pg.transform.position) > .2f && pgMover.PathRequests <= 8, "temporary visual PG patrol moves with bounded requests");
+            Check(Vector3.Distance(pgStart, pg.transform.position) > .2f && pgMover.PathRequests <= 8, "PG corridor patrol moves with bounded requests");
             var hunter = sh.GetComponent<FacilityBreachSoundHunterBrain>();
             Warp(run, new Vector3(0, .1f, 24), new Vector3(0, 1, 20)); int heardBefore = hunter.HeardCount;
             Vector3 emitted = run.PlayerTransform.position;
@@ -95,6 +95,12 @@ namespace FacilityBreach.Editor
             Check(Vector3.Distance(shMover.Goal, emitted) < .1f, "SH navigation goal does not follow hidden player's new position");
             yield return Wait(10.2f);
             Check(hunter.MemoryCount == 0 && hunter.CurrentState != SoundHunterState.Combat, "sound memory expires without new events");
+            // Isolate hit/resource checks after real patrol and hearing verification.
+            foreach (var enemy in enemies)
+            {
+                enemy.enabled = false;
+                foreach (var sink in enemy.GetComponents<MonoBehaviour>().OfType<IEnemyActivitySink>()) sink.SetEnemyActive(false);
+            }
             var stations = UnityEngine.Object.FindObjectsByType<ResourceStation>();
             var ammo2 = stations.Single(x => x.Kind == StationKind.Weapon && x.Weapon == 1);
             var ammo3 = stations.Single(x => x.Kind == StationKind.Weapon && x.Weapon == 2);
@@ -128,6 +134,7 @@ namespace FacilityBreach.Editor
                 }
                 Check(enemy.IsDead && !enemy.Warning && !enemy.GetComponent<Collider>().enabled, enemy.Identity + " defeated after " + requiredHits + " successful Ammo1 hits");
             }
+            Check(run.Enemies.ChallengeComplete && enemies.All(x => x.Life == EnemyLife.Permanent), "simultaneous four-enemy temporary defeat permanently cancels revival");
             var crate25 = stations.Single(x => x.Kind == StationKind.AmmoCrate && x.Quantity == 25);
             var crate50 = stations.Single(x => x.Kind == StationKind.AmmoCrate && x.Quantity == 50);
             foreach (var crate in new[] { crate25, crate50 })
@@ -182,9 +189,16 @@ namespace FacilityBreach.Editor
             }
             Check(revivedTarget.IsDead && revivedTarget.Life == EnemyLife.TemporarilyInactive && !run.Enemies.ChallengeComplete, "single enemy starts temporary lifecycle");
             Warp(run, new Vector3(-12.5f, .1f, -28), new Vector3(-12.5f, 1, -24));
+            var occupyingCharacter = new GameObject("Temporary validation occupying character");
+            occupyingCharacter.transform.position = revivedTarget.RevivalPost;
+            var occupancyBody = occupyingCharacter.AddComponent<CharacterController>();
+            occupancyBody.radius = 2.5f; occupancyBody.height = 5; occupancyBody.center = Vector3.up * 2.5f;
+            Physics.SyncTransforms();
             Time.timeScale = 8; yield return Wait(29);
             Check(revivedTarget.IsDead, "no premature revival before thirty gameplay seconds");
-            yield return Wait(2); Time.timeScale = 1;
+            yield return Wait(2);
+            Check(revivedTarget.IsDead && revivedTarget.Life == EnemyLife.AwaitingSafeSpawn, "occupied character postpones revival after timer expiry");
+            UnityEngine.Object.Destroy(occupyingCharacter); yield return Wait(.8f); Time.timeScale = 1;
             Check(!revivedTarget.IsDead && revivedTarget.CurrentHealth == 90 && revivedTarget.GetComponent<Collider>().enabled, "safe CD post revives at full HP after thirty gameplay seconds");
             Check(errors.Count == 0, "no unexpected Console errors: " + string.Join("; ", errors));
             evidence.Add("Programmatic API/physics/nav Play Mode checks in Prototype; manual keyboard/mouse and rendered image review are not claimed.");

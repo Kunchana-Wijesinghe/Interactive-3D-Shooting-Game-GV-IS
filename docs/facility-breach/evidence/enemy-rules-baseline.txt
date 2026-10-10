@@ -1,0 +1,25 @@
+12 observations
+PASS: BASELINE VIOLATION: PG helper detects player directly behind guard
+PASS: baseline resolved attack scheduled once
+PASS: baseline single successful shot applies ten damage once
+PASS: baseline second attack scheduled
+PASS: BASELINE VIOLATION: warning/pending shot survives pause
+PASS: BASELINE VIOLATION: stale pre-pause shot resumes after unpause
+PASS: baseline terminal attack scheduled
+PASS: BASELINE VIOLATION: pending warning survives Lost
+PASS: baseline player receiver already refuses terminal damage
+PASS: baseline one combat adapter on each root
+PASS: BASELINE GAP: CD has no decision component
+PASS: BASELINE GAP: FL has no decision component
+Runtime LineRenderers=0
+FL-04 chest renderer StateLight bounds=(0.14, 0.10, 0.03) material=StateLight_BluePatrol.003
+SH-01 chest renderer StateLight bounds=(0.14, 0.10, 0.03) material=StateLight_BluePatrol.001
+CD-03 chest renderer StateLight bounds=(0.15, 0.11, 0.03) material=StateLight_BluePatrol.002
+PG-01 chest renderer StateLight bounds=(0.15, 0.11, 0.03) material=StateLight_BluePatrol
+Weapon renderer Barrel bounds=(0.05, 0.27, 0.09) material=Weapon steel
+Weapon renderer Grip bounds=(0.09, 0.30, 0.18) material=Grip rubber
+Weapon renderer Magazine bounds=(0.10, 0.31, 0.24) material=Variant accent
+Weapon renderer Receiver bounds=(0.15, 0.23, 0.50) material=Weapon steel
+Weapon renderer SightFront bounds=(0.05, 0.08, 0.06) material=Weapon steel
+Weapon renderer SightRear bounds=(0.11, 0.08, 0.08) material=Weapon steel
+Weapon renderer TopRail bounds=(0.07, 0.10, 0.39) material=Variant accent
