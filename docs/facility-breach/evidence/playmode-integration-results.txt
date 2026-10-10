@@ -1,0 +1,124 @@
+Unity 6000.6.2f1; final production scripts and wired Prototype; real batch Play Mode.
+Runner completed and requested Editor exit 0.
+Isolated-copy Editor search startup indexing disabled (not production preference).
+112 checks
+PASS: Prototype loaded and mission accepts gameplay nav=True state=Active hp=100 models=4
+PASS: four authoritative enemy records initialized at full health
+PASS: all four live roots use imported robot visuals; capsule renderers hidden
+PASS: equipped FBX renderer intersects camera frustum
+PASS: PG and SH agents on scoped facility navigation
+PASS: temporary visual PG patrol moves with bounded requests
+PASS: actual player shot emits gunshot
+PASS: SH listener receives exactly one audible gunshot
+PASS: occluded gunshot triggers emitted-origin investigation
+PASS: SH navigation goal does not follow hidden player's new position
+PASS: sound memory expires without new events
+PASS: solid cover blocks pickup interaction
+PASS: solid cover is nearest hitscan receiver
+PASS: same E interaction path equips Ammo2 and cancels reload
+PASS: swap back preserves Ammo1 magazine/reserve
+PASS: same E interaction path equips Ammo3
+PASS: swap back from Ammo3 creates no ammo
+PASS: pickup visuals instantiated and survive swaps
+PASS: PG-01 actual hitscan hit 1
+PASS: PG-01 authoritative HP after hit 1
+PASS: PG-01 actual hitscan hit 2
+PASS: PG-01 authoritative HP after hit 2
+PASS: PG-01 actual hitscan hit 3
+PASS: PG-01 authoritative HP after hit 3
+PASS: PG-01 actual hitscan hit 4
+PASS: PG-01 authoritative HP after hit 4
+PASS: PG-01 actual hitscan hit 5
+PASS: PG-01 authoritative HP after hit 5
+PASS: PG-01 actual hitscan hit 6
+PASS: PG-01 authoritative HP after hit 6
+PASS: PG-01 defeated after 6 successful Ammo1 hits
+PASS: SH-01 actual hitscan hit 1
+PASS: SH-01 authoritative HP after hit 1
+PASS: SH-01 actual hitscan hit 2
+PASS: SH-01 authoritative HP after hit 2
+PASS: SH-01 actual hitscan hit 3
+PASS: SH-01 authoritative HP after hit 3
+PASS: SH-01 actual hitscan hit 4
+PASS: SH-01 authoritative HP after hit 4
+PASS: SH-01 actual hitscan hit 5
+PASS: SH-01 authoritative HP after hit 5
+PASS: SH-01 actual hitscan hit 6
+PASS: SH-01 authoritative HP after hit 6
+PASS: SH-01 actual hitscan hit 7
+PASS: SH-01 authoritative HP after hit 7
+PASS: SH-01 actual hitscan hit 8
+PASS: SH-01 authoritative HP after hit 8
+PASS: SH-01 defeated after 8 successful Ammo1 hits
+PASS: CD-03 actual hitscan hit 1
+PASS: CD-03 authoritative HP after hit 1
+PASS: CD-03 actual hitscan hit 2
+PASS: CD-03 authoritative HP after hit 2
+PASS: CD-03 actual hitscan hit 3
+PASS: CD-03 authoritative HP after hit 3
+PASS: CD-03 actual hitscan hit 4
+PASS: CD-03 authoritative HP after hit 4
+PASS: CD-03 actual hitscan hit 5
+PASS: CD-03 authoritative HP after hit 5
+PASS: CD-03 actual hitscan hit 6
+PASS: CD-03 authoritative HP after hit 6
+PASS: CD-03 actual hitscan hit 7
+PASS: CD-03 authoritative HP after hit 7
+PASS: CD-03 actual hitscan hit 8
+PASS: CD-03 authoritative HP after hit 8
+PASS: CD-03 actual hitscan hit 9
+PASS: CD-03 authoritative HP after hit 9
+PASS: CD-03 defeated after 9 successful Ammo1 hits
+PASS: FL-04 actual hitscan hit 1
+PASS: FL-04 authoritative HP after hit 1
+PASS: FL-04 actual hitscan hit 2
+PASS: FL-04 authoritative HP after hit 2
+PASS: FL-04 actual hitscan hit 3
+PASS: FL-04 authoritative HP after hit 3
+PASS: FL-04 actual hitscan hit 4
+PASS: FL-04 authoritative HP after hit 4
+PASS: FL-04 actual hitscan hit 5
+PASS: FL-04 authoritative HP after hit 5
+PASS: FL-04 actual hitscan hit 6
+PASS: FL-04 authoritative HP after hit 6
+PASS: FL-04 actual hitscan hit 7
+PASS: FL-04 authoritative HP after hit 7
+PASS: FL-04 defeated after 7 successful Ammo1 hits
+PASS: one real shot breaks crate 25
+PASS: one associated ammo pickup exists
+PASS: E collects 25 into reserve
+PASS: one real shot breaks crate 50
+PASS: one associated ammo pickup exists
+PASS: E collects 50 into reserve
+PASS: reload uses collected reserve
+PASS: pause freezes mission and crate timers
+PASS: both crates restore/refill after gameplay timeout
+PASS: restored crate breaks once
+PASS: full reserve rejects without consuming pickup
+PASS: partial cap transfer leaves 24 rounds
+PASS: restart restores mission/resources/four roots without duplicates
+PASS: restart retains one camera/listener
+PASS: post-restart weapon swap
+PASS: confirmed Ammo2 damage 15
+PASS: return to Ammo1 after confirmed alternate-weapon hit
+PASS: post-restart weapon swap
+PASS: confirmed Ammo3 damage 20
+PASS: return to Ammo1 after confirmed alternate-weapon hit
+PASS: revival setup actual shot
+PASS: revival setup actual shot
+PASS: revival setup actual shot
+PASS: revival setup actual shot
+PASS: revival setup actual shot
+PASS: revival setup actual shot
+PASS: single enemy starts temporary lifecycle
+PASS: no premature revival before thirty gameplay seconds
+PASS: safe CD post revives at full HP after thirty gameplay seconds
+PASS: no unexpected Console errors: 
+Programmatic API/physics/nav Play Mode checks in Prototype; manual keyboard/mouse and rendered image review are not claimed.
+
+SH lifecycle log evidence:
+[FB gameplay] SH state=Investigate target=(0.00, 0.10, 24.00)
+[FB gameplay] SH state=Search target=(0.00, 0.10, 24.00)
+[FB gameplay] SH state=Patrol target=(0.00, 0.10, 24.00)
+[FB gameplay] SH state=Investigate target=(-12.93, 0.10, 12.29)
+[FB gameplay] SH state=Inactive target=(-12.93, 0.10, 12.29)
