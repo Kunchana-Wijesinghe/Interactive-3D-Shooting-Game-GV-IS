@@ -1,0 +1,4 @@
+PASS: edit original floor renderer/collider enabled
+PASS: edit original opaque textured floor Facility_RoughConcrete_Floor texture=rough_concrete_floor_diffuseOriginal
+edit floor material tint=RGBA(0.320, 0.340, 0.360, 1.000) bounds=Center: (0.00, -0.25, 0.00), Extents: (21.00, 0.25, 30.00)
+CAPTURE: edit-camera 1024x768

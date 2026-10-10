@@ -1,0 +1,15 @@
+Original floor YAML object 2130276564 matches verified world-builder b7c1425
+Original floor YAML object 2130276565 matches verified world-builder b7c1425
+Original floor YAML object 2130276566 matches verified world-builder b7c1425
+Original floor YAML object 2130276567 matches verified world-builder b7c1425
+Original floor YAML object 2130276568 matches verified world-builder b7c1425
+Floor material unchanged from b7c1425: Standard shader fileID46, opaque Mode0/ZWrite1, tint(.32,.34,.36,1), textured GUID9399dddaff07d97468ae292417838195
+Floor texture exists: Assets\ADR_Textures\Textures\Urban_Texture\rough_concrete_floor\rough_concrete_floor_diffuseOriginal.png.meta
+Floor texture exists: Assets\ADR_Textures\Textures\Urban_Texture\rough_concrete_floor\rough_concrete_floor_normal.png.meta
+Floor texture exists: Assets\ADR_Textures\Textures\Urban_Texture\rough_concrete_floor\rough_concrete_floor_diffuseOriginal.png.meta
+Floor texture exists: Assets\ADR_Textures\Textures\Urban_Texture\rough_concrete_floor\rough_concrete_floor_ao.png.meta
+Floor texture exists: Assets\ADR_Textures\Textures\Urban_Texture\rough_concrete_floor\rough_concrete_floor_height.png.meta
+Scene renderer counts current=1193 world-builder=1193 added IDs=[]
+Changed authored scene MeshRenderer blocks versus world-builder: []
+Facility_Floor object count: 1
+115 protected/authored files match prior audited byte hashes
