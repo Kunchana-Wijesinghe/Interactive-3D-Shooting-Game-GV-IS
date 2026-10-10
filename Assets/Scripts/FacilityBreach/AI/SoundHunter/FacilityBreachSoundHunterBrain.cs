@@ -28,6 +28,7 @@ namespace FacilityBreach.AI.SoundHunter
         private SoundMemory memory;
         private SoundRanker ranker;
         private HearingEvaluator evaluator;
+        private HearingGraph currentGraphInstance;
 
         private Renderer chestRenderer;
         private Material chestMaterial;
@@ -62,10 +63,6 @@ namespace FacilityBreach.AI.SoundHunter
         {
             runtime = FindAnyObjectByType<FacilityBreachRuntime>();
             graphSetup.BuildGraph();
-            if (graphSetup.Graph != null)
-            {
-                evaluator = new HearingEvaluator(graphSetup.Graph);
-            }
         }
 
         private void OnEnable()
@@ -80,7 +77,6 @@ namespace FacilityBreach.AI.SoundHunter
 
         private void OnDestroy()
         {
-            SoundEventBus.Emitted -= OnSoundEmitted;
             if (chestMaterial) Destroy(chestMaterial);
         }
 
@@ -113,12 +109,13 @@ namespace FacilityBreach.AI.SoundHunter
             if (!isActive || !runtime || combatAdapter.IsDead) return;
             if (float.IsNaN(stimulus.Position.x) || float.IsInfinity(stimulus.Position.x)) return;
 
-            if (evaluator == null && graphSetup.Graph != null)
-            {
-                evaluator = new HearingEvaluator(graphSetup.Graph);
-            }
+            if (graphSetup == null || graphSetup.Graph == null) return;
 
-            if (evaluator == null) return;
+            if (evaluator == null || currentGraphInstance != graphSetup.Graph)
+            {
+                currentGraphInstance = graphSetup.Graph;
+                evaluator = new HearingEvaluator(currentGraphInstance);
+            }
 
             int sourceNode = graphSetup.GetNearestNode(stimulus.Position);
             int listenerNode = graphSetup.GetNearestNode(transform.position);
