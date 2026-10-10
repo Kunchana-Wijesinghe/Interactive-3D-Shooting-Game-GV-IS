@@ -144,7 +144,7 @@ namespace FacilityBreach.Editor
             target.transform.position = view.transform.position + view.transform.forward * 7;
             var crate = target.AddComponent<ResourceStation>(); crate.Kind = StationKind.AmmoCrate;
             var flags = System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance;
-            var fire = typeof(FacilityBreachRuntime).GetMethod("Fire", flags);
+            var fire = typeof(FacilityBreachRuntime).GetMethod("TryFire", flags | System.Reflection.BindingFlags.Public);
             var cadence = typeof(FacilityBreachRuntime).GetField("cadence", flags);
             int heard = 0;
             Action<Perera.Core.SoundStimulus> listener = sound => { if (sound.Category == Perera.Core.SoundCategory.Gunshot) heard++; };

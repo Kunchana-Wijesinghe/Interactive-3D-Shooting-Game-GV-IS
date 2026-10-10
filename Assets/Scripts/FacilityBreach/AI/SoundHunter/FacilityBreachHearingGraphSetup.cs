@@ -1,98 +1,69 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using Perera.SoundHunter;
 using UnityEngine;
-
 namespace FacilityBreach.AI.SoundHunter
 {
+    // Acoustic cells have explicit containing volumes and physically validated portal links.
+    // Membership is never selected by nearest distance across a wall.
     public sealed class FacilityBreachHearingGraphSetup : MonoBehaviour
     {
         public HearingGraph Graph { get; private set; }
-        private readonly Dictionary<string, int> nodeIndices = new Dictionary<string, int>();
-        private readonly List<(int a, int b, InteractiveDoor door, float openCost, float closedCost)> doorLinks
-            = new List<(int, int, InteractiveDoor, float, float)>();
-
+        private readonly Dictionary<Vector2Int,int> cells = new Dictionary<Vector2Int,int>();
+        private Vector3 minimum;
+        private int doorRevision;
+        private float nextCheck;
+        private const float CellSize = 1;
         public void BuildGraph()
         {
-            Graph = new HearingGraph();
-            nodeIndices.Clear();
-            doorLinks.Clear();
-
-            // Room / Zone nodes (positions matching Prototype layout)
-            AddNode("Entrance", new Vector3(0, 0, -20));
-            AddNode("CorridorSouth", new Vector3(0, 0, -10));
-            AddNode("StorageRoom", new Vector3(-12, 0, -14));
-            AddNode("CentralJunction", new Vector3(0, 0, 0));
-            AddNode("ToxicWasteArea", new Vector3(0, 0, 18));
-            AddNode("MachineryLeft", new Vector3(-10, 0, 18));
-            AddNode("MachineryBottom", new Vector3(0, 0, 12));
-            AddNode("MachineryTop", new Vector3(0, 0, 24));
-            AddNode("MachineryCore", new Vector3(10, 0, 18));
-            AddNode("CorridorEast", new Vector3(15, 0, -10));
-            AddNode("ExitArea", new Vector3(18, 0, -18));
-
-            // Open corridor links
-            AddOpenLink("Entrance", "CorridorSouth", 2.0f);
-            AddOpenLink("CorridorSouth", "CentralJunction", 2.0f);
-            AddOpenLink("CentralJunction", "ToxicWasteArea", 3.0f);
-            AddOpenLink("ToxicWasteArea", "MachineryLeft", 2.0f);
-            AddOpenLink("ToxicWasteArea", "MachineryBottom", 2.0f);
-            AddOpenLink("ToxicWasteArea", "MachineryTop", 2.0f);
-            AddOpenLink("MachineryLeft", "MachineryCore", 2.0f);
-            AddOpenLink("MachineryBottom", "MachineryCore", 2.0f);
-            AddOpenLink("MachineryTop", "MachineryCore", 2.0f);
-            AddOpenLink("CentralJunction", "CorridorEast", 3.0f);
-            AddOpenLink("CorridorEast", "ExitArea", 2.0f);
-
-            // Door links (open = 1.0, closed = 15.0 attenuation)
-            var doors = FindObjectsByType<InteractiveDoor>();
-            foreach (var door in doors)
+            Graph = new HearingGraph(); cells.Clear();
+            var floor = GameObject.Find("Facility_Floor");
+            if (!floor || !floor.TryGetComponent<Collider>(out var collider)) return;
+            Bounds bounds=collider.bounds; minimum=bounds.min;
+            int width=Mathf.CeilToInt(bounds.size.x),depth=Mathf.CeilToInt(bounds.size.z);
+            for(int x=0;x<width;x++) for(int z=0;z<depth;z++)
             {
-                if (door.name.Contains("Room1") || door.name.Contains("Storage"))
-                {
-                    AddDoorLink("CorridorSouth", "StorageRoom", door, 1.0f, 15.0f);
-                }
-                else if (door.name.Contains("Exit") || door.name.Contains("CorridorEast"))
-                {
-                    AddDoorLink("CorridorEast", "ExitArea", door, 1.0f, 15.0f);
-                }
+                Vector3 center=Center(new Vector2Int(x,z));
+                bool occupied=false;
+                foreach(var hit in Physics.OverlapBox(center, new Vector3(.08f,.1f,.08f),Quaternion.identity,~0,QueryTriggerInteraction.Ignore))
+                    if (!Ignore(hit) && !hit.GetComponentInParent<InteractiveDoor>()) { occupied=true;break; }
+                if (!occupied) cells[new Vector2Int(x,z)]=Graph.AddNode(center);
             }
+            foreach(var pair in cells)
+                foreach(var step in new[]{Vector2Int.right,Vector2Int.up})
+                    if(cells.TryGetValue(pair.Key+step,out int other))
+                    {
+                        Vector3 origin=Center(pair.Key),delta=Center(pair.Key+step)-origin;
+                        float cost=CellSize; bool blocked=false;
+                        foreach(var hit in Physics.RaycastAll(origin,delta.normalized,delta.magnitude,~0,QueryTriggerInteraction.Ignore))
+                        {
+                            if(Ignore(hit.collider)) continue;
+                            var door=hit.collider.GetComponentInParent<InteractiveDoor>();
+                            if(door) cost+=door.IsOpen?1:15;
+                            else {blocked=true;break;}
+                        }
+                        if(!blocked) Graph.AddEdge(pair.Value,other,cost);
+                    }
+            doorRevision=DoorRevision();
+            GameplayDiagnostics.Trace($"hearing graph ready nodes={Graph.NodeCount} doorRevision={doorRevision}",this);
         }
-
-        private void AddNode(string name, Vector3 pos)
+        private Vector3 Center(Vector2Int key)=>new Vector3(minimum.x+(key.x+.5f)*CellSize,1.2f,minimum.z+(key.y+.5f)*CellSize);
+        private bool Ignore(Collider collider)=>collider.GetComponentInParent<FacilityBreach.Combat.EnemyCombatAdapter>() ||
+            collider.GetComponentInParent<FacilityBreach.Interactions.ResourceStation>() || collider.GetComponentInParent<FacilityBreach.Player.TemporaryPlayerAdapter>() || collider.name.StartsWith("Card required");
+        public bool TryMapPoint(Vector3 position,out int node)
         {
-            int idx = Graph.AddNode(pos);
-            nodeIndices[name] = idx;
+            node=-1;
+            if(!float.IsFinite(position.x)||!float.IsFinite(position.y)||!float.IsFinite(position.z)||Graph==null||position.y<-.5f||position.y>4) return false;
+            var key=new Vector2Int(Mathf.FloorToInt((position.x-minimum.x)/CellSize),Mathf.FloorToInt((position.z-minimum.z)/CellSize));
+            if(!cells.TryGetValue(key,out node))return false;
+            Vector3 origin=new Vector3(position.x,1.2f,position.z),delta=Center(key)-origin;
+            foreach(var hit in Physics.RaycastAll(origin,delta.normalized,delta.magnitude,~0,QueryTriggerInteraction.Ignore))
+                if(!Ignore(hit.collider)&&!hit.collider.GetComponentInParent<InteractiveDoor>()){node=-1;return false;}
+            return true;
         }
-
-        private void AddOpenLink(string nameA, string nameB, float cost)
-        {
-            if (nodeIndices.TryGetValue(nameA, out int a) && nodeIndices.TryGetValue(nameB, out int b))
-            {
-                Graph.AddEdge(a, b, cost);
-            }
-        }
-
-        private void AddDoorLink(string nameA, string nameB, InteractiveDoor door, float openCost, float closedCost)
-        {
-            if (nodeIndices.TryGetValue(nameA, out int a) && nodeIndices.TryGetValue(nameB, out int b))
-            {
-                float cost = door && door.IsOpen ? openCost : closedCost;
-                Graph.AddEdge(a, b, cost);
-                doorLinks.Add((a, b, door, openCost, closedCost));
-            }
-        }
-
-        public int GetNearestNode(Vector3 position)
-        {
-            if (Graph == null || Graph.NodeCount == 0) BuildGraph();
-            return Graph.NearestNode(position);
-        }
-
-        public void UpdateDoorAttenuation()
-        {
-            if (Graph == null) BuildGraph();
-            // Rebuild graph to reflect updated door costs dynamically
-            BuildGraph();
-        }
+        public int GetNearestNode(Vector3 position)=>TryMapPoint(position,out int node)?node:-1;
+        private int DoorRevision()
+        { int hash=17;foreach(var door in FindObjectsByType<InteractiveDoor>())hash=unchecked(hash*31+(door.IsOpen?1:0));return hash; }
+        public void UpdateDoorAttenuation(){if(Graph==null||DoorRevision()!=doorRevision)BuildGraph();}
+        private void Update(){if(Time.time<nextCheck)return;nextCheck=Time.time+.5f;UpdateDoorAttenuation();}
     }
 }

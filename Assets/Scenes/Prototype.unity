@@ -121488,6 +121488,21 @@ MonoBehaviour:
   ShotRange: 50
   ShotInterval: 0.2
   ReloadSeconds: 1.5
+  EnemyVisuals:
+  - {fileID: 7493897038064123932, guid: b56ab4138a69fe247841669e7e49e00e, type: 3}
+  - {fileID: 2343789749338127871, guid: c6736cfff854cc5469bc2133ba5c7ccf, type: 3}
+  - {fileID: 5627588740290975121, guid: 8b5567a1302f5574cb91d86d87c52fce, type: 3}
+  - {fileID: 437213736069552294, guid: 66c33bcb83a0a95419d3676c9bdd0632, type: 3}
+  WeaponViewModels:
+  - {fileID: 1887582671569839489, guid: 93a0beed652c78f48ade4137e64bf3e8, type: 3}
+  - {fileID: 8043839544476941999, guid: 1c5540db99e2fdb44b346a6fb6797386, type: 3}
+  - {fileID: 5844793950230343216, guid: 7c0f0fefc3f92da43817d27b16b30cf5, type: 3}
+  WeaponPickupModels:
+  - {fileID: 5987869561225306337, guid: 9db694d4efde8f940ab07bcec853ec0e, type: 3}
+  - {fileID: 6857398386778360395, guid: 3e94535bf57a173458fe3f16c4b87121, type: 3}
+  - {fileID: 6788866760302533433, guid: dd3843f5123c1594e81b360b8a9c1a7f, type: 3}
+  Navigation: {fileID: 23800000, guid: 4637a9c5fe930de4dbd759bc5a3037ec, type: 2}
+  DevelopmentDiagnostics: 0
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
