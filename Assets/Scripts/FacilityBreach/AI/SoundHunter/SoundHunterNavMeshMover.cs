@@ -8,41 +8,48 @@ namespace FacilityBreach.AI.SoundHunter
     public sealed class SoundHunterNavMeshMover : MonoBehaviour, IHunterMovement
     {
         private NavMeshAgent agent;
-        private float arrivalDistance = 1.2f;
-        private float replanInterval = 0.25f;
-        private float nextReplanTime;
+        private MoveStatus status = MoveStatus.Idle;
+        private string failureReason = "";
         private Vector3 currentGoal;
-        private bool hasGoal;
+        private float currentStoppingDistance = 0.5f;
 
-        public Vector3 CurrentPosition => transform.position;
-        public bool IsArrived => hasGoal && !agent.pathPending && agent.remainingDistance <= arrivalDistance;
-        public bool IsUnreachable => hasGoal && !agent.pathPending && agent.pathStatus == NavMeshPathStatus.PathPartial;
+        public MoveStatus Status => status;
+        public string FailureReason => failureReason;
 
         private void Awake()
         {
             agent = GetComponent<NavMeshAgent>();
             if (!agent) agent = gameObject.AddComponent<NavMeshAgent>();
-            agent.stoppingDistance = 0.5f;
             agent.speed = 4.0f;
             agent.acceleration = 12.0f;
         }
 
-        public void MoveTo(Vector3 target)
+        public bool RequestMove(Vector3 goal, float stoppingDistance)
         {
-            if (Time.time < nextReplanTime && hasGoal && Vector3.Distance(target, currentGoal) < 0.5f) return;
-            currentGoal = target;
-            hasGoal = true;
-            nextReplanTime = Time.time + replanInterval;
+            currentGoal = goal;
+            currentStoppingDistance = Mathf.Max(0.2f, stoppingDistance);
+            agent.stoppingDistance = currentStoppingDistance;
+
             if (agent.isOnNavMesh)
             {
                 agent.isStopped = false;
-                agent.SetDestination(target);
+                if (agent.SetDestination(goal))
+                {
+                    status = MoveStatus.Moving;
+                    failureReason = "";
+                    return true;
+                }
             }
+
+            status = MoveStatus.Failed;
+            failureReason = "NavMesh destination set failed or agent off NavMesh";
+            return false;
         }
 
         public void Stop()
         {
-            hasGoal = false;
+            status = MoveStatus.Idle;
+            failureReason = "";
             if (agent.isOnNavMesh)
             {
                 agent.isStopped = true;
@@ -52,8 +59,22 @@ namespace FacilityBreach.AI.SoundHunter
 
         private void Update()
         {
-            if (!hasGoal || !agent.isOnNavMesh) return;
-            // Check for nearby interactive doors along path to auto-open authorized doors
+            if (status != MoveStatus.Moving || !agent.isOnNavMesh) return;
+
+            if (!agent.pathPending)
+            {
+                if (agent.remainingDistance <= currentStoppingDistance)
+                {
+                    status = MoveStatus.Arrived;
+                }
+                else if (agent.pathStatus == NavMeshPathStatus.PathPartial || agent.pathStatus == NavMeshPathStatus.PathInvalid)
+                {
+                    status = MoveStatus.Failed;
+                    failureReason = "Path partial or invalid";
+                }
+            }
+
+            // Interact with nearby doors along path
             Collider[] hits = Physics.OverlapSphere(transform.position, 2.0f);
             foreach (var hit in hits)
             {

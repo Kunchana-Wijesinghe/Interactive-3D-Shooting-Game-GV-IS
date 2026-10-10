@@ -9,7 +9,7 @@ namespace FacilityBreach.AI.SoundHunter
     public enum SoundHunterState { Patrol, Investigate, Search, Combat, Inactive }
 
     [RequireComponent(typeof(EnemyCombatAdapter))]
-    public sealed class FacilityBreachSoundHunterBrain : MonoBehaviour, IEnemyActivitySink, ISoundListener
+    public sealed class FacilityBreachSoundHunterBrain : MonoBehaviour, IEnemyActivitySink
     {
         public SoundHunterState CurrentState { get; private set; } = SoundHunterState.Patrol;
         public float SightRange = 16.0f;
@@ -63,12 +63,21 @@ namespace FacilityBreach.AI.SoundHunter
         {
             runtime = FindAnyObjectByType<FacilityBreachRuntime>();
             graphSetup.BuildGraph();
-            SoundEventBus.RegisterListener(this);
+        }
+
+        private void OnEnable()
+        {
+            SoundEventBus.Emitted += OnSoundEmitted;
+        }
+
+        private void OnDisable()
+        {
+            SoundEventBus.Emitted -= OnSoundEmitted;
         }
 
         private void OnDestroy()
         {
-            SoundEventBus.UnregisterListener(this);
+            SoundEventBus.Emitted -= OnSoundEmitted;
             if (chestMaterial) Destroy(chestMaterial);
         }
 
@@ -96,7 +105,7 @@ namespace FacilityBreach.AI.SoundHunter
             patrolWaypoints.Add(new Vector3(0, 0, -10));
         }
 
-        public void OnSoundEmitted(in SoundStimulus stimulus)
+        public void OnSoundEmitted(SoundStimulus stimulus)
         {
             if (!isActive || !runtime || combatAdapter.IsDead) return;
             if (float.IsNaN(stimulus.Position.x) || float.IsInfinity(stimulus.Position.x)) return;
@@ -193,7 +202,7 @@ namespace FacilityBreach.AI.SoundHunter
         {
             if (canSeePlayer && playerTransform)
             {
-                movement.MoveTo(playerTransform.position);
+                movement.RequestMove(playerTransform.position, 1.0f);
                 combatAdapter.TryAttack(playerTransform);
             }
             else if (hasLastSeen)
@@ -206,8 +215,8 @@ namespace FacilityBreach.AI.SoundHunter
         {
             if (hasLastSeen)
             {
-                movement.MoveTo(lastSeenPosition);
-                if (movement.IsArrived)
+                movement.RequestMove(lastSeenPosition, 0.8f);
+                if (movement.Status == MoveStatus.Arrived)
                 {
                     hasLastSeen = false;
                     searchTimer = SearchDuration;
@@ -231,16 +240,16 @@ namespace FacilityBreach.AI.SoundHunter
                 }
             }
 
-            movement.MoveTo(currentInvestigatingEntry.Position);
+            movement.RequestMove(currentInvestigatingEntry.Position, 0.8f);
 
-            if (movement.IsArrived)
+            if (movement.Status == MoveStatus.Arrived)
             {
                 memory.Forget(currentInvestigatingEntry);
                 isInvestigatingSound = false;
                 searchTimer = SearchDuration;
                 SetState(SoundHunterState.Search);
             }
-            else if (movement.IsUnreachable)
+            else if (movement.Status == MoveStatus.Failed)
             {
                 memory.Forget(currentInvestigatingEntry);
                 isInvestigatingSound = false;
@@ -272,9 +281,9 @@ namespace FacilityBreach.AI.SoundHunter
 
             if (patrolWaypoints.Count == 0) return;
             Vector3 targetWp = patrolWaypoints[currentPatrolIndex];
-            movement.MoveTo(targetWp);
+            movement.RequestMove(targetWp, 0.8f);
 
-            if (movement.IsArrived)
+            if (movement.Status == MoveStatus.Arrived)
             {
                 currentPatrolIndex = (currentPatrolIndex + 1) % patrolWaypoints.Count;
             }
