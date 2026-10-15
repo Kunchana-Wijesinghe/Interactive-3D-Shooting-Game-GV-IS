@@ -1,0 +1,109 @@
+108 checks
+PASS: mission starts at 100 HP and five-minute countdown
+PASS: one shared attack component per robot
+PASS: exactly one distinct decision brain per robot
+PASS: PG and SH fire ranges are 12 and 14
+PASS: initial miss probability forty percent and magazine fifty
+PASS: no runtime debug line renderers
+PASS: FL-04 chest light is small and non-collidable
+PASS: SH-01 chest light is small and non-collidable
+PASS: CD-03 chest light is small and non-collidable
+PASS: PG-01 chest light is small and non-collidable
+PASS: PG rejects player behind its 110-degree FOV
+PASS: continuous sight below half second cannot detect/fire
+PASS: PG detects only after half second and starts warning
+PASS: chest warning turns white before shot resolves
+PASS: one successful resolved Ammo1 hit changes 100 to 90 once
+PASS: PG investigates last seen position when sight is lost
+PASS: PG searches four seconds and returns to corridor patrol without hidden tracking
+PASS: only one pending shot can be queued
+PASS: miss consumes one round and applies no damage
+PASS: shot schedules before new solid obstruction
+PASS: LOS recheck blocks shot behind newly inserted solid cover
+PASS: pre-pause warning starts
+PASS: pause immediately cancels pending attack
+PASS: pause freezes enemy and mission gameplay clock
+PASS: resume never resolves stale pre-pause shot
+PASS: actual closed Machinery door intersects attack ray
+PASS: closed authored door blocks enemy attack
+PASS: attack starts before enemy defeat
+PASS: defeat cancels attack, collider and sensing immediately
+PASS: inactive enemy cannot attack or request movement
+PASS: defeat switches off chest light
+PASS: CD activates visually and evaluates reachable cover from perceived position
+PASS: CD does not reassess before 1.5-second cadence
+PASS: CD reassesses reachable cover after 1.5 seconds of valid sight
+PASS: CD holds remembered position without hidden-player tracking or reassessment
+PASS: CD returns after three-second lost-sight hold
+PASS: FL chooses reachable three-to-nine-unit flank at least fifty degrees off chase
+PASS: FL cannot replan before two seconds despite newly visible movement
+PASS: FL replans after two seconds and over-four-unit newly perceived movement
+PASS: FL does not replan or shoot toward hidden live player
+PASS: FL searches after three seconds without sight
+PASS: bounded enemy magazine shot 1
+PASS: bounded enemy magazine shot 2
+PASS: bounded enemy magazine shot 3
+PASS: bounded enemy magazine shot 4
+PASS: bounded enemy magazine shot 5
+PASS: bounded enemy magazine shot 6
+PASS: bounded enemy magazine shot 7
+PASS: bounded enemy magazine shot 8
+PASS: bounded enemy magazine shot 9
+PASS: bounded enemy magazine shot 10
+PASS: bounded enemy magazine shot 11
+PASS: bounded enemy magazine shot 12
+PASS: bounded enemy magazine shot 13
+PASS: bounded enemy magazine shot 14
+PASS: bounded enemy magazine shot 15
+PASS: bounded enemy magazine shot 16
+PASS: bounded enemy magazine shot 17
+PASS: bounded enemy magazine shot 18
+PASS: bounded enemy magazine shot 19
+PASS: bounded enemy magazine shot 20
+PASS: bounded enemy magazine shot 21
+PASS: bounded enemy magazine shot 22
+PASS: bounded enemy magazine shot 23
+PASS: bounded enemy magazine shot 24
+PASS: bounded enemy magazine shot 25
+PASS: bounded enemy magazine shot 26
+PASS: bounded enemy magazine shot 27
+PASS: bounded enemy magazine shot 28
+PASS: bounded enemy magazine shot 29
+PASS: bounded enemy magazine shot 30
+PASS: bounded enemy magazine shot 31
+PASS: bounded enemy magazine shot 32
+PASS: bounded enemy magazine shot 33
+PASS: bounded enemy magazine shot 34
+PASS: bounded enemy magazine shot 35
+PASS: bounded enemy magazine shot 36
+PASS: bounded enemy magazine shot 37
+PASS: bounded enemy magazine shot 38
+PASS: bounded enemy magazine shot 39
+PASS: bounded enemy magazine shot 40
+PASS: bounded enemy magazine shot 41
+PASS: bounded enemy magazine shot 42
+PASS: bounded enemy magazine shot 43
+PASS: bounded enemy magazine shot 44
+PASS: bounded enemy magazine shot 45
+PASS: bounded enemy magazine shot 46
+PASS: bounded enemy magazine shot 47
+PASS: bounded enemy magazine shot 48
+PASS: bounded enemy magazine shot 49
+PASS: bounded enemy magazine shot 50
+PASS: fifty missed shots consume magazine and enter reload without damage
+PASS: cannot fire during enemy reload
+PASS: enemy reload restores fifty from reserve
+PASS: attack queued before terminal loss
+PASS: player death immediately loses and cancels every pending attack
+PASS: terminal result rejects further enemy damage/attacks
+PASS: card collected without any enemy kills
+PASS: card unlocks all three Machinery entrances
+PASS: device connects with every enemy alive
+PASS: shutdown counts down and enters alive escape with no kills
+PASS: escape freezes countdown and keeps living enemy lifecycle active
+PASS: living enemy can queue an attack during unlimited escape
+PASS: unlocked exit wins with every robot alive
+PASS: Won rejects player damage
+PASS: timeout takes precedence over simultaneous shutdown completion
+PASS: expired revival timer processed before permanent-defeat test
+PASS: no unexpected Console errors: 

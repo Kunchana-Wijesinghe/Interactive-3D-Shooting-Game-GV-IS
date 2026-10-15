@@ -1,0 +1,6 @@
+Unity 6000.6.2f1; task-only runtime commit candidate; full Prototype copy.
+EnemyRuleValidation: exit 0; 108 checks.
+PlayModeIntegrationValidation: exit 0; 114 checks.
+EnemyVisualAudit (graphics enabled): exit 0; 92 checks.
+No C# compilation errors or unexpected Console errors in final runs.
+Main Editor not interrupted. Isolated-copy search startup indexing disabled only in its temporary user settings.

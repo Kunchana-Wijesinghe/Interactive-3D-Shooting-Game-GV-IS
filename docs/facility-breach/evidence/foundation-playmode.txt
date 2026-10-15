@@ -1,0 +1,1 @@
+PASS 51 cumulative assertions in Prototype Play mode. Programmatic interactions/contracts; no manual keyboard, mouse, audio or lighting verification.

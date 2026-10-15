@@ -9,6 +9,8 @@ public class FacilityDoors : EditorWindow
     private static Material frameMat;
     private static Material indicatorMat;
 
+    private const float DOOR_WIDTH = 2f;
+
     [MenuItem("Facility Breach/Generate Interactive Doors")]
     public static void GenerateDoors()
     {
@@ -20,7 +22,6 @@ public class FacilityDoors : EditorWindow
             return;
         }
 
-        // Delete previously generated doors
         GameObject oldDoors = GameObject.Find("Facility_Doors");
 
         if (oldDoors != null)
@@ -30,100 +31,85 @@ public class FacilityDoors : EditorWindow
 
         CreateMaterials();
 
-        // =====================================================
         // MAIN ENTRANCE
-        // =====================================================
-
         CreateDoorZ(
             "Door_Main_Entrance",
-            new Vector3(-13, 0, -29.75f),
-            3.8f,
+            new Vector3(-12.5f, 0, -29.75f),
+            DOOR_WIDTH,
             root.transform
         );
 
-        // =====================================================
         // ROOM 1
-        // =====================================================
-
         CreateDoorX(
             "Door_Room1_Right",
             new Vector3(-8, 0, -11.75f),
-            2.5f,
+            DOOR_WIDTH,
             root.transform
         );
 
         CreateDoorZ(
             "Door_Room1_Top",
             new Vector3(-13, 0, -6.5f),
-            3.5f,
+            DOOR_WIDTH,
             root.transform
         );
 
-        // =====================================================
         // ROOM 2
-        // =====================================================
-
         CreateDoorZ(
             "Door_Room2_Bottom",
             new Vector3(1, 0, -2),
-            4.5f,
+            DOOR_WIDTH,
             root.transform
         );
 
         CreateDoorZ(
             "Door_Room2_Top",
             new Vector3(1, 0, 10),
-            4.5f,
+            DOOR_WIDTH,
             root.transform
         );
 
         CreateDoorX(
             "Door_Room2_Left",
             new Vector3(-7, 0, 4),
-            4f,
+            DOOR_WIDTH,
             root.transform
         );
 
         CreateDoorX(
             "Door_Room2_Right",
             new Vector3(9, 0, 4),
-            4f,
+            DOOR_WIDTH,
             root.transform
         );
 
-        // =====================================================
         // ROOM 3
-        // =====================================================
-
         CreateDoorX(
             "Door_Room3_Left",
             new Vector3(10, 0, 18.75f),
-            4.5f,
+            DOOR_WIDTH,
             root.transform
         );
 
         CreateDoorZ(
             "Door_Room3_Bottom",
             new Vector3(14, 0, 12),
-            2f,
+            DOOR_WIDTH,
             root.transform
         );
 
         CreateDoorZ(
             "Door_Room3_Top",
             new Vector3(14, 0, 24),
-            2f,
+            DOOR_WIDTH,
             root.transform
         );
 
-        // =====================================================
         // MAIN EXIT
-        // =====================================================
-
         CreateDoorZ(
             "Door_Main_Exit",
-            new Vector3(13, 0, 29.75f),
-            3.8f,
+            new Vector3(12.5f, 0, 29.75f),
+            DOOR_WIDTH,
             root.transform
         );
 
@@ -133,13 +119,12 @@ public class FacilityDoors : EditorWindow
         Selection.activeGameObject = root;
 
         Debug.Log(
-            "Interactive facility doors generated successfully."
+            "Interactive doors generated. All doors are 2 units wide."
         );
     }
 
     // =====================================================
     // Z WALL DOOR
-    // Door panel extends along X
     // =====================================================
 
     private static void CreateDoorZ(
@@ -153,7 +138,6 @@ public class FacilityDoors : EditorWindow
         holder.transform.position = position;
         holder.transform.SetParent(parent);
 
-        // LEFT FRAME
         CreateCube(
             name + "_Frame_Left",
             position + new Vector3(
@@ -161,16 +145,11 @@ public class FacilityDoors : EditorWindow
                 1.5f,
                 0
             ),
-            new Vector3(
-                0.3f,
-                3f,
-                0.45f
-            ),
+            new Vector3(0.3f, 3f, 0.45f),
             frameMat,
             holder.transform
         );
 
-        // RIGHT FRAME
         CreateCube(
             name + "_Frame_Right",
             position + new Vector3(
@@ -178,99 +157,53 @@ public class FacilityDoors : EditorWindow
                 1.5f,
                 0
             ),
-            new Vector3(
-                0.3f,
-                3f,
-                0.45f
-            ),
+            new Vector3(0.3f, 3f, 0.45f),
             frameMat,
             holder.transform
         );
 
-        // TOP FRAME
         CreateCube(
             name + "_Frame_Top",
-            position + new Vector3(
-                0,
-                3.1f,
-                0
-            ),
-            new Vector3(
-                width + 0.6f,
-                0.25f,
-                0.45f
-            ),
+            position + new Vector3(0, 3.1f, 0),
+            new Vector3(width + 0.6f, 0.25f, 0.45f),
             frameMat,
             holder.transform
         );
-
-        // =================================================
-        // HINGE
-        // =================================================
 
         GameObject hinge =
             new GameObject(name + "_Hinge");
 
         hinge.transform.position =
             position +
-            new Vector3(
-                -width / 2f,
-                0,
-                0
-            );
+            new Vector3(-width / 2f, 0, 0);
 
         hinge.transform.SetParent(holder.transform);
 
-        // Actual door controller
         InteractiveDoor door =
             hinge.AddComponent<InteractiveDoor>();
 
         door.openAngle = 90f;
         door.openSpeed = 4f;
 
-        // =================================================
-        // DOOR PANEL
-        // =================================================
-
         GameObject panel = CreateCube(
             name + "_Panel",
             position,
-            new Vector3(
-                width,
-                3f,
-                0.25f
-            ),
+            new Vector3(width, 3f, 0.25f),
             doorMat,
             hinge.transform
         );
 
         panel.transform.position =
             hinge.transform.position +
-            new Vector3(
-                width / 2f,
-                1.5f,
-                0
-            );
-
-        // =================================================
-        // TRIGGER
-        // =================================================
+            new Vector3(width / 2f, 1.5f, 0);
 
         CreateTrigger(
             name + "_Trigger",
             position + new Vector3(0, 1.5f, 0),
-            new Vector3(
-                width + 2f,
-                3f,
-                4f
-            ),
+            new Vector3(width + 2f, 3f, 4f),
             holder.transform,
             door
         );
-
-        // =================================================
-        // CYAN INDICATOR
-        // =================================================
 
         CreateIndicator(
             name + "_Indicator",
@@ -286,7 +219,6 @@ public class FacilityDoors : EditorWindow
 
     // =====================================================
     // X WALL DOOR
-    // Door panel extends along Z
     // =====================================================
 
     private static void CreateDoorX(
@@ -300,7 +232,6 @@ public class FacilityDoors : EditorWindow
         holder.transform.position = position;
         holder.transform.SetParent(parent);
 
-        // FRAME A
         CreateCube(
             name + "_Frame_A",
             position +
@@ -309,16 +240,11 @@ public class FacilityDoors : EditorWindow
                 1.5f,
                 -width / 2f - 0.15f
             ),
-            new Vector3(
-                0.45f,
-                3f,
-                0.3f
-            ),
+            new Vector3(0.45f, 3f, 0.3f),
             frameMat,
             holder.transform
         );
 
-        // FRAME B
         CreateCube(
             name + "_Frame_B",
             position +
@@ -327,47 +253,25 @@ public class FacilityDoors : EditorWindow
                 1.5f,
                 width / 2f + 0.15f
             ),
-            new Vector3(
-                0.45f,
-                3f,
-                0.3f
-            ),
+            new Vector3(0.45f, 3f, 0.3f),
             frameMat,
             holder.transform
         );
 
-        // TOP FRAME
         CreateCube(
             name + "_Frame_Top",
-            position +
-            new Vector3(
-                0,
-                3.1f,
-                0
-            ),
-            new Vector3(
-                0.45f,
-                0.25f,
-                width + 0.6f
-            ),
+            position + new Vector3(0, 3.1f, 0),
+            new Vector3(0.45f, 0.25f, width + 0.6f),
             frameMat,
             holder.transform
         );
-
-        // =================================================
-        // HINGE
-        // =================================================
 
         GameObject hinge =
             new GameObject(name + "_Hinge");
 
         hinge.transform.position =
             position +
-            new Vector3(
-                0,
-                0,
-                -width / 2f
-            );
+            new Vector3(0, 0, -width / 2f);
 
         hinge.transform.SetParent(holder.transform);
 
@@ -377,49 +281,25 @@ public class FacilityDoors : EditorWindow
         door.openAngle = 90f;
         door.openSpeed = 4f;
 
-        // =================================================
-        // DOOR PANEL
-        // =================================================
-
         GameObject panel = CreateCube(
             name + "_Panel",
             position,
-            new Vector3(
-                0.25f,
-                3f,
-                width
-            ),
+            new Vector3(0.25f, 3f, width),
             doorMat,
             hinge.transform
         );
 
         panel.transform.position =
             hinge.transform.position +
-            new Vector3(
-                0,
-                1.5f,
-                width / 2f
-            );
-
-        // =================================================
-        // TRIGGER
-        // =================================================
+            new Vector3(0, 1.5f, width / 2f);
 
         CreateTrigger(
             name + "_Trigger",
             position + new Vector3(0, 1.5f, 0),
-            new Vector3(
-                4f,
-                3f,
-                width + 2f
-            ),
+            new Vector3(4f, 3f, width + 2f),
             holder.transform,
             door
         );
-
-        // =================================================
-        // CYAN INDICATOR
-        // =================================================
 
         CreateIndicator(
             name + "_Indicator",
@@ -458,12 +338,11 @@ public class FacilityDoors : EditorWindow
         DoorTrigger triggerScript =
             trigger.AddComponent<DoorTrigger>();
 
-        // Connect trigger to the actual door hinge
         triggerScript.door = door;
     }
 
     // =====================================================
-    // DOOR INDICATOR
+    // INDICATOR
     // =====================================================
 
     private static void CreateIndicator(
@@ -474,11 +353,7 @@ public class FacilityDoors : EditorWindow
         GameObject indicator = CreateCube(
             name,
             position,
-            new Vector3(
-                0.18f,
-                0.35f,
-                0.18f
-            ),
+            new Vector3(0.18f, 0.35f, 0.18f),
             indicatorMat,
             parent
         );
@@ -498,38 +373,23 @@ public class FacilityDoors : EditorWindow
     {
         EnsureMaterialFolder();
 
-        // RED METAL DOORS
         doorMat = CreateMaterial(
             "Door_Red",
-            new Color(
-                0.42f,
-                0.025f,
-                0.025f
-            ),
+            new Color(0.42f, 0.025f, 0.025f),
             0.75f,
             0.55f
         );
 
-        // DARK METALLIC FRAMES
         frameMat = CreateMaterial(
             "Door_Frame",
-            new Color(
-                0.035f,
-                0.04f,
-                0.05f
-            ),
+            new Color(0.035f, 0.04f, 0.05f),
             0.90f,
             0.65f
         );
 
-        // CYAN INDICATORS
         indicatorMat = CreateEmissiveMaterial(
             "Door_Indicator",
-            new Color(
-                0.0f,
-                0.9f,
-                1.0f
-            )
+            new Color(0.0f, 0.9f, 1.0f)
         );
     }
 
@@ -540,23 +400,16 @@ public class FacilityDoors : EditorWindow
         float smoothness)
     {
         string path =
-            MaterialFolder +
-            "/" +
-            name +
-            ".mat";
+            MaterialFolder + "/" + name + ".mat";
 
         Material material =
-            AssetDatabase.LoadAssetAtPath<Material>(
-                path
-            );
+            AssetDatabase.LoadAssetAtPath<Material>(path);
 
         if (material == null)
         {
-            Shader shader =
-                Shader.Find("Standard");
+            Shader shader = Shader.Find("Standard");
 
-            material =
-                new Material(shader);
+            material = new Material(shader);
 
             AssetDatabase.CreateAsset(
                 material,
@@ -567,20 +420,10 @@ public class FacilityDoors : EditorWindow
         material.color = color;
 
         if (material.HasProperty("_Metallic"))
-        {
-            material.SetFloat(
-                "_Metallic",
-                metallic
-            );
-        }
+            material.SetFloat("_Metallic", metallic);
 
         if (material.HasProperty("_Glossiness"))
-        {
-            material.SetFloat(
-                "_Glossiness",
-                smoothness
-            );
-        }
+            material.SetFloat("_Glossiness", smoothness);
 
         EditorUtility.SetDirty(material);
 
@@ -623,7 +466,7 @@ public class FacilityDoors : EditorWindow
     }
 
     // =====================================================
-    // CUBE HELPER
+    // CUBE
     // =====================================================
 
     private static GameObject CreateCube(
@@ -634,12 +477,9 @@ public class FacilityDoors : EditorWindow
         Transform parent)
     {
         GameObject obj =
-            GameObject.CreatePrimitive(
-                PrimitiveType.Cube
-            );
+            GameObject.CreatePrimitive(PrimitiveType.Cube);
 
         obj.name = name;
-
         obj.transform.position = position;
         obj.transform.localScale = scale;
         obj.transform.SetParent(parent);
@@ -647,11 +487,8 @@ public class FacilityDoors : EditorWindow
         Renderer renderer =
             obj.GetComponent<Renderer>();
 
-        if (renderer != null &&
-            material != null)
-        {
+        if (renderer != null && material != null)
             renderer.sharedMaterial = material;
-        }
 
         return obj;
     }

@@ -9,7 +9,6 @@ public class FacilityGenerator : EditorWindow
     [MenuItem("Facility Breach/Generate Final Facility V4")]
     public static void Generate()
     {
-        // Delete previous facility
         GameObject old = GameObject.Find("Generated_Facility");
 
         if (old != null)
@@ -17,10 +16,7 @@ public class FacilityGenerator : EditorWindow
 
         GameObject root = new GameObject("Generated_Facility");
 
-        // =====================================================
         // FLOOR
-        // =====================================================
-
         Block(
             "Facility_Floor",
             new Vector3(0, -0.25f, 0),
@@ -46,12 +42,14 @@ public class FacilityGenerator : EditorWindow
             root.transform
         );
 
-        // Entrance at bottom-left
+        // MAIN ENTRANCE — 2 UNIT OPENING
+        // Center = -12.5
+        // Opening = -13.5 to -11.5
 
         Wall(
             "South_Left",
-            new Vector3(-18.25f, 2, -30),
-            new Vector3(5.5f, H, T),
+            new Vector3(-17.25f, 2, -30),
+            new Vector3(7.5f, H, T),
             root.transform
         );
 
@@ -62,7 +60,9 @@ public class FacilityGenerator : EditorWindow
             root.transform
         );
 
-        // Exit at top-right
+        // MAIN EXIT — 2 UNIT OPENING
+        // Center = 12.5
+        // Opening = 11.5 to 13.5
 
         Wall(
             "North_Left",
@@ -73,8 +73,8 @@ public class FacilityGenerator : EditorWindow
 
         Wall(
             "North_Right",
-            new Vector3(18.25f, 2, 30),
-            new Vector3(5.5f, H, T),
+            new Vector3(17.25f, 2, 30),
+            new Vector3(7.5f, H, T),
             root.transform
         );
 
@@ -97,7 +97,7 @@ public class FacilityGenerator : EditorWindow
         );
 
         // =====================================================
-        // ROOM 1 — LOWER LEFT
+        // ROOM 1
         // =====================================================
 
         Wall(
@@ -114,108 +114,112 @@ public class FacilityGenerator : EditorWindow
             root.transform
         );
 
-        // Right wall - LARGE doorway
+        // RIGHT DOOR — 2 UNITS
+        // Center Z = -11.75
 
         Wall(
             "Room1_Right_Bottom",
-            new Vector3(-8, 2, -15),
-            new Vector3(T, H, 4),
+            new Vector3(-8, 2, -15.625f),
+            new Vector3(T, H, 3.75f),
             root.transform
         );
 
         Wall(
             "Room1_Right_Top",
-            new Vector3(-8, 2, -8.5f),
-            new Vector3(T, H, 4),
+            new Vector3(-8, 2, -8.625f),
+            new Vector3(T, H, 4.25f),
             root.transform
         );
 
-        // Top wall - LARGE doorway
+        // TOP DOOR — 2 UNITS
+        // Center X = -13
 
         Wall(
             "Room1_Top_Left",
-            new Vector3(-16.5f, 2, -6.5f),
-            new Vector3(3, H, T),
+            new Vector3(-16, 2, -6.5f),
+            new Vector3(4, H, T),
             root.transform
         );
 
         Wall(
             "Room1_Top_Right",
-            new Vector3(-9.5f, 2, -6.5f),
-            new Vector3(3, H, T),
+            new Vector3(-10, 2, -6.5f),
+            new Vector3(4, H, T),
             root.transform
         );
 
         // =====================================================
-        // ROOM 2 — CENTRAL ROOM
+        // ROOM 2
         // =====================================================
 
-        // Bottom - large centre opening
+        // BOTTOM DOOR — 2 UNITS
+        // Center X = 1
 
         Wall(
             "Room2_Bottom_Left",
-            new Vector3(-4.5f, 2, -2),
-            new Vector3(5, H, T),
+            new Vector3(-3.5f, 2, -2),
+            new Vector3(7, H, T),
             root.transform
         );
 
         Wall(
             "Room2_Bottom_Right",
-            new Vector3(6.5f, 2, -2),
-            new Vector3(5, H, T),
+            new Vector3(5.5f, 2, -2),
+            new Vector3(7, H, T),
             root.transform
         );
 
-        // Top - large opening
+        // TOP DOOR — 2 UNITS
 
         Wall(
             "Room2_Top_Left",
-            new Vector3(-4.5f, 2, 10),
-            new Vector3(5, H, T),
+            new Vector3(-3.5f, 2, 10),
+            new Vector3(7, H, T),
             root.transform
         );
 
         Wall(
             "Room2_Top_Right",
-            new Vector3(6.5f, 2, 10),
-            new Vector3(5, H, T),
+            new Vector3(5.5f, 2, 10),
+            new Vector3(7, H, T),
             root.transform
         );
 
-        // Left - large doorway
+        // LEFT DOOR — 2 UNITS
+        // Center Z = 4
 
         Wall(
             "Room2_Left_Bottom",
-            new Vector3(-7, 2, 0),
-            new Vector3(T, H, 4),
+            new Vector3(-7, 2, 0.5f),
+            new Vector3(T, H, 5),
             root.transform
         );
 
         Wall(
             "Room2_Left_Top",
-            new Vector3(-7, 2, 8),
-            new Vector3(T, H, 4),
+            new Vector3(-7, 2, 7.5f),
+            new Vector3(T, H, 5),
             root.transform
         );
 
-        // Right - large doorway
+        // RIGHT DOOR — 2 UNITS
 
         Wall(
             "Room2_Right_Bottom",
-            new Vector3(9, 2, 0),
-            new Vector3(T, H, 4),
+            new Vector3(9, 2, 0.5f),
+            new Vector3(T, H, 5),
             root.transform
         );
 
         Wall(
             "Room2_Right_Top",
-            new Vector3(9, 2, 8),
-            new Vector3(T, H, 4),
+            new Vector3(9, 2, 7.5f),
+            new Vector3(T, H, 5),
             root.transform
         );
 
         // =====================================================
-        // ROOM 3 — UPPER RIGHT
+        // ROOM 3
         // =====================================================
 
         Wall(
@@ -225,24 +229,25 @@ public class FacilityGenerator : EditorWindow
             root.transform
         );
 
-        // LEFT SIDE
-        // Much larger opening than previous version
+        // LEFT DOOR — 2 UNITS
+        // Center Z = 18.75
 
         Wall(
             "Room3_Left_Bottom",
-            new Vector3(10, 2, 14),
-            new Vector3(T, H, 4),
+            new Vector3(10, 2, 15),
+            new Vector3(T, H, 6),
             root.transform
         );
 
         Wall(
             "Room3_Left_Top",
-            new Vector3(10, 2, 23.5f),
+            new Vector3(10, 2, 22.5f),
             new Vector3(T, H, 3),
             root.transform
         );
 
-        // Bottom wall with wide entrance
+        // BOTTOM DOOR — 2 UNITS
+        // Center X = 14
 
         Wall(
             "Room3_Bottom_Left",
@@ -258,7 +263,7 @@ public class FacilityGenerator : EditorWindow
             root.transform
         );
 
-        // Top wall with wide exit route
+        // TOP DOOR — 2 UNITS
 
         Wall(
             "Room3_Top_Left",
@@ -316,8 +321,6 @@ public class FacilityGenerator : EditorWindow
             new Vector3(5, H, T),
             root.transform
         );
-
-        // Shorter vertical wall = wider crossing
 
         Wall(
             "Middle_Offset_Block",
@@ -417,20 +420,20 @@ public class FacilityGenerator : EditorWindow
 
         Marker(
             "PLAYER_ENTRY",
-            new Vector3(-13, 0.06f, -28),
-            new Vector3(3, 0.12f, 2),
+            new Vector3(-12.5f, 0.06f, -28),
+            new Vector3(2, 0.12f, 2),
             root.transform
         );
 
         Marker(
             "FACILITY_EXIT",
-            new Vector3(13, 0.06f, 28),
-            new Vector3(3, 0.12f, 2),
+            new Vector3(12.5f, 0.06f, 28),
+            new Vector3(2, 0.12f, 2),
             root.transform
         );
 
         // =====================================================
-        // PLAYER / NPC SIZE REFERENCES
+        // PLAYER / NPC REFERENCES
         // =====================================================
 
         Capsule(
@@ -448,14 +451,9 @@ public class FacilityGenerator : EditorWindow
         Selection.activeGameObject = root;
 
         Debug.Log(
-            "Facility V4 generated: wider doors and routes, " +
-            "3 rooms, multiple paths, 1 entrance and 1 exit."
+            "Facility generated with all door openings set to 2 units."
         );
     }
-
-    // =====================================================
-    // HELPERS
-    // =====================================================
 
     private static void Wall(
         string name,
@@ -522,7 +520,6 @@ public class FacilityGenerator : EditorWindow
 
         capsule.name = name;
         capsule.transform.position = position;
-
         capsule.transform.localScale =
             new Vector3(0.65f, 0.9f, 0.65f);
 

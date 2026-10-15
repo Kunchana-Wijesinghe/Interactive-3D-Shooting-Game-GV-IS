@@ -1,0 +1,29 @@
+PASS: play original floor renderer/collider enabled
+PASS: play original opaque textured floor Facility_RoughConcrete_Floor texture=rough_concrete_floor_diffuseOriginal
+play floor material tint=RGBA(0.320, 0.340, 0.360, 1.000) bounds=Center: (0.00, -0.25, 0.00), Extents: (21.00, 0.25, 30.00)
+PASS: actual gameplay NavMesh loaded
+PASS: no runtime LineRenderers
+Runtime renderer objects: Barrel bounds=(0.04, 0.19, 0.04), Grip bounds=(0.06, 0.20, 0.10), Magazine bounds=(0.07, 0.20, 0.14), Receiver bounds=(0.11, 0.11, 0.34), SightFront bounds=(0.04, 0.05, 0.04), SightRear bounds=(0.08, 0.05, 0.05), TopRail bounds=(0.05, 0.03, 0.27), FB_ToxicWaste_IntegrationPlaceholder bounds=(5.20, 1.00, 4.80), Access card bounds=(0.40, 0.10, 0.25), Ammo3gun swap bounds=(0.50, 0.50, 0.50), Barrel bounds=(0.03, 0.15, 0.03), Grip bounds=(0.05, 0.16, 0.08), Magazine bounds=(0.06, 0.22, 0.11), Receiver bounds=(0.08, 0.09, 0.43), SightFront bounds=(0.03, 0.04, 0.03), SightRear bounds=(0.06, 0.04, 0.04), Stock bounds=(0.06, 0.06, 0.14), TopRail bounds=(0.04, 0.02, 0.34), Entrance health +50 (HP <=50) bounds=(0.50, 0.50, 0.50), Ammo2gun swap bounds=(0.50, 0.50, 0.50), Barrel bounds=(0.03, 0.15, 0.03), Grip bounds=(0.05, 0.16, 0.08), Magazine bounds=(0.06, 0.19, 0.11), Receiver bounds=(0.09, 0.09, 0.35), SightFront bounds=(0.03, 0.04, 0.03), SightRear bounds=(0.06, 0.04, 0.04), Stock bounds=(0.06, 0.06, 0.14), TopRail bounds=(0.04, 0.02, 0.28), Marked ammo crate 25 bounds=(0.50, 0.50, 0.50), Marked ammo crate 50 bounds=(0.50, 0.50, 0.50), Connect card: fictional device bounds=(0.50, 0.50, 0.50), Card required — Door_Room3_Left bounds=(0.12, 3.00, 2.00), Card required — Door_Room3_Bottom bounds=(2.00, 3.00, 0.12), Card required — Door_Room3_Top bounds=(2.00, 3.00, 0.12), FB_Agent_PG01 bounds=(1.00, 2.00, 1.00), ChestAccent bounds=(0.49, 0.33, 0.06), Head bounds=(0.37, 0.33, 0.31), LArm bounds=(0.14, 0.51, 0.17), LFoot bounds=(0.22, 0.14, 0.35), LHand bounds=(0.17, 0.15, 0.20), LKnee bounds=(0.19, 0.20, 0.08), LLeg bounds=(0.17, 0.64, 0.19), LShoulder bounds=(0.22, 0.22, 0.26), OpticalSensor bounds=(0.14, 0.14, 0.14), Pelvis bounds=(0.48, 0.22, 0.31), RArm bounds=(0.14, 0.47, 0.48), RFoot bounds=(0.22, 0.14, 0.35), RHand bounds=(0.17, 0.25, 0.25), RKnee bounds=(0.19, 0.20, 0.08), RLeg bounds=(0.17, 0.64, 0.19), RShoulder bounds=(0.22, 0.34, 0.34), StateLight bounds=(0.15, 0.11, 0.03), Torso bounds=(0.57, 0.66, 0.37), Visor bounds=(0.29, 0.10, 0.06), FB_Agent_SH01 bounds=(1.00, 2.00, 1.00), ChestAccent bounds=(0.43, 0.29, 0.05), Head bounds=(0.33, 0.29, 0.27), HearingDisc-1 bounds=(0.07, 0.16, 0.16), HearingDisc1 bounds=(0.07, 0.16, 0.16), LArm bounds=(0.13, 0.45, 0.15), LFoot bounds=(0.19, 0.13, 0.31), LHand bounds=(0.15, 0.14, 0.17), LKnee bounds=(0.16, 0.17, 0.07), LLeg bounds=(0.15, 0.56, 0.16), LShoulder bounds=(0.19, 0.19, 0.23), Pelvis bounds=(0.43, 0.19, 0.27), RArm bounds=(0.13, 0.42, 0.42), RFoot bounds=(0.19, 0.13, 0.31), RHand bounds=(0.15, 0.22, 0.22), RKnee bounds=(0.16, 0.17, 0.07), RLeg bounds=(0.15, 0.56, 0.16), RShoulder bounds=(0.19, 0.30, 0.30), SignalAntenna bounds=(0.03, 0.25, 0.03), StateLight bounds=(0.14, 0.10, 0.03), Torso bounds=(0.50, 0.58, 0.33), Visor bounds=(0.25, 0.09, 0.05), FB_Agent_CD03 bounds=(1.41, 2.00, 1.41), ChestAccent bounds=(0.46, 0.33, 0.41), DefensiveArmor bounds=(0.37, 0.70, 0.35), Head bounds=(0.48, 0.33, 0.48), LArm bounds=(0.22, 0.51, 0.22), LFoot bounds=(0.40, 0.14, 0.41), LHand bounds=(0.26, 0.15, 0.26), LKnee bounds=(0.19, 0.20, 0.18), LLeg bounds=(0.25, 0.64, 0.25), LShoulder bounds=(0.34, 0.22, 0.34), Pelvis bounds=(0.57, 0.22, 0.55), RArm bounds=(0.42, 0.47, 0.45), RFoot bounds=(0.40, 0.14, 0.41), RHand bounds=(0.29, 0.25, 0.30), RKnee bounds=(0.19, 0.20, 0.18), RLeg bounds=(0.25, 0.64, 0.25), RShoulder bounds=(0.39, 0.34, 0.40), StateLight bounds=(0.14, 0.11, 0.13), Torso bounds=(0.74, 0.66, 0.72), Visor bounds=(0.25, 0.10, 0.23), FB_Agent_FL04 bounds=(1.00, 2.00, 1.00), AgileBackpack bounds=(0.33, 0.45, 0.17), ChestAccent bounds=(0.40, 0.31, 0.05), Head bounds=(0.35, 0.31, 0.29), LArm bounds=(0.13, 0.47, 0.15), LFoot bounds=(0.21, 0.13, 0.33), LHand bounds=(0.15, 0.14, 0.19), LKnee bounds=(0.18, 0.19, 0.07), LLeg bounds=(0.15, 0.60, 0.18), LShoulder bounds=(0.21, 0.21, 0.25), Pelvis bounds=(0.45, 0.21, 0.29), RArm bounds=(0.13, 0.44, 0.45), RFoot bounds=(0.21, 0.13, 0.33), RHand bounds=(0.15, 0.23, 0.23), RKnee bounds=(0.18, 0.19, 0.07), RLeg bounds=(0.15, 0.60, 0.18), RShoulder bounds=(0.21, 0.32, 0.32), StateLight bounds=(0.14, 0.10, 0.03), SweptHeadFin bounds=(0.08, 0.12, 0.27), Torso bounds=(0.47, 0.62, 0.35), Visor bounds=(0.27, 0.09, 0.05)
+CAPTURE: play-nav-on-gizmos-on 1920x766
+CAPTURE: play-nav-on-gizmos-off 1920x766
+PASS: Gizmos toggle leaves separate Show NavMesh setting enabled
+PASS: restore menu exists
+PASS: restore turns actual native Show NavMesh off
+CAPTURE: play-nav-off-gizmos-off 1920x766
+CAPTURE: play-nav-off-gizmos-on 1920x766
+CAPTURE: play-normal-camera 1024x768
+PASS: pause original floor renderer/collider enabled
+PASS: pause original opaque textured floor Facility_RoughConcrete_Floor texture=rough_concrete_floor_diffuseOriginal
+pause floor material tint=RGBA(0.320, 0.340, 0.360, 1.000) bounds=Center: (0.00, -0.25, 0.00), Extents: (21.00, 0.25, 30.00)
+PASS: pause retains normal display
+PASS: resume retains normal display
+PASS: original floor collision ray hits
+PASS: PG patrol remains navigable
+PASS: real Restart reloads scene
+PASS: restart original floor renderer/collider enabled
+PASS: restart original opaque textured floor Facility_RoughConcrete_Floor texture=rough_concrete_floor_diffuseOriginal
+restart floor material tint=RGBA(0.320, 0.340, 0.360, 1.000) bounds=Center: (0.00, -0.25, 0.00), Extents: (21.00, 0.25, 30.00)
+PASS: restart retains normal display
+PASS: restart retains navigation
+CAPTURE: restart-normal-camera 1024x768
+PASS: no unexpected gameplay Console errors
