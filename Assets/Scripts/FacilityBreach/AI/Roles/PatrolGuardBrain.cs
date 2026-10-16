@@ -32,6 +32,10 @@ namespace FacilityBreach.AI.Roles
         [Tooltip("When enabled, emits verbose search pattern and lost-sight memory diagnostic logs.")]
         public bool EnableSearchDiagnostics = false;
 
+        [Header("Return Configuration & Diagnostics")]
+        [Tooltip("When enabled, emits verbose return candidate evaluation and traversal diagnostic logs.")]
+        public bool EnableReturnDiagnostics = false;
+
         private PatrolAStarGraph graph;
         private List<Vector3> activeAStarPath;
         private List<int> activeAStarNodeIds;
@@ -47,6 +51,11 @@ namespace FacilityBreach.AI.Roles
         private int currentSearchPointIndex;
         private Vector3 lastInvestigatedPosition;
         private float lastInvestigatedTime;
+
+        // Milestone 2.2B: Tactical Return State
+        private List<PatrolReturnCandidate> rankedReturnCandidates;
+        private int currentReturnCandidateIndex = -1;
+        private Vector3 currentReturnTargetPos;
 
         public PatrolAStarGraph Graph
         {
@@ -65,6 +74,15 @@ namespace FacilityBreach.AI.Roles
         public IReadOnlyList<Vector3> ActiveSearchPoints => activeSearchPoints;
         public int CurrentSearchPointIndex => currentSearchPointIndex;
         public float SearchTimeRemaining => Mathf.Max(0f, searchUntil - (Runtime ? Runtime.GameplayTime : Time.time));
+
+        // Milestone 2.2B: Return State Properties
+        public IReadOnlyList<PatrolReturnCandidate> RankedReturnCandidates => rankedReturnCandidates;
+        public int CurrentReturnCandidateIndex => currentReturnCandidateIndex;
+        public Vector3 CurrentReturnTargetPos => currentReturnTargetPos;
+        public PatrolReturnCandidate ActiveReturnCandidate =>
+            (rankedReturnCandidates != null && currentReturnCandidateIndex >= 0 && currentReturnCandidateIndex < rankedReturnCandidates.Count)
+                ? rankedReturnCandidates[currentReturnCandidateIndex]
+                : null;
 
         protected override void Start()
         {
@@ -90,20 +108,21 @@ namespace FacilityBreach.AI.Roles
             // 1. Perception Reacquisition & Combat
             if (SeesPlayer)
             {
-                if (State == RoleState.Investigate || State == RoleState.Search)
+                if (State == RoleState.Investigate || State == RoleState.Search || State == RoleState.Return)
                 {
-                    TraceSearch($"Player reacquired at {LastKnownPosition} during {State}. Cancelling search/investigation.");
+                    TraceReturn($"Player reacquired at {LastKnownPosition} during {State}. Cancelling return/search/investigation.");
                 }
 
                 ClearActivePath();
                 ClearSearchState();
+                ClearReturnState();
 
                 if (sightStarted < 0) sightStarted = now;
 
                 if (!Detected && now - sightStarted < DetectionSeconds)
                 {
                     SetState(RoleState.Detecting);
-                    Mover.Stop();
+                    Mover?.Stop();
                     return;
                 }
 
@@ -130,10 +149,11 @@ namespace FacilityBreach.AI.Roles
             if (Detected)
             {
                 Detected = false;
-                Mover.Stop();
+                Mover?.Stop();
                 SetState(RoleState.Investigate);
                 ClearActivePath();
                 ClearSearchState();
+                ClearReturnState();
                 lastInvestigatedPosition = LastKnownPosition;
                 lastInvestigatedTime = now;
                 TraceSearch($"Lost sight of player. Entering Investigate state for position {LastKnownPosition} (recorded at t={now:F2}).");
@@ -208,12 +228,11 @@ namespace FacilityBreach.AI.Roles
                 // Strict timeout: SearchSeconds = 4f
                 if (now >= searchUntil)
                 {
-                    TraceSearch($"Search duration ({SearchSeconds:F1}s) completed. Returning to patrol.");
+                    TraceSearch($"Search duration ({SearchSeconds:F1}s) completed. Initiating tactical return to patrol.");
                     ClearSearchState();
                     ClearActivePath();
                     HasLastKnown = false;
-                    Mover.Stop();
-                    SetState(RoleState.Patrol);
+                    InitiateReturnToPatrol(now);
                     return;
                 }
 
@@ -284,13 +303,20 @@ namespace FacilityBreach.AI.Roles
                 return;
             }
 
-            // 5. Detecting State fallback
+            // 5. Return State: tactical return to nearest reachable patrol route waypoint
+            if (State == RoleState.Return)
+            {
+                ExecuteReturnNavigation();
+                return;
+            }
+
+            // 6. Detecting State fallback
             if (State == RoleState.Detecting)
             {
                 SetState(RoleState.Patrol);
             }
 
-            // 6. Patrol State Navigation via Authored A* Graph
+            // 7. Patrol State Navigation via Authored A* Graph
             ExecutePatrolNavigation();
         }
 
@@ -532,6 +558,192 @@ namespace FacilityBreach.AI.Roles
             searchUntil = 0;
         }
 
+        private void ClearReturnState()
+        {
+            rankedReturnCandidates = null;
+            currentReturnCandidateIndex = -1;
+            currentReturnTargetPos = Vector3.zero;
+        }
+
+        private void InitiateReturnToPatrol(float now)
+        {
+            if (graph == null) graph = FacilityPatrolGraphFactory.CreateSecurityZoneGraph();
+
+            if (Route == null || Route.Length == 0)
+            {
+                TraceReturn("No authored patrol route found. Defaulting to Patrol state at current position.");
+                Mover?.Stop();
+                ClearReturnState();
+                ClearActivePath();
+                SetState(RoleState.Patrol);
+                return;
+            }
+
+            rankedReturnCandidates = PatrolReturnPlanner.EvaluateReturnCandidates(
+                graph,
+                Route,
+                transform.position,
+                isPointReachable: IsReturnPointReachable
+            );
+
+            currentReturnCandidateIndex = 0;
+
+            var bestCandidate = PatrolReturnPlanner.SelectBestCandidate(rankedReturnCandidates);
+            if (bestCandidate == null)
+            {
+                TraceReturn("No reachable return candidates found. Gracefully resuming Patrol at waypoint 0.");
+                Mover?.Stop();
+                ClearReturnState();
+                ClearActivePath();
+                waypoint = 0;
+                SetState(RoleState.Patrol);
+                return;
+            }
+
+            currentReturnCandidateIndex = rankedReturnCandidates.IndexOf(bestCandidate);
+
+            // Check if already standing within arrival tolerance of this candidate
+            float directDist = Vector3.Distance(transform.position, bestCandidate.Position);
+            if (directDist <= PatrolReturnPlanner.ArrivalTolerance)
+            {
+                TraceReturn($"Already within arrival tolerance ({directDist:F2}m <= {PatrolReturnPlanner.ArrivalTolerance:F2}m) of Route[{bestCandidate.RouteIndex}] ({bestCandidate.Position}). Resuming Patrol directly.");
+                waypoint = bestCandidate.RouteIndex;
+                Mover?.Stop();
+                ClearReturnState();
+                ClearActivePath();
+                SetState(RoleState.Patrol);
+                return;
+            }
+
+            SetState(RoleState.Return);
+            EngageReturnCandidate(bestCandidate);
+        }
+
+        private void EngageReturnCandidate(PatrolReturnCandidate candidate)
+        {
+            if (candidate == null || !candidate.IsReachable)
+            {
+                TryNextReturnCandidate();
+                return;
+            }
+
+            currentReturnTargetPos = candidate.Position;
+            activeAStarNodeIds = new List<int>(candidate.NodeIds);
+            activeAStarPath = new List<Vector3>(candidate.Waypoints);
+
+            if (activeAStarPath.Count > 1 && Vector3.Distance(transform.position, activeAStarPath[0]) <= 0.6f)
+            {
+                pathIndex = 1;
+            }
+            else
+            {
+                pathIndex = 0;
+            }
+
+            TraceReturn($"Engaged return to Route[{candidate.RouteIndex}] ({candidate.Position}) with cost {candidate.TotalCost:F2}. Path steps: {activeAStarPath.Count}");
+            Mover?.Stop();
+        }
+
+        private void TryNextReturnCandidate()
+        {
+            currentReturnCandidateIndex++;
+            while (rankedReturnCandidates != null && currentReturnCandidateIndex < rankedReturnCandidates.Count)
+            {
+                var nextCandidate = rankedReturnCandidates[currentReturnCandidateIndex];
+                if (nextCandidate.IsReachable)
+                {
+                    TraceReturn($"Retrying return navigation with candidate #{currentReturnCandidateIndex}: Route[{nextCandidate.RouteIndex}] ({nextCandidate.Position}).");
+                    EngageReturnCandidate(nextCandidate);
+                    return;
+                }
+                currentReturnCandidateIndex++;
+            }
+
+            TraceReturn("All return candidates exhausted or unreachable. Gracefully falling back to Patrol state at waypoint 0.");
+            Mover?.Stop();
+            ClearReturnState();
+            ClearActivePath();
+            waypoint = 0;
+            SetState(RoleState.Patrol);
+        }
+
+        private void ExecuteReturnNavigation()
+        {
+            var currentCandidate = ActiveReturnCandidate;
+            if (currentCandidate == null || !currentCandidate.IsReachable)
+            {
+                TryNextReturnCandidate();
+                return;
+            }
+
+            // Check arrival at return destination
+            bool arrivedAtDestination = (Mover != null && Mover.Status == MoveStatus.Arrived && activeAStarPath != null && pathIndex >= activeAStarPath.Count) ||
+                                        (Vector3.Distance(transform.position, currentCandidate.Position) <= PatrolReturnPlanner.ArrivalTolerance && (activeAStarPath == null || pathIndex >= (activeAStarPath?.Count ?? 0)));
+
+            if (arrivedAtDestination)
+            {
+                TraceReturn($"Arrived at return patrol waypoint Route[{currentCandidate.RouteIndex}] ({currentCandidate.Position}). Resuming normal patrol.");
+                waypoint = currentCandidate.RouteIndex;
+                Mover?.Stop();
+                ClearReturnState();
+                ClearActivePath();
+                SetState(RoleState.Patrol);
+                return;
+            }
+
+            // Handle movement failure: try next candidate
+            if (Mover != null && Mover.Status == MoveStatus.Failed)
+            {
+                TraceReturn($"Movement to return target Route[{currentCandidate.RouteIndex}] failed ({Mover.FailureReason}). Attempting next candidate.");
+                Mover?.Stop();
+                ClearActivePath();
+                TryNextReturnCandidate();
+                return;
+            }
+
+            // Intermediate waypoint arrival along return path
+            if (Mover != null && Mover.Status == MoveStatus.Arrived && activeAStarPath != null && pathIndex < activeAStarPath.Count)
+            {
+                TraceAStar($"Arrived at intermediate return node (Index {pathIndex}/{activeAStarPath.Count - 1}, Pos={activeAStarPath[pathIndex]}).");
+                pathIndex++;
+                Mover?.Stop();
+                if (pathIndex >= activeAStarPath.Count)
+                {
+                    TraceReturn($"Arrived at return patrol waypoint Route[{currentCandidate.RouteIndex}] ({currentCandidate.Position}). Resuming normal patrol.");
+                    waypoint = currentCandidate.RouteIndex;
+                    Mover?.Stop();
+                    ClearReturnState();
+                    ClearActivePath();
+                    SetState(RoleState.Patrol);
+                    return;
+                }
+            }
+
+            // If path is somehow empty, re-engage
+            if (activeAStarPath == null || activeAStarPath.Count == 0)
+            {
+                EngageReturnCandidate(currentCandidate);
+            }
+
+            // Stream next waypoint if Mover is idle
+            if (activeAStarPath != null && pathIndex < activeAStarPath.Count && (Mover == null || Mover.Status != MoveStatus.Moving))
+            {
+                Vector3 nextStep = activeAStarPath[pathIndex];
+                float stop = (pathIndex == activeAStarPath.Count - 1) ? 0.6f : 0.5f;
+                TraceAStar($"Requesting move to return waypoint {pathIndex}/{activeAStarPath.Count - 1} at {nextStep}");
+                Mover?.RequestMove(nextStep, stop);
+            }
+        }
+
+        private bool IsReturnPointReachable(Vector3 point)
+        {
+            if (Mover == null || !Mover.OnNavigation)
+            {
+                return true;
+            }
+            return Reachable(point, out _, out _);
+        }
+
         private void TraceAStar(string message)
         {
             if (EnableAStarDiagnostics)
@@ -556,11 +768,40 @@ namespace FacilityBreach.AI.Roles
             }
         }
 
+        private void TraceReturn(string message)
+        {
+            if (EnableAStarDiagnostics || EnableReturnDiagnostics)
+            {
+                Debug.Log($"[PG-01 Return] {message}", this);
+            }
+            else
+            {
+                GameplayDiagnostics.Trace($"[PG-01 Return] {message}", this);
+            }
+        }
+
+        /// <summary>
+        /// Public test hook to evaluate and trigger tactical return to patrol.
+        /// </summary>
+        public void TriggerReturnToPatrol(float now)
+        {
+            InitiateReturnToPatrol(now);
+        }
+
+        /// <summary>
+        /// Public test hook to simulate candidate movement failure and retry with next reachable candidate.
+        /// </summary>
+        public void TriggerNextReturnCandidate()
+        {
+            TryNextReturnCandidate();
+        }
+
         protected override void OnDisable()
         {
             base.OnDisable();
             ClearActivePath();
             ClearSearchState();
+            ClearReturnState();
         }
 
         public override void ResetEnemyActions()
@@ -572,6 +813,7 @@ namespace FacilityBreach.AI.Roles
             waypoint = 0;
             ClearActivePath();
             ClearSearchState();
+            ClearReturnState();
             lastInvestigatedPosition = Vector3.zero;
             lastInvestigatedTime = 0;
         }
