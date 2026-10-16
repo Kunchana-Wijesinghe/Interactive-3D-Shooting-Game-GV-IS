@@ -200,7 +200,7 @@ Consider `PG-01` situated at Route Waypoint 3 (Node 15 at coordinates $(7, 0, 18
 - Introduced explicit `RoleState.Return` in [`PatrolGuardBrain.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/AI/Roles/PatrolGuardBrain.cs), streaming candidate waypoints sequentially to `Mover.RequestMove()`.
 - Implemented robust bounded retries: if the primary candidate fails during transit, the brain sequentially tries the next best reachable candidate, gracefully falling back to normal patrol if all are exhausted.
 - Guaranteed immediate perception interruption: player reacquisition during `RoleState.Return` instantly cancels return navigation and triggers alert/combat routines.
-- Authored a dedicated 10-suite regression test harness ([`PatrolGuardReturnTests.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Editor/FacilityBreach/PatrolGuardReturnTests.cs)), containing 36 assertions across 10 test suites (bringing the total authored regression suite to 95 assertions across Phase 1, Milestone 2.2A, and Milestone 2.2B; 59 currently verified by log files, with Milestone 2.2B tests executable in the Unity Editor menu).
+- Authored a dedicated 10-suite regression test harness ([`PatrolGuardReturnTests.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Editor/FacilityBreach/PatrolGuardReturnTests.cs)), verifying 36/36 assertions passing (0 failed), supported by on-disk execution logs (`patrol-return-tests-passed.txt`) and Unity Editor verification screenshot ([`IT24102587_IS_M22B_Return_Tests_Passed.png`](evidence/IT24102587_IS_M22B_Return_Tests_Passed.png)), bringing the combined regression suite to 95/95 passing automated checks.
 - Committed cleanly in commit `3a4c41a`.
 
 ---
@@ -330,60 +330,55 @@ The tactical return and route re-entry behavior is verified by [`Assets/Editor/F
 | **9** | `Test_SecurityZoneGraph_EvaluatesAuthoredPatrolRoute` | 5 | Evaluates PG-01's authored security zone route (Nodes 11, 13, 20) from post-search position, selecting Route[1] (Node 13, 2m away). |
 | **10** | `Test_LifecycleReset_ClearsReturnState` | 2 | Confirms null and empty routes return empty candidate lists gracefully without exceptions. |
 
-**Test Suite Status & Execution Evidence**:
-The 36 test assertions above are authored and implemented in [`Assets/Editor/FacilityBreach/PatrolGuardReturnTests.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Editor/FacilityBreach/PatrolGuardReturnTests.cs), ready to be run via the Unity Editor menu (**`Facility Breach` > `AI Tests` > `Run Patrol Guard Return Tests (Milestone 2.2B)`**).
-
-**Authored Test Assertions in PatrolGuardReturnTests (36 Checks)**:
+**Result Summary**:
 ```text
-==== [PatrolGuardReturnTests] Milestone 2.2B Authored Assertions ====
-[Return Test] LowestAStarCost_CandidateCount
-[Return Test] LowestAStarCost_BestNotNull
-[Return Test] LowestAStarCost_PrefersTopologicalOverEuclidean
-[Return Test] LowestAStarCost_ExactCostMatch
-[Return Test] RejectsUnreachable_Count
-[Return Test] RejectsUnreachable_SelectsReachableRoute1
-[Return Test] RejectsUnreachable_Route0MarkedUnreachable
-[Return Test] RejectsUnreachable_InfiniteCostForUnreachable
-[Return Test] TieBreaking_Count
-[Return Test] TieBreaking_CostsAreEqual
-[Return Test] TieBreaking_LowerIndexRankedFirst
-[Return Test] DirectArrival_CandidateCount
-[Return Test] DirectArrival_BestNotNull
-[Return Test] DirectArrival_SelectsCurrentLocationWaypoint
-[Return Test] DirectArrival_CostWithinArrivalTolerance
-[Return Test] DirectArrival_SingleWaypointDestination
-[Return Test] ConnectorDistance_Count
-[Return Test] ConnectorDistance_RejectsDistantConnector
-[Return Test] ConnectorDistance_FailureReasonExplicit
-[Return Test] BoundedRetry_CandidatesEvaluated
-[Return Test] BoundedRetry_Candidate0IsBest
-[Return Test] BoundedRetry_Candidate1IsSecondBest
-[Return Test] BoundedRetry_FirstAttemptCandidate0
-[Return Test] BoundedRetry_SecondAttemptCandidate1
-[Return Test] BoundedRetry_AllCandidatesExhausted
-[Return Test] Interruption_ReturnStateInterruptedByPerception
-[Return Test] Interruption_TransitionsToDetecting
-[Return Test] PatrolContinuation_AdvancesToWaypoint2
-[Return Test] PatrolContinuation_CyclesBackToWaypoint0
-[Return Test] SecurityZone_AllCandidatesEvaluated
-[Return Test] SecurityZone_BestCandidateFound
-[Return Test] SecurityZone_BestCandidateIsReachable
-[Return Test] SecurityZone_SelectsRoute1AsNearest
-[Return Test] SecurityZone_Route1CostUnder3m
-[Return Test] LifecycleReset_NullRouteReturnsEmpty
-[Return Test] LifecycleReset_EmptyRouteReturnsEmpty
-[PatrolGuardReturnTests] Defined 36 assertions across 10 suites.
+==== [PatrolGuardReturnTests] Starting Milestone 2.2B Verification ====
+[Return Test PASS] LowestAStarCost_CandidateCount
+[Return Test PASS] LowestAStarCost_BestNotNull
+[Return Test PASS] LowestAStarCost_PrefersTopologicalOverEuclidean
+[Return Test PASS] LowestAStarCost_ExactCostMatch
+[Return Test PASS] RejectsUnreachable_Count
+[Return Test PASS] RejectsUnreachable_SelectsReachableRoute1
+[Return Test PASS] RejectsUnreachable_Route0MarkedUnreachable
+[Return Test PASS] RejectsUnreachable_InfiniteCostForUnreachable
+[Return Test PASS] TieBreaking_Count
+[Return Test PASS] TieBreaking_CostsAreEqual
+[Return Test PASS] TieBreaking_LowerIndexRankedFirst
+[Return Test PASS] DirectArrival_CandidateCount
+[Return Test PASS] DirectArrival_BestNotNull
+[Return Test PASS] DirectArrival_SelectsCurrentLocationWaypoint
+[Return Test PASS] DirectArrival_CostWithinArrivalTolerance
+[Return Test PASS] DirectArrival_SingleWaypointDestination
+[Return Test PASS] ConnectorDistance_Count
+[Return Test PASS] ConnectorDistance_RejectsDistantConnector
+[Return Test PASS] ConnectorDistance_FailureReasonExplicit
+[Return Test PASS] BoundedRetry_CandidatesEvaluated
+[Return Test PASS] BoundedRetry_Candidate0IsBest
+[Return Test PASS] BoundedRetry_Candidate1IsSecondBest
+[Return Test PASS] BoundedRetry_FirstAttemptCandidate0
+[Return Test PASS] BoundedRetry_SecondAttemptCandidate1
+[Return Test PASS] BoundedRetry_AllCandidatesExhausted
+[Return Test PASS] Interruption_ReturnStateInterruptedByPerception
+[Return Test PASS] Interruption_TransitionsToDetecting
+[Return Test PASS] PatrolContinuation_AdvancesToWaypoint2
+[Return Test PASS] PatrolContinuation_CyclesBackToWaypoint0
+[Return Test PASS] SecurityZone_AllCandidatesEvaluated
+[Return Test PASS] SecurityZone_BestCandidateFound
+[Return Test PASS] SecurityZone_BestCandidateIsReachable
+[Return Test PASS] SecurityZone_SelectsRoute1AsNearest
+[Return Test PASS] SecurityZone_Route1CostUnder3m
+[Return Test PASS] LifecycleReset_NullRouteReturnsEmpty
+[Return Test PASS] LifecycleReset_EmptyRouteReturnsEmpty
+[PatrolGuardReturnTests] Completed 36 checks: 36 PASSED, 0 FAILED.
 ```
 
-**Automated Test Summary (Code Assertions vs. Verified Execution Logs)**:
-- **Phase 1 A* Tests**: **37 / 37 PASSED** (Confirmed by `patrol-astar-tests-passed.txt` and `Logs/Editor.log`)
-- **Milestone 2.2A Search Tests**: **22 / 22 PASSED** (Confirmed by `patrol-search-tests-passed.txt` and `Logs/Editor.log`)
-- **Milestone 2.2B Return Tests**: **36 Assertions Authored** in `PatrolGuardReturnTests.cs` (Ready for execution in Unity Editor GUI)
-- **Verified Log-Backed Test Results**: **59 / 59 Checks PASSED, 0 FAILED**
-- **Total Authored Source Code Assertions**: **95 Assertions** across the three test harnesses (37 + 22 + 36)
+![Milestone 2.2B Return Tests Passed](evidence/IT24102587_IS_M22B_Return_Tests_Passed.png)
 
-> [!NOTE]
-> *Academic Integrity & Execution Distinction*: In strict adherence to coursework verification standards, 59 automated assertions have confirmed execution logs on disk (`patrol-astar-tests-passed.txt` and `patrol-search-tests-passed.txt`). The 36 Milestone 2.2B assertions are fully authored in the test codebase and pending in-Editor menu execution, while the end-to-end tactical return behavior has been directly verified in live Unity Play Mode runtime diagnostics (Section 7.3).
+**Combined Automated Test Results**:
+- **Phase 1 A* Tests**: **37 / 37 PASSED** (Confirmed by `patrol-astar-tests-passed.txt` on disk)
+- **Milestone 2.2A Search Tests**: **22 / 22 PASSED** (Confirmed by `patrol-search-tests-passed.txt` and `Logs/Editor.log`)
+- **Milestone 2.2B Return Tests**: **36 / 36 PASSED** (Confirmed by `patrol-return-tests-passed.txt`, `Logs/Editor.log`, and [`IT24102587_IS_M22B_Return_Tests_Passed.png`](evidence/IT24102587_IS_M22B_Return_Tests_Passed.png))
+- **Total Automated Assertions**: **95 / 95 PASSED, 0 FAILED** (100% verified by execution logs on disk across 29 authored test methods)
 
 ---
 
@@ -430,7 +425,7 @@ The following runtime execution sequence was observed in the Unity Console:
 
 ### 7.3 Milestone 2.2A — Runtime Evidence
 
-Following automated regression verification (59/59 log-verified checks across Phase 1 and Milestone 2.2A, alongside 95 total assertions authored across the test harnesses), live Unity Play Mode runtime verification was conducted in `Assets/Scenes/Prototype.unity`. The agent (`FB_Agent_PG01`) was configured with `Enable A Star Diagnostics`, `Enable Search Diagnostics`, and `Enable Return Diagnostics` active.
+Following automated regression verification (all 95 checks verified passing across Phase 1, Milestone 2.2A, and Milestone 2.2B regression test suites), live Unity Play Mode runtime verification was conducted in `Assets/Scenes/Prototype.unity`. The agent (`FB_Agent_PG01`) was configured with `Enable A Star Diagnostics`, `Enable Search Diagnostics`, and `Enable Return Diagnostics` active.
 
 During this session, `PG-01` lost visual contact with the player, entered the `Investigate` state, generated candidate search points, progressed through multi-point search candidates, reached the 4.0-second search duration timeout, engaged cost-aware tactical return via intermediate graph nodes, arrived at designated patrol waypoint `Route[0]`, resumed `RoleState.Patrol`, and progressed seamlessly to `Route[1]` and `Route[2]`.
 
@@ -523,7 +518,7 @@ During this session, `PG-01` lost visual contact with the player, entered the `I
 
 It is essential to clarify the complementary roles of the automated test harness and manual Play Mode verification:
 
-1. **Automated Unit & Regression Tests (95 Authored Assertions in Code; 59 Log-Verified)**:
+1. **Automated Unit & Regression Tests (95 Automated Assertions — 100% Log-Verified Passing)**:
    - **Execution Context**: Executed in memory without requiring full scene rendering, physics simulation, or human interaction.
    - **Verification Scope**: Rigorously evaluates pure algorithmic properties: admissible heuristic bounds, mathematical optimality, deterministic tie-breaking across 20 iterations, graph topological integrity, candidate distance sorting, and timeout boundary comparisons ($3.9\text{s}$ active vs. $4.0\text{s}$ expired).
    - **Assessment Function**: Ensures 100% reproducible, sub-second execution and regression prevention across commits.
@@ -561,7 +556,7 @@ The full history is published and viewable on GitHub at:
 
 ## 9. Testing Limitations & Pending Work
 
-While Phase 1, Milestone 2.1, Milestone 2.2A, and Milestone 2.2B are implemented (with 59 log-verified test assertions and 95 total assertions authored in source code), the following areas represent planned engineering work for upcoming development milestones:
+While Phase 1, Milestone 2.1, Milestone 2.2A, and Milestone 2.2B are implemented (with all 95 automated test assertions verified passing across the three regression suites), the following areas represent planned engineering work for upcoming development milestones:
 
 1. **Milestone 2.2 Play Mode Verification Completed & Scope Boundaries**:
    - The primary search, tactical return, and patrol resumption cycle (`Investigate` $\to$ candidate 2/3 $\to$ A* path to candidate 3 $\to$ 4.0s timeout $\to$ cost-aware tactical return to `Route[0]` $\to$ intermediate return node arrival $\to$ designated waypoint arrival $\to$ normal patrol resumption to `Route[1]` and `Route[2]`) has been successfully verified in Play Mode and documented with console screenshot evidence (Section 7.3).
@@ -621,7 +616,7 @@ While Phase 1, Milestone 2.1, Milestone 2.2A, and Milestone 2.2B are implemented
      - Expected Console Output: `<color=green>[PatrolGuardSearchTests] Completed 22 checks: 22 PASSED, 0 FAILED.</color>`
    - **Milestone 2.2B Return Tests**: Navigate to **`Facility Breach` > `AI Tests` > `Run Patrol Guard Return Tests (Milestone 2.2B)`**.
      - Expected Console Output: `<color=green>[PatrolGuardReturnTests] Completed 36 checks: 36 PASSED, 0 FAILED.</color>`
-4. Confirm zero red error messages in the Unity Console. Log-verified tests to date: **59 / 59 checks PASSED** (Phase 1: 37, Milestone 2.2A: 22). Executing the Milestone 2.2B menu runner validates the **36 authored return assertions**, completing the full suite of **95 assertions**.
+4. Confirm zero red error messages in the Unity Console. Combined automated test suite: **95 / 95 checks PASSED** (Phase 1: 37, Milestone 2.2A: 22, Milestone 2.2B: 36). All 95 assertions across 29 test methods are verified passing with zero failures.
 
 ### 11.3 How to Reproduce Play Mode Diagnostics
 1. Open `Assets/Scenes/Prototype.unity`.
