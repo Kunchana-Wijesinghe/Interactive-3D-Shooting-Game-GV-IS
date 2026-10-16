@@ -9,7 +9,7 @@
 **Repository**: [Interactive-3D-Shooting-Game-GV-IS](https://github.com/Kunchana-Wijesinghe/Interactive-3D-Shooting-Game-GV-IS)  
 **Dedicated Branch**: `is/Kunchana-patrol-guard`  
 **Base Commit**: `072395e` (Latest Team `develop`)  
-**Current Milestone HEAD**: `d838559`  
+**Milestone 2.1 Verified Commit**: `d838559`  
 
 ---
 
@@ -163,13 +163,14 @@ Consider `PG-01` situated at Route Waypoint 3 (Node 15 at coordinates $(7, 0, 18
 - Verified 37/37 assertions passing in Unity Editor 6000.6.2f1 and standalone .NET runner.
 - Committed across four distinct logical commits (`47dc814`, `ddcb1a6`, `ed30808`, `cbd1740`) and published to remote.
 
-### 5.2 Phase 2, Milestone 2.1 — A*-Guided Patrol Navigation Integration (Completed)
+### 5.2 Phase 2, Milestone 2.1 — A*-Guided Patrol Navigation Integration (Completed & Play Mode Verified)
 - Modified [`PatrolGuardBrain.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/AI/Roles/PatrolGuardBrain.cs) to initialize and query the security zone graph.
 - Implemented sequential waypoint streaming: dispatches intermediate A* nodes to `Mover.RequestMove()` one at a time.
 - Integrated arrival detection (`Mover.Status == MoveStatus.Arrived`), target completion, and route cycling (`waypoint = (waypoint + 1) % Route.Length`).
 - Implemented stationary bypass: immediately advances if the agent already occupies the route waypoint.
 - Implemented anti-oscillation rate limiting: mover failure advances to the next waypoint without tight repath loops.
 - Integrated route validation against the topological graph (`ValidateRouteAgainstGraph`).
+- Verified live in Unity Play Mode via real-time Console diagnostics streaming node transitions (`[12 -> 13]`, `[13 -> 14]`, `[14 -> 15]`, `[15 -> 12]`).
 - Committed cleanly in commit `d838559` and published to GitHub.
 
 ---
@@ -279,7 +280,7 @@ The following runtime execution sequence was observed in the Unity Console:
    [PG-01 A*] Requesting move to waypoint 1/1 at (5.00, 0.00, 18.00)
    ```
 
-*Note*: Screenshots of the agent progressing through this patrol loop and corresponding Console traces were captured live by the student during manual testing for submission with coursework documentation. In accordance with honesty guidelines, arrival at Leg 4 closure was initiated and observed in path planning, while dynamic barricade rerouting and multi-point search are scheduled for subsequent milestones.
+*Note*: Screenshots of the agent progressing through this patrol loop and corresponding Console traces were captured live by the student during manual testing for submission with coursework documentation. In accordance with honesty guidelines, path planning for Route[0] (Leg 4 loop closure, nodes `[15 -> 12]`) was initiated and verified via Console diagnostics (`total cost=2.00`, `explored=2`), while physical movement completion and arrival at Route[0] was not independently verified and is not claimed. Last-seen memory, intelligent multi-point search, and return to patrol (Milestone 2.2), followed by dynamic obstacle and barricade rerouting (Milestone 2.3), are scheduled for subsequent milestones.
 
 ---
 
@@ -302,17 +303,17 @@ The full history is published and viewable on GitHub at:
 
 ## 9. Testing Limitations & Pending Work
 
-While Phase 1 and Phase 2, Milestone 2.1 are complete, the following areas represent planned engineering work for Milestones 2.2 and 2.3:
+While Phase 1 and Phase 2, Milestone 2.1 are complete, the following areas represent planned engineering work for upcoming development milestones:
 
-1. **Dynamic Barricade Rerouting (Milestone 2.2)**:
-   - Linking `DynamicNavigationObstacles` and movable barricade events to `PatrolAStarGraph.SetEdgeBlocked()`.
-   - When the exit barricade at Node 18 is moved or placed, `PG-01` must detect edge blockage and compute alternate routes (e.g., detouring through Room 3 Machinery via Nodes $16 \to 17 \to 18$).
-2. **Multi-Point Intelligent Search (Milestone 2.3)**:
-   - Replacing the basic stationary $360^\circ$ rotational search with an exploration algorithm querying adjacent graph nodes around the last-known position.
-3. **Tactical Return-to-Nearest-Waypoint**:
-   - Enhancing post-investigation recovery so `PG-01` selects the topologically closest node in its route rather than resuming index sequentially.
-4. **Final Team Integration**:
-   - Merging `is/Kunchana-patrol-guard` back into `develop` following comprehensive team regression testing.
+1. **Milestone 2.2 — Last-Seen Memory, Intelligent Multi-Point Search, and Return to Patrol (Planned)**:
+   - **Player Memory Extension**: Recording and retaining the player's last-known coordinates upon line-of-sight interruption.
+   - **Multi-Point Intelligent Search**: Replacing the baseline stationary $360^\circ$ rotational sweep with an active topological search querying adjacent graph nodes around the last-known position.
+   - **Tactical Return-to-Patrol Recovery**: After search expiration, navigating to the topologically closest route waypoint using an A* path rather than blindly resuming the next numerical route index.
+2. **Milestone 2.3 — Dynamic Obstacle and Barricade Rerouting (Planned)**:
+   - **Dynamic Graph Updates**: Subscribing to `DynamicNavigationObstacles` and movable barricade events to call `PatrolAStarGraph.SetEdgeBlocked()`.
+   - **Reactive Replanning**: When an active edge (such as corridor access to Node 18 near the exit barricade) is blocked, `PG-01` dynamically replans an alternative topological detour (e.g., routing via Room 3 Machinery nodes $16 \to 17 \to 18$).
+3. **Final Team Integration**:
+   - Merging `is/Kunchana-patrol-guard` back into `develop` following comprehensive four-agent regression testing.
 
 ---
 
