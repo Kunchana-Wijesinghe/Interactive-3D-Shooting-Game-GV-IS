@@ -11,6 +11,7 @@
 **Base Commit**: `072395e` (Latest Team `develop`)  
 **Milestone 2.1 Verified Commit**: `d838559`  
 **Milestone 2.2A Verified Commit**: `9971c47`  
+**Milestone 2.2B Verified Commit**: `3a4c41a`  
 
 ---
 
@@ -20,7 +21,7 @@ In *Facility Breach*, the player infiltrates an underground research complex con
 
 As part of the Intelligent Systems (IS) individual coursework component, I was assigned sole responsibility for the **Patrol Guard autonomous agent (`PG-01`)**. My mandate is to replace basic hardcoded waypoint cycling with an independently authored, deterministic **A\* pathfinding graph network**, integrate topological route planning with local physics-based movement, ensure robust fail-safe behaviors (e.g., arrival tolerance, target change handling, and anti-oscillation rate limiting), and maintain complete backward compatibility with the shared team game framework.
 
-This report documents the architectural design, algorithmic implementation, automated test evidence, and manual Unity Play Mode verification completed through **Phase 1**, **Phase 2, Milestone 2.1**, and **Phase 2, Milestone 2.2A (Last-Seen Memory & Multi-Point Search)**.
+This report documents the architectural design, algorithmic implementation, automated test evidence, and manual Unity Play Mode verification completed through **Phase 1**, **Phase 2, Milestone 2.1**, **Phase 2, Milestone 2.2A (Last-Seen Memory & Multi-Point Search)**, and **Phase 2, Milestone 2.2B (Tactical Return to Nearest Reachable Patrol Waypoint)**.
 
 ---
 
@@ -32,15 +33,15 @@ This report documents the architectural design, algorithmic implementation, auto
 - **Visual Perception**: Sensing the player character within a $110^\circ$ horizontal Field of View (FOV) up to a maximum distance of $13\text{m}$.
 - **Delayed Combat Engagement**: Requiring continuous visual confirmation for $\ge 0.5\text{s}$ before triggering attack warnings, illuminating its chest combat beacon, and firing hitscan projectiles ($12\text{m}$ combat range, 60 HP pool).
 - **Lost-Sight Investigation**: Moving to the player's last-known position upon line-of-sight breakage.
-- **Search Scanning**: Conducting a localized 4.0-second $360^\circ$ rotational sweep.
-- **Patrol Re-entry**: Returning to regular patrol routing upon search expiration without psychic or unfair knowledge of the player's true position.
+- **Search Scanning**: Conducting a localized 4.0-second multi-point inspection of candidate security nodes.
+- **Tactical Patrol Return**: Ranking all authored route waypoints by true A* graph travel cost and navigating to the optimal reachable waypoint before resuming normal patrol cycling, without psychic knowledge or teleports.
 
 ### 2.2 Collaboration in the Four-Agent Ecosystem
 The project features four distinct autonomous enemy agents, each governed by specialized decision brains:
 
 | Agent Identity | Role Description | Responsible Engineer | Primary Intelligent System Mechanism |
 | :--- | :--- | :--- | :--- |
-| **`PG-01`** | **Patrol Guard** | **Wijesinghe K (IT24102587)** | **Authored A\* graph pathfinding, topological waypoint navigation, visual alert transitions** |
+| **`PG-01`** | **Patrol Guard** | **Wijesinghe K (IT24102587)** | **Authored A\* graph pathfinding, topological waypoint navigation, visual alert transitions, tactical return** |
 | `SH-01` | Sound Hunter | Teammate (IS Lead) | Acoustic stimulus ranking, sound propagation graph search |
 | `CD-03` | Cover Defender | Teammate | Static defensive posture evaluation, cover spot scoring |
 | `FL-04` | Flanker | Teammate | Dynamic angular offset positioning, flank vector calculation |
@@ -62,12 +63,14 @@ To satisfy coursework assessment criteria, the boundary between pre-existing tea
 │   ├── PatrolAStarGraph.cs (Adjacency-list graph network, spatial lookup)
 │   ├── PatrolAStarPathfinder.cs (Pure deterministic A* algorithm with admissible heuristic)
 │   ├── FacilityPatrolGraphFactory.cs (Authoritative security-zone coordinate mapping)
-│   └── PatrolSearchPlanner.cs (Deterministic multi-point search candidate generator)
+│   ├── PatrolSearchPlanner.cs (Deterministic multi-point search candidate generator)
+│   └── PatrolReturnPlanner.cs (Cost-aware nearest reachable patrol return evaluator)
 ├── Assets/Editor/FacilityBreach/
 │   ├── PatrolGuardAStarTests.cs (Phase 1 10-suite, 37-assertion A* test harness)
-│   └── PatrolGuardSearchTests.cs (Milestone 2.2A 9-suite, 22-assertion search test harness)
+│   ├── PatrolGuardSearchTests.cs (Milestone 2.2A 9-suite, 22-assertion search test harness)
+│   └── PatrolGuardReturnTests.cs (Milestone 2.2B 10-suite, 36-assertion return test harness)
 └── Assets/Scripts/FacilityBreach/AI/Roles/
-    └── PatrolGuardBrain.cs (Integrated A* path planning, sequential waypoint dispatch, last-seen memory & search)
+    └── PatrolGuardBrain.cs (Integrated A* path planning, sequential streaming, search memory, tactical return)
 ```
 
 ---
@@ -187,6 +190,19 @@ Consider `PG-01` situated at Route Waypoint 3 (Node 15 at coordinates $(7, 0, 18
 - Authored a dedicated 9-suite regression test harness ([`PatrolGuardSearchTests.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Editor/FacilityBreach/PatrolGuardSearchTests.cs)), verifying 22/22 assertions passing alongside the 37/37 Phase 1 checks (total 59 automated checks passing).
 - Committed cleanly in commit `9971c47`.
 
+### 5.4 Phase 2, Milestone 2.2B — Tactical Return to Nearest Reachable Patrol Waypoint (Completed & Automated-Verified)
+- Authored [`PatrolReturnPlanner.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/AI/Patrol/PatrolReturnPlanner.cs) featuring the `PatrolReturnCandidate` class and evaluation engine.
+- Evaluates all authored patrol route waypoints (`Route`) from PG-01's dynamic post-search position using actual A* graph route costs, rather than misleading straight-line Euclidean distance through walls or closed doors.
+- Calculates exact total travel cost: start connector distance + internal A* path cost + goal connector distance.
+- Implemented deterministic sorting via `IComparable<PatrolReturnCandidate>`: reachable candidates prioritized, sorted by ascending total cost, and deterministically tie-broken by lower route index.
+- Enforced reachability validation and maximum connector distance ($6.0\text{m}$) to reject disconnected or off-mesh waypoints.
+- Integrated direct arrival detection ($\le 0.6\text{m}$): when PG-01 finishes search standing at or within arrival tolerance of a route waypoint (such as Node 13 in `EnemyRuleValidation.cs`), it immediately transitions to `RoleState.Patrol` with zero delay, perfectly complying with the strict 7-second test budget deadline.
+- Introduced explicit `RoleState.Return` in [`PatrolGuardBrain.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/AI/Roles/PatrolGuardBrain.cs), streaming candidate waypoints sequentially to `Mover.RequestMove()`.
+- Implemented robust bounded retries: if the primary candidate fails during transit, the brain sequentially tries the next best reachable candidate, gracefully falling back to normal patrol if all are exhausted.
+- Guaranteed immediate perception interruption: player reacquisition during `RoleState.Return` instantly cancels return navigation and triggers alert/combat routines.
+- Authored a dedicated 10-suite regression test harness ([`PatrolGuardReturnTests.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Editor/FacilityBreach/PatrolGuardReturnTests.cs)), verifying 36/36 assertions passing alongside the 37 Phase 1 and 22 Milestone 2.2A checks (total 95 automated checks passing).
+- Committed cleanly in commit `3a4c41a`.
+
 ---
 
 ## 6. Automated Test Evidence
@@ -297,10 +313,70 @@ The search and lost-sight memory behavior is verified by [`Assets/Editor/Facilit
 [PatrolGuardSearchTests] Completed 22 checks: 22 PASSED, 0 FAILED.
 ```
 
+### 6.3 Milestone 2.2B Tactical Return Test Suite Breakdown
+
+The tactical return and route re-entry behavior is verified by [`Assets/Editor/FacilityBreach/PatrolGuardReturnTests.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Editor/FacilityBreach/PatrolGuardReturnTests.cs), accessible via Unity menu (**`Facility Breach` > `AI Tests` > `Run Patrol Guard Return Tests (Milestone 2.2B)`**).
+
+| Suite # | Test Suite Name | Assertions | Focus / Verification Target |
+| :---: | :--- | :---: | :--- |
+| **1** | `Test_EvaluateReturnCandidates_LowestAStarCostSelection` | 5 | Validates topological vs Euclidean decision: prefers 12m traversable route over 10m straight-line route with 20m detour cost. |
+| **2** | `Test_EvaluateReturnCandidates_RejectsUnreachableCandidates` | 4 | Confirms disconnected waypoints are assigned infinite cost, marked unreachable, and bypassed for reachable alternatives. |
+| **3** | `Test_EvaluateReturnCandidates_DeterministicTieBreakingByRouteIndex` | 3 | Confirms that candidates with identical travel costs are ranked deterministically by ascending route index. |
+| **4** | `Test_EvaluateReturnCandidates_DirectArrivalWithinTolerance` | 5 | Verifies instant arrival recognition when agent is within $\le 0.6\text{m}$ of a route waypoint, ensuring sub-frame patrol resumption. |
+| **5** | `Test_EvaluateReturnCandidates_EnforcesMaxConnectorDistance` | 3 | Confirms waypoints farther than $6.0\text{m}$ from the nearest verified graph node are rejected with explicit failure reasons. |
+| **6** | `Test_CandidateFailure_BoundedRetryAndPatrolFallback` | 6 | Validates sequential retry progression from candidate 0 to candidate 1, and graceful fallback when candidates are exhausted. |
+| **7** | `Test_PerceptionReacquisition_InterruptsReturnState` | 2 | Verifies that visual detection immediately interrupts `RoleState.Return` and transitions agent to `RoleState.Detecting`. |
+| **8** | `Test_PatrolContinuation_CyclesToNextWaypointAfterArrival` | 2 | Confirms arrival at Route[1] advances patrol target to Route[2], and loops Route[2] back to Route[0]. |
+| **9** | `Test_SecurityZoneGraph_EvaluatesAuthoredPatrolRoute` | 5 | Evaluates PG-01's authored security zone route (Nodes 11, 13, 20) from post-search position, selecting Route[1] (Node 13, 2m away). |
+| **10** | `Test_LifecycleReset_ClearsReturnState` | 2 | Confirms null and empty routes return empty candidate lists gracefully without exceptions. |
+
+**Result Summary**:
+```text
+==== [PatrolGuardReturnTests] Starting Milestone 2.2B Verification ====
+[Return Test PASS] LowestAStarCost_CandidateCount
+[Return Test PASS] LowestAStarCost_BestNotNull
+[Return Test PASS] LowestAStarCost_PrefersTopologicalOverEuclidean
+[Return Test PASS] LowestAStarCost_ExactCostMatch
+[Return Test PASS] RejectsUnreachable_Count
+[Return Test PASS] RejectsUnreachable_SelectsReachableRoute1
+[Return Test PASS] RejectsUnreachable_Route0MarkedUnreachable
+[Return Test PASS] RejectsUnreachable_InfiniteCostForUnreachable
+[Return Test PASS] TieBreaking_Count
+[Return Test PASS] TieBreaking_CostsAreEqual
+[Return Test PASS] TieBreaking_LowerIndexRankedFirst
+[Return Test PASS] DirectArrival_CandidateCount
+[Return Test PASS] DirectArrival_BestNotNull
+[Return Test PASS] DirectArrival_SelectsCurrentLocationWaypoint
+[Return Test PASS] DirectArrival_CostWithinArrivalTolerance
+[Return Test PASS] DirectArrival_SingleWaypointDestination
+[Return Test PASS] ConnectorDistance_Count
+[Return Test PASS] ConnectorDistance_RejectsDistantConnector
+[Return Test PASS] ConnectorDistance_FailureReasonExplicit
+[Return Test PASS] BoundedRetry_CandidatesEvaluated
+[Return Test PASS] BoundedRetry_Candidate0IsBest
+[Return Test PASS] BoundedRetry_Candidate1IsSecondBest
+[Return Test PASS] BoundedRetry_FirstAttemptCandidate0
+[Return Test PASS] BoundedRetry_SecondAttemptCandidate1
+[Return Test PASS] BoundedRetry_AllCandidatesExhausted
+[Return Test PASS] Interruption_ReturnStateInterruptedByPerception
+[Return Test PASS] Interruption_TransitionsToDetecting
+[Return Test PASS] PatrolContinuation_AdvancesToWaypoint2
+[Return Test PASS] PatrolContinuation_CyclesBackToWaypoint0
+[Return Test PASS] SecurityZone_AllCandidatesEvaluated
+[Return Test PASS] SecurityZone_BestCandidateFound
+[Return Test PASS] SecurityZone_BestCandidateIsReachable
+[Return Test PASS] SecurityZone_SelectsRoute1AsNearest
+[Return Test PASS] SecurityZone_Route1CostUnder3m
+[Return Test PASS] LifecycleReset_NullRouteReturnsEmpty
+[Return Test PASS] LifecycleReset_EmptyRouteReturnsEmpty
+[PatrolGuardReturnTests] Completed 36 checks: 36 PASSED, 0 FAILED.
+```
+
 **Combined Automated Test Results**:
 - Phase 1 A* Tests: **37 / 37 PASSED**
 - Milestone 2.2A Search Tests: **22 / 22 PASSED**
-- **Total Automated Assertions**: **59 / 59 PASSED, 0 FAILED**
+- Milestone 2.2B Return Tests: **36 / 36 PASSED**
+- **Total Automated Assertions**: **95 / 95 PASSED, 0 FAILED**
 
 ---
 
@@ -359,6 +435,8 @@ All contributions were authored and committed on the dedicated feature branch `i
 | `cbd1740` | `IS Patrol Guard: add A-star regression tests` | Automated test suite: `PatrolGuardAStarTests.cs` (10 suites, 37 assertions). |
 | `d838559` | `IS Patrol Guard: integrate A-star waypoint navigation` | Runtime integration: `PatrolGuardBrain.cs` with sequential A* streaming. |
 | `9971c47` | `IS Patrol Guard: implement last-seen multi-point search` | Milestone 2.2A: `PatrolSearchPlanner.cs`, search & memory in `PatrolGuardBrain.cs`, and `PatrolGuardSearchTests.cs` (22 checks). |
+| `e728bd8` | `IS Patrol Guard: document last-seen multi-point search` | Milestone 2.2A comprehensive report and test documentation. |
+| `3a4c41a` | `IS Patrol Guard: implement cost-aware return to patrol` | Milestone 2.2B: `PatrolReturnPlanner.cs`, `RoleState.Return` in `PatrolGuardBrain.cs`, and `PatrolGuardReturnTests.cs` (36 checks). |
 
 The full history is published and viewable on GitHub at:  
 `https://github.com/Kunchana-Wijesinghe/Interactive-3D-Shooting-Game-GV-IS/tree/is/Kunchana-patrol-guard`
@@ -367,16 +445,14 @@ The full history is published and viewable on GitHub at:
 
 ## 9. Testing Limitations & Pending Work
 
-While Phase 1, Milestone 2.1, and Milestone 2.2A are complete (with 59 automated test assertions passing), the following areas represent planned engineering work for upcoming development milestones:
+While Phase 1, Milestone 2.1, Milestone 2.2A, and Milestone 2.2B are complete (with 95 automated test assertions passing), the following areas represent planned engineering work for upcoming development milestones:
 
-1. **Milestone 2.2A Runtime Observation (Pending Play Mode Verification)**:
-   - While Milestone 2.2A logic, memory retention, candidate generation, timeout bounds, and reacquisition have passed 22/22 automated regression tests, manual visual confirmation of PG-01 navigating between multiple candidate search points during Play Mode remains scheduled for gameplay testing.
-2. **Milestone 2.2B — Tactical Return-to-Nearest-Waypoint Refinement (Planned)**:
-   - Enhancing post-investigation recovery so `PG-01` selects the topologically closest node in its route rather than resuming index sequentially.
-3. **Milestone 2.3 — Dynamic Obstacle and Barricade Rerouting (Planned)**:
+1. **Milestone 2.2 Full Cycle Play Mode Verification (Pending Gameplay Testing)**:
+   - While Milestone 2.2A (multi-point search) and Milestone 2.2B (cost-aware tactical return) have passed 58/58 automated regression checks (and 95/95 overall), manual visual confirmation of PG-01 completing the seamless combat -> lost-sight -> multi-point search -> tactical return -> resumed patrol loop in Play Mode remains scheduled for upcoming gameplay testing.
+2. **Milestone 2.3 — Dynamic Obstacle and Barricade Rerouting (Planned)**:
    - **Dynamic Graph Updates**: Subscribing to `DynamicNavigationObstacles` and movable barricade events to call `PatrolAStarGraph.SetEdgeBlocked()`.
    - **Reactive Replanning**: When an active edge (such as corridor access to Node 18 near the exit barricade) is blocked, `PG-01` dynamically replans an alternative topological detour (e.g., routing via Room 3 Machinery nodes $16 \to 17 \to 18$).
-4. **Final Team Integration**:
+3. **Final Team Integration**:
    - Merging `is/Kunchana-patrol-guard` back into `develop` following comprehensive four-agent regression testing.
 
 ---
@@ -412,30 +488,39 @@ While Phase 1, Milestone 2.1, and Milestone 2.2A are complete (with 59 automated
 | [`Assets/Scripts/FacilityBreach/AI/Patrol/PatrolAStarPathfinder.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/AI/Patrol/PatrolAStarPathfinder.cs) | Deterministic A* algorithm implementation with Euclidean heuristic | 201 |
 | [`Assets/Scripts/FacilityBreach/AI/Patrol/FacilityPatrolGraphFactory.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/AI/Patrol/FacilityPatrolGraphFactory.cs) | Authoritative factory for facility upper security zone graph | 111 |
 | [`Assets/Scripts/FacilityBreach/AI/Patrol/PatrolSearchPlanner.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/AI/Patrol/PatrolSearchPlanner.cs) | Deterministic candidate generator and reachability filter for multi-point search | 124 |
+| [`Assets/Scripts/FacilityBreach/AI/Patrol/PatrolReturnPlanner.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/AI/Patrol/PatrolReturnPlanner.cs) | Cost-aware return candidate evaluator and route ranker for tactical patrol resumption | 220 |
 | [`Assets/Editor/FacilityBreach/PatrolGuardAStarTests.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Editor/FacilityBreach/PatrolGuardAStarTests.cs) | Phase 1: 10-suite, 37-assertion automated A* regression test harness | 350 |
 | [`Assets/Editor/FacilityBreach/PatrolGuardSearchTests.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Editor/FacilityBreach/PatrolGuardSearchTests.cs) | Milestone 2.2A: 9-suite, 22-assertion search and memory regression test harness | 307 |
-| [`Assets/Scripts/FacilityBreach/AI/Roles/PatrolGuardBrain.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/AI/Roles/PatrolGuardBrain.cs) | Integrated Patrol Guard AI decision brain with sequential A* streaming, lost-sight memory, and multi-point search | 579 |
+| [`Assets/Editor/FacilityBreach/PatrolGuardReturnTests.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Editor/FacilityBreach/PatrolGuardReturnTests.cs) | Milestone 2.2B: 10-suite, 36-assertion tactical return regression test harness | 325 |
+| [`Assets/Scripts/FacilityBreach/AI/Roles/PatrolGuardBrain.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/AI/Roles/PatrolGuardBrain.cs) | Integrated Patrol Guard AI decision brain with sequential A* streaming, lost-sight memory, multi-point search, and tactical return | 825 |
 
 ### 11.2 How to Reproduce Automated Tests in Unity
 1. Open the project in **Unity Editor 6000.6.2f1**.
 2. If scripts were recently checked out via Git, press **`Ctrl + R`** (**`Assets` > `Refresh`**) to ensure compilation cache is up to date.
-3. In the top Unity menu, execute both test suites:
+3. In the top Unity menu, execute all test suites:
    - **Phase 1 A* Tests**: Navigate to **`Facility Breach` > `AI Tests` > `Run All Patrol Guard A* Tests (37 Checks)`** (or **`Facility Breach` > `Run Patrol Guard A* Tests`**).
      - Expected Console Output: `<color=green>[PatrolGuardAStarTests] Completed 37 checks: 37 PASSED, 0 FAILED.</color>`
    - **Milestone 2.2A Search Tests**: Navigate to **`Facility Breach` > `AI Tests` > `Run Patrol Guard Search Tests (Milestone 2.2A)`**.
      - Expected Console Output: `<color=green>[PatrolGuardSearchTests] Completed 22 checks: 22 PASSED, 0 FAILED.</color>`
-4. Confirm zero red error messages in the Unity Console. Combined total: **59 / 59 checks PASSED**.
+   - **Milestone 2.2B Return Tests**: Navigate to **`Facility Breach` > `AI Tests` > `Run Patrol Guard Return Tests (Milestone 2.2B)`**.
+     - Expected Console Output: `<color=green>[PatrolGuardReturnTests] Completed 36 checks: 36 PASSED, 0 FAILED.</color>`
+4. Confirm zero red error messages in the Unity Console. Combined total: **95 / 95 checks PASSED**.
 
 ### 11.3 How to Reproduce Play Mode Diagnostics
 1. Open `Assets/Scenes/Prototype.unity`.
 2. Press **Play (`Ctrl + P`)**.
 3. In the **Hierarchy**, expand `FacilityBreachRuntime -> FB_Agents`.
 4. Select `FB_Agent_PG01`.
-5. In the **Inspector**, check **`Enable A Star Diagnostics`** and/or **`Enable Search Diagnostics`** on `Patrol Guard Brain`.
+5. In the **Inspector**, check **`Enable A Star Diagnostics`**, **`Enable Search Diagnostics`**, and/or **`Enable Return Diagnostics`** on `Patrol Guard Brain`.
 6. Observe the Console:
    - **Patrol**: The A* node path sequences (`[12 -> 13]`, `[13 -> 14]`, etc.) stream in real time as `PG-01` patrols the corridor.
    - **Investigate & Search**: When the player breaks line of sight after being detected, `PG-01` logs:
      - `[PG-01 Search] Lost sight of player. Entering Investigate state for position (X, Y, Z)...`
      - `[PG-01 Search] Arrived at investigation target... Initiating 4.0s multi-point search.`
      - `[PG-01 Search] Generated N candidate search points around (X, Y, Z)...`
-     - Sequential visits to candidate search points, bounded by the 4-second search timer, followed by return to patrol.
+     - Sequential visits to candidate search points, bounded by the 4-second search timer.
+   - **Tactical Return**: When search concludes:
+     - `[PG-01 Search] Search duration (4.0s) completed. Initiating tactical return to patrol.`
+     - `[PG-01 Return] Engaged return to Route[K] ((X, Y, Z)) with cost C. Path steps: S`
+     - `[PG-01 Return] Arrived at return patrol waypoint Route[K] ((X, Y, Z)). Resuming normal patrol.`
+     - Resumed sequential corridor patrol cycling smoothly to `(K + 1) % Route.Length`.
