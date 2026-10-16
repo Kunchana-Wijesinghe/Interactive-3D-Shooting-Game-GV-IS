@@ -10,6 +10,7 @@
 **Dedicated Branch**: `is/Kunchana-patrol-guard`  
 **Base Commit**: `072395e` (Latest Team `develop`)  
 **Milestone 2.1 Verified Commit**: `d838559`  
+**Milestone 2.2A Verified Commit**: `9971c47`  
 
 ---
 
@@ -19,7 +20,7 @@ In *Facility Breach*, the player infiltrates an underground research complex con
 
 As part of the Intelligent Systems (IS) individual coursework component, I was assigned sole responsibility for the **Patrol Guard autonomous agent (`PG-01`)**. My mandate is to replace basic hardcoded waypoint cycling with an independently authored, deterministic **A\* pathfinding graph network**, integrate topological route planning with local physics-based movement, ensure robust fail-safe behaviors (e.g., arrival tolerance, target change handling, and anti-oscillation rate limiting), and maintain complete backward compatibility with the shared team game framework.
 
-This report documents the architectural design, algorithmic implementation, automated test evidence, and manual Unity Play Mode verification completed through **Phase 1** and **Phase 2, Milestone 2.1**.
+This report documents the architectural design, algorithmic implementation, automated test evidence, and manual Unity Play Mode verification completed through **Phase 1**, **Phase 2, Milestone 2.1**, and **Phase 2, Milestone 2.2A (Last-Seen Memory & Multi-Point Search)**.
 
 ---
 
@@ -60,11 +61,13 @@ To satisfy coursework assessment criteria, the boundary between pre-existing tea
 │   ├── PatrolEdge.cs (Weighted directed edge with runtime blockage flags)
 │   ├── PatrolAStarGraph.cs (Adjacency-list graph network, spatial lookup)
 │   ├── PatrolAStarPathfinder.cs (Pure deterministic A* algorithm with admissible heuristic)
-│   └── FacilityPatrolGraphFactory.cs (Authoritative security-zone coordinate mapping)
+│   ├── FacilityPatrolGraphFactory.cs (Authoritative security-zone coordinate mapping)
+│   └── PatrolSearchPlanner.cs (Deterministic multi-point search candidate generator)
 ├── Assets/Editor/FacilityBreach/
-│   └── PatrolGuardAStarTests.cs (Comprehensive 10-suite, 37-assertion test harness)
+│   ├── PatrolGuardAStarTests.cs (Phase 1 10-suite, 37-assertion A* test harness)
+│   └── PatrolGuardSearchTests.cs (Milestone 2.2A 9-suite, 22-assertion search test harness)
 └── Assets/Scripts/FacilityBreach/AI/Roles/
-    └── PatrolGuardBrain.cs (Integrated A* path planning, sequential waypoint dispatch, state machine)
+    └── PatrolGuardBrain.cs (Integrated A* path planning, sequential waypoint dispatch, last-seen memory & search)
 ```
 
 ---
@@ -173,6 +176,17 @@ Consider `PG-01` situated at Route Waypoint 3 (Node 15 at coordinates $(7, 0, 18
 - Verified live in Unity Play Mode via real-time Console diagnostics streaming node transitions (`[12 -> 13]`, `[13 -> 14]`, `[14 -> 15]`, `[15 -> 12]`).
 - Committed cleanly in commit `d838559` and published to GitHub.
 
+### 5.3 Phase 2, Milestone 2.2A — Last-Seen Memory & Intelligent Multi-Point Search (Completed & Automated-Verified)
+- Enhanced [`PatrolGuardBrain.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/AI/Roles/PatrolGuardBrain.cs) with robust lost-sight memory retention (`LastInvestigatedPosition`, `LastInvestigatedTime`) without hidden-player tracking or cheating.
+- Authored [`PatrolSearchPlanner.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/AI/Patrol/PatrolSearchPlanner.cs) to deterministically generate candidate search points around the last-known position.
+- Prioritized verified topological graph nodes within search radius ($6.0\text{m}$), sorted deterministically by distance and node ID, and supplemented with cardinal geometric offsets if graph points are sparse.
+- Enforced minimum candidate separation ($\ge 1.5\text{m}$) and validated points against reachability checks (`Reachable(...)`), rejecting unreachable candidates.
+- Replaced stationary rotational search with sequential inspection of candidate points using A* routing, while strictly preserving the `SearchSeconds = 4f` contract.
+- Clearly defined timeout behavior: when `SearchSeconds = 4f` expires before all points are visited, the search immediately aborts, stops the mover, and cleanly transitions to `RoleState.Patrol`.
+- Maintained immediate detection reacquisition: re-sighting the player cancels active investigation/search, immediately checks the 0.5s continuous sight threshold, and triggers combat.
+- Authored a dedicated 9-suite regression test harness ([`PatrolGuardSearchTests.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Editor/FacilityBreach/PatrolGuardSearchTests.cs)), verifying 22/22 assertions passing alongside the 37/37 Phase 1 checks (total 59 automated checks passing).
+- Committed cleanly in commit `9971c47`.
+
 ---
 
 ## 6. Automated Test Evidence
@@ -239,6 +253,55 @@ The test harness is accessible via the Unity Editor top menu (**`Facility Breach
 [PatrolGuardAStarTests] Completed 37 checks: 37 PASSED, 0 FAILED.
 ```
 
+### 6.2 Milestone 2.2A Search & Memory Test Suite Breakdown
+
+The search and lost-sight memory behavior is verified by [`Assets/Editor/FacilityBreach/PatrolGuardSearchTests.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Editor/FacilityBreach/PatrolGuardSearchTests.cs), accessible via Unity menu (**`Facility Breach` > `AI Tests` > `Run Patrol Guard Search Tests (Milestone 2.2A)`**).
+
+| Suite # | Test Suite Name | Assertions | Focus / Verification Target |
+| :---: | :--- | :---: | :--- |
+| **1** | `Test_SearchPointSelection_FromSecurityZoneGraph` | 4 | Verifies selection of adjacent verified nodes (Node 14, 18, 12), bounds count to $\le 3$, and enforces $1.5\text{m}$ min separation. |
+| **2** | `Test_SearchPointSelection_DeterministicOrdering` | 3 | Verifies identical point count, exact coordinates across repeated runs, and ascending distance order from search center. |
+| **3** | `Test_SearchPointSelection_FallbackToGeometricOffsets` | 2 | Confirms that empty/sparse graphs cleanly fall back to deterministic cardinal offsets at $2.5\text{m}$ radius. |
+| **4** | `Test_SearchPointSelection_RejectsUnreachableCandidates` | 2 | Validates that candidate points failing reachability predicates are discarded while reachable alternatives are preserved. |
+| **5** | `Test_SearchPointSelection_AllUnreachableReturnsEmptyGracefully` | 1 | Confirms graceful fallback to empty candidate list when all candidates are obstructed, preventing null dereferences. |
+| **6** | `Test_SearchPointSelection_ExcludesUnverifiedAndDistantNodes` | 2 | Guarantees unverified nodes and nodes outside search radius ($> 5\text{m}$) are strictly ignored. |
+| **7** | `Test_SearchTimeoutContract_BoundedDuration` | 3 | Confirms that search remains active at $3.9\text{s}$, strictly expires at $4.0\text{s}$, and terminates when over-budget. |
+| **8** | `Test_LostSightMemory_PreservesObservedPosition` | 2 | Confirms `LastKnownPosition` and observation timestamp are retained upon sight loss and immune to null clearing. |
+| **9** | `Test_DetectionReacquisition_InterruptionLogic` | 3 | Validates $< 0.5\text{s}$ sight threshold, $\ge 0.5\text{s}$ combat confirmation, and immediate interruption of investigation/search. |
+
+**Result Summary**:
+```text
+==== [PatrolGuardSearchTests] Starting Milestone 2.2A Verification ====
+[Search Test PASS] SearchSelection_NotNull
+[Search Test PASS] SearchSelection_BoundedCount
+[Search Test PASS] SearchSelection_ContainsNearestVerifiedNode14
+[Search Test PASS] SearchSelection_EnforcesMinPointSeparation
+[Search Test PASS] DeterministicOrdering_SameCount
+[Search Test PASS] DeterministicOrdering_ExactCoordinateMatch
+[Search Test PASS] DeterministicOrdering_AscendingDistanceOrder
+[Search Test PASS] GeometricFallback_GeneratesMaxPoints
+[Search Test PASS] GeometricFallback_OffsetsAtCorrectRadius
+[Search Test PASS] RejectsUnreachable_Node14FilteredOut
+[Search Test PASS] RejectsUnreachable_AlternativeCandidatesSelected
+[Search Test PASS] AllUnreachable_ReturnsEmptyListGracefully
+[Search Test PASS] Filter_SelectsVerifiedCloseOnly_Count
+[Search Test PASS] Filter_SelectsNode3Exactly
+[Search Test PASS] SearchTimeout_ActiveAt3Point9s
+[Search Test PASS] SearchTimeout_ExpiresAt4s
+[Search Test PASS] SearchTimeout_ExpiresOverBudget
+[Search Test PASS] Memory_RetainsLastKnownPositionWhenSightLost
+[Search Test PASS] Memory_RetainsObservationTimestamp
+[Search Test PASS] Reacquisition_SightUnderHalfSecondDoesNotDetect
+[Search Test PASS] Reacquisition_SightOverHalfSecondConfirmsDetection
+[Search Test PASS] Reacquisition_InterruptsInvestigateToDetecting
+[PatrolGuardSearchTests] Completed 22 checks: 22 PASSED, 0 FAILED.
+```
+
+**Combined Automated Test Results**:
+- Phase 1 A* Tests: **37 / 37 PASSED**
+- Milestone 2.2A Search Tests: **22 / 22 PASSED**
+- **Total Automated Assertions**: **59 / 59 PASSED, 0 FAILED**
+
 ---
 
 ## 7. Unity Play Mode Runtime Verification
@@ -295,6 +358,7 @@ All contributions were authored and committed on the dedicated feature branch `i
 | `ed30808` | `IS Patrol Guard: add security-zone navigation graph` | Layout integration: `FacilityPatrolGraphFactory.cs` with 9 security zone nodes. |
 | `cbd1740` | `IS Patrol Guard: add A-star regression tests` | Automated test suite: `PatrolGuardAStarTests.cs` (10 suites, 37 assertions). |
 | `d838559` | `IS Patrol Guard: integrate A-star waypoint navigation` | Runtime integration: `PatrolGuardBrain.cs` with sequential A* streaming. |
+| `9971c47` | `IS Patrol Guard: implement last-seen multi-point search` | Milestone 2.2A: `PatrolSearchPlanner.cs`, search & memory in `PatrolGuardBrain.cs`, and `PatrolGuardSearchTests.cs` (22 checks). |
 
 The full history is published and viewable on GitHub at:  
 `https://github.com/Kunchana-Wijesinghe/Interactive-3D-Shooting-Game-GV-IS/tree/is/Kunchana-patrol-guard`
@@ -303,16 +367,16 @@ The full history is published and viewable on GitHub at:
 
 ## 9. Testing Limitations & Pending Work
 
-While Phase 1 and Phase 2, Milestone 2.1 are complete, the following areas represent planned engineering work for upcoming development milestones:
+While Phase 1, Milestone 2.1, and Milestone 2.2A are complete (with 59 automated test assertions passing), the following areas represent planned engineering work for upcoming development milestones:
 
-1. **Milestone 2.2 — Last-Seen Memory, Intelligent Multi-Point Search, and Return to Patrol (Planned)**:
-   - **Player Memory Extension**: Recording and retaining the player's last-known coordinates upon line-of-sight interruption.
-   - **Multi-Point Intelligent Search**: Replacing the baseline stationary $360^\circ$ rotational sweep with an active topological search querying adjacent graph nodes around the last-known position.
-   - **Tactical Return-to-Patrol Recovery**: After search expiration, navigating to the topologically closest route waypoint using an A* path rather than blindly resuming the next numerical route index.
-2. **Milestone 2.3 — Dynamic Obstacle and Barricade Rerouting (Planned)**:
+1. **Milestone 2.2A Runtime Observation (Pending Play Mode Verification)**:
+   - While Milestone 2.2A logic, memory retention, candidate generation, timeout bounds, and reacquisition have passed 22/22 automated regression tests, manual visual confirmation of PG-01 navigating between multiple candidate search points during Play Mode remains scheduled for gameplay testing.
+2. **Milestone 2.2B — Tactical Return-to-Nearest-Waypoint Refinement (Planned)**:
+   - Enhancing post-investigation recovery so `PG-01` selects the topologically closest node in its route rather than resuming index sequentially.
+3. **Milestone 2.3 — Dynamic Obstacle and Barricade Rerouting (Planned)**:
    - **Dynamic Graph Updates**: Subscribing to `DynamicNavigationObstacles` and movable barricade events to call `PatrolAStarGraph.SetEdgeBlocked()`.
    - **Reactive Replanning**: When an active edge (such as corridor access to Node 18 near the exit barricade) is blocked, `PG-01` dynamically replans an alternative topological detour (e.g., routing via Room 3 Machinery nodes $16 \to 17 \to 18$).
-3. **Final Team Integration**:
+4. **Final Team Integration**:
    - Merging `is/Kunchana-patrol-guard` back into `develop` following comprehensive four-agent regression testing.
 
 ---
@@ -347,22 +411,31 @@ While Phase 1 and Phase 2, Milestone 2.1 are complete, the following areas repre
 | [`Assets/Scripts/FacilityBreach/AI/Patrol/PatrolAStarGraph.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/AI/Patrol/PatrolAStarGraph.cs) | Adjacency list graph with spatial lookup (`GetNearestNode`) | 131 |
 | [`Assets/Scripts/FacilityBreach/AI/Patrol/PatrolAStarPathfinder.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/AI/Patrol/PatrolAStarPathfinder.cs) | Deterministic A* algorithm implementation with Euclidean heuristic | 201 |
 | [`Assets/Scripts/FacilityBreach/AI/Patrol/FacilityPatrolGraphFactory.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/AI/Patrol/FacilityPatrolGraphFactory.cs) | Authoritative factory for facility upper security zone graph | 111 |
-| [`Assets/Editor/FacilityBreach/PatrolGuardAStarTests.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Editor/FacilityBreach/PatrolGuardAStarTests.cs) | 10-suite, 37-assertion automated regression test harness | 350 |
-| [`Assets/Scripts/FacilityBreach/AI/Roles/PatrolGuardBrain.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/AI/Roles/PatrolGuardBrain.cs) | Integrated Patrol Guard AI decision brain with sequential A* streaming | 338 |
+| [`Assets/Scripts/FacilityBreach/AI/Patrol/PatrolSearchPlanner.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/AI/Patrol/PatrolSearchPlanner.cs) | Deterministic candidate generator and reachability filter for multi-point search | 124 |
+| [`Assets/Editor/FacilityBreach/PatrolGuardAStarTests.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Editor/FacilityBreach/PatrolGuardAStarTests.cs) | Phase 1: 10-suite, 37-assertion automated A* regression test harness | 350 |
+| [`Assets/Editor/FacilityBreach/PatrolGuardSearchTests.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Editor/FacilityBreach/PatrolGuardSearchTests.cs) | Milestone 2.2A: 9-suite, 22-assertion search and memory regression test harness | 307 |
+| [`Assets/Scripts/FacilityBreach/AI/Roles/PatrolGuardBrain.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/AI/Roles/PatrolGuardBrain.cs) | Integrated Patrol Guard AI decision brain with sequential A* streaming, lost-sight memory, and multi-point search | 579 |
 
 ### 11.2 How to Reproduce Automated Tests in Unity
 1. Open the project in **Unity Editor 6000.6.2f1**.
 2. If scripts were recently checked out via Git, press **`Ctrl + R`** (**`Assets` > `Refresh`**) to ensure compilation cache is up to date.
-3. In the top Unity menu, navigate to:  
-   **`Facility Breach` > `AI Tests` > `Run All Patrol Guard A* Tests (37 Checks)`**.
-4. Check the Unity Console:
-   - Expected message: `<color=green>[PatrolGuardAStarTests] Completed 37 checks: 37 PASSED, 0 FAILED.</color>`
-   - Confirm zero red error messages.
+3. In the top Unity menu, execute both test suites:
+   - **Phase 1 A* Tests**: Navigate to **`Facility Breach` > `AI Tests` > `Run All Patrol Guard A* Tests (37 Checks)`** (or **`Facility Breach` > `Run Patrol Guard A* Tests`**).
+     - Expected Console Output: `<color=green>[PatrolGuardAStarTests] Completed 37 checks: 37 PASSED, 0 FAILED.</color>`
+   - **Milestone 2.2A Search Tests**: Navigate to **`Facility Breach` > `AI Tests` > `Run Patrol Guard Search Tests (Milestone 2.2A)`**.
+     - Expected Console Output: `<color=green>[PatrolGuardSearchTests] Completed 22 checks: 22 PASSED, 0 FAILED.</color>`
+4. Confirm zero red error messages in the Unity Console. Combined total: **59 / 59 checks PASSED**.
 
 ### 11.3 How to Reproduce Play Mode Diagnostics
 1. Open `Assets/Scenes/Prototype.unity`.
 2. Press **Play (`Ctrl + P`)**.
 3. In the **Hierarchy**, expand `FacilityBreachRuntime -> FB_Agents`.
 4. Select `FB_Agent_PG01`.
-5. In the **Inspector**, check **`Enable A Star Diagnostics`** on `Patrol Guard Brain`.
-6. Observe the Console: the A* node path sequences (`[12 -> 13]`, `[13 -> 14]`, etc.) will stream in real time as `PG-01` patrols the corridor.
+5. In the **Inspector**, check **`Enable A Star Diagnostics`** and/or **`Enable Search Diagnostics`** on `Patrol Guard Brain`.
+6. Observe the Console:
+   - **Patrol**: The A* node path sequences (`[12 -> 13]`, `[13 -> 14]`, etc.) stream in real time as `PG-01` patrols the corridor.
+   - **Investigate & Search**: When the player breaks line of sight after being detected, `PG-01` logs:
+     - `[PG-01 Search] Lost sight of player. Entering Investigate state for position (X, Y, Z)...`
+     - `[PG-01 Search] Arrived at investigation target... Initiating 4.0s multi-point search.`
+     - `[PG-01 Search] Generated N candidate search points around (X, Y, Z)...`
+     - Sequential visits to candidate search points, bounded by the 4-second search timer, followed by return to patrol.
