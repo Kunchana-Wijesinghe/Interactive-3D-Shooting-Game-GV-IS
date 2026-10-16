@@ -200,7 +200,7 @@ Consider `PG-01` situated at Route Waypoint 3 (Node 15 at coordinates $(7, 0, 18
 - Introduced explicit `RoleState.Return` in [`PatrolGuardBrain.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/AI/Roles/PatrolGuardBrain.cs), streaming candidate waypoints sequentially to `Mover.RequestMove()`.
 - Implemented robust bounded retries: if the primary candidate fails during transit, the brain sequentially tries the next best reachable candidate, gracefully falling back to normal patrol if all are exhausted.
 - Guaranteed immediate perception interruption: player reacquisition during `RoleState.Return` instantly cancels return navigation and triggers alert/combat routines.
-- Authored a dedicated 10-suite regression test harness ([`PatrolGuardReturnTests.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Editor/FacilityBreach/PatrolGuardReturnTests.cs)), verifying 36/36 assertions passing alongside the 37 Phase 1 and 22 Milestone 2.2A checks (total 95 automated checks passing).
+- Authored a dedicated 10-suite regression test harness ([`PatrolGuardReturnTests.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Editor/FacilityBreach/PatrolGuardReturnTests.cs)), containing 36 assertions across 10 test suites (bringing the total authored regression suite to 95 assertions across Phase 1, Milestone 2.2A, and Milestone 2.2B; 59 currently verified by log files, with Milestone 2.2B tests executable in the Unity Editor menu).
 - Committed cleanly in commit `3a4c41a`.
 
 ---
@@ -221,10 +221,10 @@ The test harness is accessible via the Unity Editor top menu (**`Facility Breach
 | **4** | `Test_ReEnableEdge_RestoresOptimal` | 3 | Unblocks edge, confirms algorithm immediately restores the original optimal path. |
 | **5** | `Test_UnreachableTarget` | 4 | Disconnects goal; verifies `Success == false`, infinite cost, and valid failure reason. |
 | **6** | `Test_StartEqualsGoal` | 4 | Start == Goal yields zero cost, single-node path, and 1 node explored. |
-| **7** | `Test_ErrorHandling_InvalidInput` | 2 | Confirms graceful rejection of missing nodes and null graph instances. |
-| **8** | `Test_StructuralPreconditions` | 2 | Rejects negative edge weights and non-finite NaN coordinates upon assignment. |
-| **9** | `Test_TieBreaking_Determinism` | 3 | Runs 20 repeated searches with equal-cost paths; guarantees identical node sequence. |
-| **10** | `Test_SecurityZoneGraph` | 8 | Validates 9 nodes in upper security zone, connectivity, and patrol route loops. |
+| **7** | `Test_InvalidNodeAndCostHandling` | 4 | Rejects missing nodes, null graphs, negative edge costs, and non-finite NaN coordinates. |
+| **8** | `Test_DeterministicTieBreaking` | 3 | Runs 20 repeated searches with equal-cost paths; guarantees identical node sequence. |
+| **9** | `Test_HeuristicAdmissibility` | 1 | Exhaustively validates $h(u, v) \le h^*(u, v)$ across all node pairs in the graph. |
+| **10** | `Test_SecurityZoneGraph_TopologyAndRouting` | 7 | Validates 9 nodes in upper security zone, spawn post presence, patrol route loop, and exit approach connectivity. |
 
 **Result Summary**:
 ```text
@@ -319,7 +319,7 @@ The tactical return and route re-entry behavior is verified by [`Assets/Editor/F
 
 | Suite # | Test Suite Name | Assertions | Focus / Verification Target |
 | :---: | :--- | :---: | :--- |
-| **1** | `Test_EvaluateReturnCandidates_LowestAStarCostSelection` | 5 | Validates topological vs Euclidean decision: prefers 12m traversable route over 10m straight-line route with 20m detour cost. |
+| **1** | `Test_EvaluateReturnCandidates_LowestAStarCostSelection` | 4 | Validates topological vs Euclidean decision: prefers 12m traversable route over 10m straight-line route with 20m detour cost. |
 | **2** | `Test_EvaluateReturnCandidates_RejectsUnreachableCandidates` | 4 | Confirms disconnected waypoints are assigned infinite cost, marked unreachable, and bypassed for reachable alternatives. |
 | **3** | `Test_EvaluateReturnCandidates_DeterministicTieBreakingByRouteIndex` | 3 | Confirms that candidates with identical travel costs are ranked deterministically by ascending route index. |
 | **4** | `Test_EvaluateReturnCandidates_DirectArrivalWithinTolerance` | 5 | Verifies instant arrival recognition when agent is within $\le 0.6\text{m}$ of a route waypoint, ensuring sub-frame patrol resumption. |
@@ -330,53 +330,60 @@ The tactical return and route re-entry behavior is verified by [`Assets/Editor/F
 | **9** | `Test_SecurityZoneGraph_EvaluatesAuthoredPatrolRoute` | 5 | Evaluates PG-01's authored security zone route (Nodes 11, 13, 20) from post-search position, selecting Route[1] (Node 13, 2m away). |
 | **10** | `Test_LifecycleReset_ClearsReturnState` | 2 | Confirms null and empty routes return empty candidate lists gracefully without exceptions. |
 
-**Result Summary**:
+**Test Suite Status & Execution Evidence**:
+The 36 test assertions above are authored and implemented in [`Assets/Editor/FacilityBreach/PatrolGuardReturnTests.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Editor/FacilityBreach/PatrolGuardReturnTests.cs), ready to be run via the Unity Editor menu (**`Facility Breach` > `AI Tests` > `Run Patrol Guard Return Tests (Milestone 2.2B)`**).
+
+**Authored Test Assertions in PatrolGuardReturnTests (36 Checks)**:
 ```text
-==== [PatrolGuardReturnTests] Starting Milestone 2.2B Verification ====
-[Return Test PASS] LowestAStarCost_CandidateCount
-[Return Test PASS] LowestAStarCost_BestNotNull
-[Return Test PASS] LowestAStarCost_PrefersTopologicalOverEuclidean
-[Return Test PASS] LowestAStarCost_ExactCostMatch
-[Return Test PASS] RejectsUnreachable_Count
-[Return Test PASS] RejectsUnreachable_SelectsReachableRoute1
-[Return Test PASS] RejectsUnreachable_Route0MarkedUnreachable
-[Return Test PASS] RejectsUnreachable_InfiniteCostForUnreachable
-[Return Test PASS] TieBreaking_Count
-[Return Test PASS] TieBreaking_CostsAreEqual
-[Return Test PASS] TieBreaking_LowerIndexRankedFirst
-[Return Test PASS] DirectArrival_CandidateCount
-[Return Test PASS] DirectArrival_BestNotNull
-[Return Test PASS] DirectArrival_SelectsCurrentLocationWaypoint
-[Return Test PASS] DirectArrival_CostWithinArrivalTolerance
-[Return Test PASS] DirectArrival_SingleWaypointDestination
-[Return Test PASS] ConnectorDistance_Count
-[Return Test PASS] ConnectorDistance_RejectsDistantConnector
-[Return Test PASS] ConnectorDistance_FailureReasonExplicit
-[Return Test PASS] BoundedRetry_CandidatesEvaluated
-[Return Test PASS] BoundedRetry_Candidate0IsBest
-[Return Test PASS] BoundedRetry_Candidate1IsSecondBest
-[Return Test PASS] BoundedRetry_FirstAttemptCandidate0
-[Return Test PASS] BoundedRetry_SecondAttemptCandidate1
-[Return Test PASS] BoundedRetry_AllCandidatesExhausted
-[Return Test PASS] Interruption_ReturnStateInterruptedByPerception
-[Return Test PASS] Interruption_TransitionsToDetecting
-[Return Test PASS] PatrolContinuation_AdvancesToWaypoint2
-[Return Test PASS] PatrolContinuation_CyclesBackToWaypoint0
-[Return Test PASS] SecurityZone_AllCandidatesEvaluated
-[Return Test PASS] SecurityZone_BestCandidateFound
-[Return Test PASS] SecurityZone_BestCandidateIsReachable
-[Return Test PASS] SecurityZone_SelectsRoute1AsNearest
-[Return Test PASS] SecurityZone_Route1CostUnder3m
-[Return Test PASS] LifecycleReset_NullRouteReturnsEmpty
-[Return Test PASS] LifecycleReset_EmptyRouteReturnsEmpty
-[PatrolGuardReturnTests] Completed 36 checks: 36 PASSED, 0 FAILED.
+==== [PatrolGuardReturnTests] Milestone 2.2B Authored Assertions ====
+[Return Test] LowestAStarCost_CandidateCount
+[Return Test] LowestAStarCost_BestNotNull
+[Return Test] LowestAStarCost_PrefersTopologicalOverEuclidean
+[Return Test] LowestAStarCost_ExactCostMatch
+[Return Test] RejectsUnreachable_Count
+[Return Test] RejectsUnreachable_SelectsReachableRoute1
+[Return Test] RejectsUnreachable_Route0MarkedUnreachable
+[Return Test] RejectsUnreachable_InfiniteCostForUnreachable
+[Return Test] TieBreaking_Count
+[Return Test] TieBreaking_CostsAreEqual
+[Return Test] TieBreaking_LowerIndexRankedFirst
+[Return Test] DirectArrival_CandidateCount
+[Return Test] DirectArrival_BestNotNull
+[Return Test] DirectArrival_SelectsCurrentLocationWaypoint
+[Return Test] DirectArrival_CostWithinArrivalTolerance
+[Return Test] DirectArrival_SingleWaypointDestination
+[Return Test] ConnectorDistance_Count
+[Return Test] ConnectorDistance_RejectsDistantConnector
+[Return Test] ConnectorDistance_FailureReasonExplicit
+[Return Test] BoundedRetry_CandidatesEvaluated
+[Return Test] BoundedRetry_Candidate0IsBest
+[Return Test] BoundedRetry_Candidate1IsSecondBest
+[Return Test] BoundedRetry_FirstAttemptCandidate0
+[Return Test] BoundedRetry_SecondAttemptCandidate1
+[Return Test] BoundedRetry_AllCandidatesExhausted
+[Return Test] Interruption_ReturnStateInterruptedByPerception
+[Return Test] Interruption_TransitionsToDetecting
+[Return Test] PatrolContinuation_AdvancesToWaypoint2
+[Return Test] PatrolContinuation_CyclesBackToWaypoint0
+[Return Test] SecurityZone_AllCandidatesEvaluated
+[Return Test] SecurityZone_BestCandidateFound
+[Return Test] SecurityZone_BestCandidateIsReachable
+[Return Test] SecurityZone_SelectsRoute1AsNearest
+[Return Test] SecurityZone_Route1CostUnder3m
+[Return Test] LifecycleReset_NullRouteReturnsEmpty
+[Return Test] LifecycleReset_EmptyRouteReturnsEmpty
+[PatrolGuardReturnTests] Defined 36 assertions across 10 suites.
 ```
 
-**Combined Automated Test Results**:
-- Phase 1 A* Tests: **37 / 37 PASSED**
-- Milestone 2.2A Search Tests: **22 / 22 PASSED**
-- Milestone 2.2B Return Tests: **36 / 36 PASSED**
-- **Total Automated Assertions**: **95 / 95 PASSED, 0 FAILED**
+**Automated Test Summary (Code Assertions vs. Verified Execution Logs)**:
+- **Phase 1 A* Tests**: **37 / 37 PASSED** (Confirmed by `patrol-astar-tests-passed.txt` and `Logs/Editor.log`)
+- **Milestone 2.2A Search Tests**: **22 / 22 PASSED** (Confirmed by `patrol-search-tests-passed.txt` and `Logs/Editor.log`)
+- **Milestone 2.2B Return Tests**: **36 Assertions Authored** in `PatrolGuardReturnTests.cs` (Ready for execution in Unity Editor GUI)
+- **Verified Log-Backed Test Results**: **59 / 59 Checks PASSED, 0 FAILED**
+- **Total Authored Source Code Assertions**: **95 Assertions** across the three test harnesses (37 + 22 + 36)
+
+> [!NOTE]
+> *Academic Integrity & Execution Distinction*: In strict adherence to coursework verification standards, 59 automated assertions have confirmed execution logs on disk (`patrol-astar-tests-passed.txt` and `patrol-search-tests-passed.txt`). The 36 Milestone 2.2B assertions are fully authored in the test codebase and pending in-Editor menu execution, while the end-to-end tactical return behavior has been directly verified in live Unity Play Mode runtime diagnostics (Section 7.3).
 
 ---
 
@@ -419,7 +426,116 @@ The following runtime execution sequence was observed in the Unity Console:
    [PG-01 A*] Requesting move to waypoint 1/1 at (5.00, 0.00, 18.00)
    ```
 
-*Note*: Screenshots of the agent progressing through this patrol loop and corresponding Console traces were captured live by the student during manual testing for submission with coursework documentation. In accordance with honesty guidelines, path planning for Route[0] (Leg 4 loop closure, nodes `[15 -> 12]`) was initiated and verified via Console diagnostics (`total cost=2.00`, `explored=2`), while physical movement completion and arrival at Route[0] was not independently verified and is not claimed. Last-seen memory, intelligent multi-point search, and return to patrol (Milestone 2.2), followed by dynamic obstacle and barricade rerouting (Milestone 2.3), are scheduled for subsequent milestones.
+*Note on Milestone 2.1 Verification*: Screenshots of the agent progressing through this initial patrol loop and corresponding Console traces were captured live by the student during manual testing. In accordance with honesty guidelines, path planning for Route[0] (Leg 4 loop closure, nodes `[15 -> 12]`) was verified via Console diagnostics (`total cost=2.00`, `explored=2`), while physical movement completion and arrival at Route[0] was not independently verified in that specific run. Complete multi-point search execution and tactical return to Route[0] were subsequently verified in Milestone 2.2A/2.2B runtime testing, as documented in Section 7.3 below. Dynamic obstacle and barricade rerouting remains scheduled for Milestone 2.3.
+
+### 7.3 Milestone 2.2A — Runtime Evidence
+
+Following automated regression verification (59/59 log-verified checks across Phase 1 and Milestone 2.2A, alongside 95 total assertions authored across the test harnesses), live Unity Play Mode runtime verification was conducted in `Assets/Scenes/Prototype.unity`. The agent (`FB_Agent_PG01`) was configured with `Enable A Star Diagnostics`, `Enable Search Diagnostics`, and `Enable Return Diagnostics` active.
+
+During this session, `PG-01` lost visual contact with the player, entered the `Investigate` state, generated candidate search points, progressed through multi-point search candidates, reached the 4.0-second search duration timeout, engaged cost-aware tactical return via intermediate graph nodes, arrived at designated patrol waypoint `Route[0]`, resumed `RoleState.Patrol`, and progressed seamlessly to `Route[1]` and `Route[2]`.
+
+#### Evidence Inventory Table
+
+| Figure | Evidence File | Timestamp / Event | Key Console Log / Assertion | Verification Focus |
+| :---: | :--- | :---: | :--- | :--- |
+| **Fig 7.3.1** | [`IT24102587_IS_M22A_Search_Candidate.png`](evidence/IT24102587_IS_M22A_Search_Candidate.png) | `03:08:36` – `03:08:37` | `[PG-01 Search] Arrived at search candidate 2/3 at (1.00, 0.00, 10.00).`<br>`[PG-01 A*] Planned path for SearchPoint[2] ((5.00, 0.00, 18.00)): nodes [10 -> 5 -> 12], total cost=10.47, explored=3` | Multi-point search progression & A* path planning between candidate search nodes |
+| **Fig 7.3.2** | [`IT24102587_IS_M22A_Tactical_Return.png`](evidence/IT24102587_IS_M22A_Tactical_Return.png) | `03:08:38` | `[PG-01 Search] Search duration (4.0s) completed. Initiating tactical return to patrol.`<br>`[PG-01 Return] Engaged return to Route[0] ((5.00, 0.00, 18.00)) with cost 6.85. Path steps: 2` | 4.0s search timeout completion & cost-aware tactical return initiation |
+| **Fig 7.3.3** | [`IT24102587_IS_M22A_Return_Node.png`](evidence/IT24102587_IS_M22A_Return_Node.png) | `03:08:38` | `[PG-01 A*] Arrived at intermediate return node (Index 0/1, Pos=(5.00, 0.00, 12.00)).`<br>`[PG-01 A*] Requesting move to return waypoint 1/1 at (5.00, 0.00, 18.00)` | Sequential streaming & arrival at intermediate return node |
+| **Fig 7.3.4** | [`IT24102587_IS_M22A_Patrol_Resumed.png`](evidence/IT24102587_IS_M22A_Patrol_Resumed.png) | `03:08:41` | `[PG-01 A*] Arrived at intermediate return node (Index 1/1, Pos=(5.00, 0.00, 18.00)).`<br>`[PG-01 Return] Arrived at return patrol waypoint Route[0] ((5.00, 0.00, 18.00)). Resuming normal patrol.` | Arrival at designated patrol waypoint & normal patrol resumption (`RoleState.Patrol`) |
+| **Fig 7.3.5** | [`IT24102587_IS_M22A_Route_Progression.png`](evidence/IT24102587_IS_M22A_Route_Progression.png) | `03:08:42` | `[PG-01 A*] Completed full A* path to route waypoint 1 ((5.00, 0.00, 22.00)). Advancing to next route waypoint.`<br>`[PG-01 A*] Planned path for Route[2] ((7.00, 0.00, 22.00)): nodes [13 -> 14], total cost=2.00, explored=2` | Full patrol loop continuation & subsequent route segment path planning |
+
+---
+
+#### Detailed Breakdown of Verified Runtime Behaviors
+
+##### 1. Search Candidate Progression & Topological A* Path Planning
+![Search Candidate Progression](evidence/IT24102587_IS_M22A_Search_Candidate.png)
+
+```text
+[03:08:36] [PG-01 Search] Arrived at search candidate 2/3 at (1.00, 0.00, 10.00).
+[03:08:37] [PG-01 A*] Planned path for SearchPoint[2] ((5.00, 0.00, 18.00)): nodes [10 -> 5 -> 12], total cost=10.47, explored=3
+[03:08:37] [PG-01 A*] Requesting move to search waypoint 1/2 at (5.00, 0.00, 12.00)
+```
+
+- **Technical Analysis**:
+  - The guard reached search candidate 2 of 3 at position `(1.00, 0.00, 10.00)`.
+  - Rather than walking in a naive straight line toward search candidate 3 (`SearchPoint[2]` at `(5.00, 0.00, 18.00)`), the agent queried `PatrolAStarPathfinder` to compute a valid corridor path across security zone nodes: `[10 -> 5 -> 12]`.
+  - The pathfinder evaluated exact edge distances, finding total travel cost $10.47\text{m}$ across 3 expanded nodes.
+  - The brain streamed the intermediate milestone waypoint (Index 1/2 at `(5.00, 0.00, 12.00)`) to `SoundHunterNavMeshMover.RequestMove()`, demonstrating seamless macro-topological planning coupled with micro-NavMesh movement during localized search.
+
+##### 2. Search Duration Timeout & Tactical Return Initiation
+![Tactical Return Initiation](evidence/IT24102587_IS_M22A_Tactical_Return.png)
+
+```text
+[03:08:38] [PG-01 Search] Search duration (4.0s) completed. Initiating tactical return to patrol.
+[03:08:38] [PG-01 Return] Engaged return to Route[0] ((5.00, 0.00, 18.00)) with cost 6.85. Path steps: 2
+[03:08:38] [PG-01 A*] Requesting move to return waypoint 0/1 at (5.00, 0.00, 12.00)
+```
+
+- **Technical Analysis**:
+  - Exactly at `03:08:38` (4.0 seconds after entering the search phase), the guard's search budget expired with zero player contact.
+  - In strict compliance with the `SearchSeconds = 4.0f` behavioral contract, the agent terminated search navigation and engaged `RoleState.Return`.
+  - `PatrolReturnPlanner` ranked all route waypoints from the guard's active position, identifying `Route[0]` (`(5.00, 0.00, 18.00)`) as the nearest reachable patrol post with an optimal A* travel cost of $6.85\text{m}$ across 2 path steps.
+  - The brain dispatched the first return waypoint (Index 0/1 at `(5.00, 0.00, 12.00)`), initiating structured return rather than snapping or teleporting.
+
+##### 3. Arrival at Intermediate Return Node & Sequential Streaming
+![Intermediate Return Node Arrival](evidence/IT24102587_IS_M22A_Return_Node.png)
+
+```text
+[03:08:38] [PG-01 A*] Arrived at intermediate return node (Index 0/1, Pos=(5.00, 0.00, 12.00)).
+[03:08:38] [PG-01 A*] Requesting move to return waypoint 1/1 at (5.00, 0.00, 18.00)
+```
+
+- **Technical Analysis**:
+  - The guard reached the first intermediate node of the multi-step return path at `(5.00, 0.00, 12.00)`.
+  - Arrival tolerance ($\le 0.6\text{m}$) triggered the sequential waypoint dispatcher to advance to index 1/1.
+  - The brain requested immediate movement to the target patrol post `Route[0]` at `(5.00, 0.00, 18.00)`, confirming that multi-leg paths during tactical return execute without hitching, stall states, or dropped waypoints.
+
+##### 4. Arrival at Designated Patrol Waypoint & Normal Patrol Resumption
+![Patrol Resumption](evidence/IT24102587_IS_M22A_Patrol_Resumed.png)
+
+```text
+[03:08:41] [PG-01 A*] Arrived at intermediate return node (Index 1/1, Pos=(5.00, 0.00, 18.00)).
+[03:08:41] [PG-01 Return] Arrived at return patrol waypoint Route[0] ((5.00, 0.00, 18.00)). Resuming normal patrol.
+```
+
+- **Technical Analysis**:
+  - At `03:08:41`, `PG-01` physically arrived at `Route[0]` (`(5.00, 0.00, 18.00)`).
+  - The brain cleanly concluded `RoleState.Return` and transitioned back to `RoleState.Patrol`.
+  - The guard re-anchored into the authored patrol sequence at index 0, restoring normal patrol guard duty in complete alignment with game design requirements.
+
+##### 5. Subsequent Route Segment Planning & Continued Patrol Cycling
+![Patrol Route Progression](evidence/IT24102587_IS_M22A_Route_Progression.png)
+
+```text
+[03:08:42] [PG-01 A*] Completed full A* path to route waypoint 1 ((5.00, 0.00, 22.00)). Advancing to next route waypoint.
+[03:08:42] [PG-01 A*] Planned path for Route[2] ((7.00, 0.00, 22.00)): nodes [13 -> 14], total cost=2.00, explored=2
+```
+
+- **Technical Analysis**:
+  - Having resumed patrol, `PG-01` proceeded from `Route[0]` to `Route[1]` (`(5.00, 0.00, 22.00)`), completing the full path leg.
+  - Upon arrival, the brain advanced its cyclic index (`(1 + 1) % 4 = 2`) and invoked `PatrolAStarPathfinder` to plan for `Route[2]` (`(7.00, 0.00, 22.00)`).
+  - The pathfinder generated path `[13 -> 14]` with exact cost $2.00\text{m}$ and 2 explored nodes, proving that the full lifecycle (**Patrol $\to$ Alert $\to$ Lost Sight $\to$ Investigate $\to$ Multi-Point Search $\to$ Timeout $\to$ Tactical Return $\to$ Resumed Patrol**) operates continuously and cyclically in live Play Mode.
+
+---
+
+#### Distinguishing Play Mode Runtime Observations from Automated Unit Tests
+
+It is essential to clarify the complementary roles of the automated test harness and manual Play Mode verification:
+
+1. **Automated Unit & Regression Tests (95 Authored Assertions in Code; 59 Log-Verified)**:
+   - **Execution Context**: Executed in memory without requiring full scene rendering, physics simulation, or human interaction.
+   - **Verification Scope**: Rigorously evaluates pure algorithmic properties: admissible heuristic bounds, mathematical optimality, deterministic tie-breaking across 20 iterations, graph topological integrity, candidate distance sorting, and timeout boundary comparisons ($3.9\text{s}$ active vs. $4.0\text{s}$ expired).
+   - **Assessment Function**: Ensures 100% reproducible, sub-second execution and regression prevention across commits.
+
+2. **Play Mode Runtime Evidence (5 Verified Screenshots)**:
+   - **Execution Context**: Executed within `Assets/Scenes/Prototype.unity` under Unity 6000.6.2f1 engine execution.
+   - **Verification Scope**: Validates real-time integration across asynchronous subsystems: Unity physics colliders, continuous `NavMeshAgent` steering, agent rate-limiting timers, frame delta-time variations, character movement deceleration, and visual console diagnostics.
+   - **Assessment Function**: Directly demonstrates that the authored C# classes function cohesively within the living game world rather than merely passing isolated unit assertions.
+
+3. **Strict Scope Limitations & Academic Integrity Declarations**:
+   - **Dynamic Barricade Rerouting Remains Planned**: Dynamic obstacle and barricade rerouting is **NOT** claimed in Milestone 2.2A. It is explicitly scheduled for **Milestone 2.3** upon integration of `DynamicNavigationObstacles` and door blockage events.
+   - **Non-Exhaustive Scenario Declaration**: While the primary search-and-return sequence has been visually and diagnostically validated, this does not imply that every conceivable multi-agent combat collision or edge-case map barricade combination has been tested in Play Mode.
 
 ---
 
@@ -445,10 +561,11 @@ The full history is published and viewable on GitHub at:
 
 ## 9. Testing Limitations & Pending Work
 
-While Phase 1, Milestone 2.1, Milestone 2.2A, and Milestone 2.2B are complete (with 95 automated test assertions passing), the following areas represent planned engineering work for upcoming development milestones:
+While Phase 1, Milestone 2.1, Milestone 2.2A, and Milestone 2.2B are implemented (with 59 log-verified test assertions and 95 total assertions authored in source code), the following areas represent planned engineering work for upcoming development milestones:
 
-1. **Milestone 2.2 Full Cycle Play Mode Verification (Pending Gameplay Testing)**:
-   - While Milestone 2.2A (multi-point search) and Milestone 2.2B (cost-aware tactical return) have passed 58/58 automated regression checks (and 95/95 overall), manual visual confirmation of PG-01 completing the seamless combat -> lost-sight -> multi-point search -> tactical return -> resumed patrol loop in Play Mode remains scheduled for upcoming gameplay testing.
+1. **Milestone 2.2 Play Mode Verification Completed & Scope Boundaries**:
+   - The primary search, tactical return, and patrol resumption cycle (`Investigate` $\to$ candidate 2/3 $\to$ A* path to candidate 3 $\to$ 4.0s timeout $\to$ cost-aware tactical return to `Route[0]` $\to$ intermediate return node arrival $\to$ designated waypoint arrival $\to$ normal patrol resumption to `Route[1]` and `Route[2]`) has been successfully verified in Play Mode and documented with console screenshot evidence (Section 7.3).
+   - In accordance with academic honesty guidelines, this does not claim that every possible search-and-return permutation or complex multi-agent collision scenario has been exhaustively tested; edge-case stress testing continues during team integration.
 2. **Milestone 2.3 — Dynamic Obstacle and Barricade Rerouting (Planned)**:
    - **Dynamic Graph Updates**: Subscribing to `DynamicNavigationObstacles` and movable barricade events to call `PatrolAStarGraph.SetEdgeBlocked()`.
    - **Reactive Replanning**: When an active edge (such as corridor access to Node 18 near the exit barricade) is blocked, `PG-01` dynamically replans an alternative topological detour (e.g., routing via Room 3 Machinery nodes $16 \to 17 \to 18$).
@@ -504,7 +621,7 @@ While Phase 1, Milestone 2.1, Milestone 2.2A, and Milestone 2.2B are complete (w
      - Expected Console Output: `<color=green>[PatrolGuardSearchTests] Completed 22 checks: 22 PASSED, 0 FAILED.</color>`
    - **Milestone 2.2B Return Tests**: Navigate to **`Facility Breach` > `AI Tests` > `Run Patrol Guard Return Tests (Milestone 2.2B)`**.
      - Expected Console Output: `<color=green>[PatrolGuardReturnTests] Completed 36 checks: 36 PASSED, 0 FAILED.</color>`
-4. Confirm zero red error messages in the Unity Console. Combined total: **95 / 95 checks PASSED**.
+4. Confirm zero red error messages in the Unity Console. Log-verified tests to date: **59 / 59 checks PASSED** (Phase 1: 37, Milestone 2.2A: 22). Executing the Milestone 2.2B menu runner validates the **36 authored return assertions**, completing the full suite of **95 assertions**.
 
 ### 11.3 How to Reproduce Play Mode Diagnostics
 1. Open `Assets/Scenes/Prototype.unity`.
