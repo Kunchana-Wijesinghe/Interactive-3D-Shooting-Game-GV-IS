@@ -36,6 +36,16 @@ namespace FacilityBreach.AI.Roles
         [Tooltip("When enabled, emits verbose return candidate evaluation and traversal diagnostic logs.")]
         public bool EnableReturnDiagnostics = false;
 
+        [Header("Dynamic Obstacle & Rerouting Configuration")]
+        [Tooltip("When enabled, emits verbose dynamic obstacle detection, edge blocking, and replanning diagnostic logs.")]
+        public bool EnableObstacleDiagnostics = false;
+        [Tooltip("Maximum detour replan attempts allowed for a single target waypoint before advancing.")]
+        public int MaxReplansPerTarget = 2;
+        [Tooltip("Minimum duration in seconds between successive replanning attempts to avoid tight repath churn.")]
+        public float ReplanCooldown = 1.0f;
+        [Tooltip("Probe interval in seconds between corridor clearance verification checks.")]
+        public float ObstacleProbeInterval = 4.0f;
+
         private PatrolAStarGraph graph;
         private List<Vector3> activeAStarPath;
         private List<int> activeAStarNodeIds;
@@ -56,6 +66,30 @@ namespace FacilityBreach.AI.Roles
         private List<PatrolReturnCandidate> rankedReturnCandidates;
         private int currentReturnCandidateIndex = -1;
         private Vector3 currentReturnTargetPos;
+
+        // Milestone 2.3: Dynamic Obstacle & Rerouting State
+        public sealed class BlockedEdgeRecord
+        {
+            public int FromNode { get; }
+            public int ToNode { get; }
+            public float BlockedTimestamp { get; }
+            public float NextProbeTime { get; set; }
+
+            public BlockedEdgeRecord(int from, int to, float now, float probeInterval = 4.0f)
+            {
+                FromNode = from;
+                ToNode = to;
+                BlockedTimestamp = now;
+                NextProbeTime = now + probeInterval;
+            }
+        }
+
+        private readonly List<BlockedEdgeRecord> activeBlockedEdges = new List<BlockedEdgeRecord>();
+        private int replanAttemptsForCurrentTarget = 0;
+        private float lastReplanTime = -10f;
+        private float nextReplanAllowedTime = 0f;
+        private bool isReplanPending = false;
+        public Func<int, int, bool> EdgeClearanceProbeOverride;
 
         public PatrolAStarGraph Graph
         {
@@ -83,6 +117,12 @@ namespace FacilityBreach.AI.Roles
             (rankedReturnCandidates != null && currentReturnCandidateIndex >= 0 && currentReturnCandidateIndex < rankedReturnCandidates.Count)
                 ? rankedReturnCandidates[currentReturnCandidateIndex]
                 : null;
+
+        // Milestone 2.3: Obstacle & Rerouting Properties
+        public IReadOnlyList<BlockedEdgeRecord> ActiveBlockedEdges => activeBlockedEdges;
+        public bool IsReplanPending => isReplanPending;
+        public int CurrentReplanAttempts => replanAttemptsForCurrentTarget;
+        public float NextReplanAllowedTime => nextReplanAllowedTime;
 
         protected override void Start()
         {
@@ -317,14 +357,14 @@ namespace FacilityBreach.AI.Roles
             }
 
             // 7. Patrol State Navigation via Authored A* Graph
-            ExecutePatrolNavigation();
+            ExecutePatrolNavigation(now);
         }
 
-        private void ExecutePatrolNavigation()
+        private void ExecutePatrolNavigation(float now)
         {
             if (Route == null || Route.Length == 0)
             {
-                Mover.Stop();
+                Mover?.Stop();
                 ClearActivePath();
                 return;
             }
@@ -336,27 +376,59 @@ namespace FacilityBreach.AI.Roles
 
             Vector3 target = Route[waypoint];
 
-            // If already within arrival distance of the target waypoint and route has multiple points, advance to next
+            // 1. Update dynamic blocked edge clearance probes
+            UpdateBlockedEdgeClearance(now);
+
+            // 2. Resume pending replan if cooldown has elapsed
+            if (isReplanPending)
+            {
+                if (now < nextReplanAllowedTime)
+                {
+                    // Deferral phase: hold position, zero path requests, zero CPU churn
+                    return;
+                }
+
+                isReplanPending = false;
+                ExecuteDetourReplan(now, waypoint);
+                return;
+            }
+
+            // 3. If already within arrival distance of the target waypoint and route has multiple points, advance to next
             if (Route.Length > 1 && Vector3.Distance(transform.position, target) <= 0.6f && (activeAStarPath == null || pathIndex >= activeAStarPath.Count))
             {
                 TraceAStar($"Already within arrival tolerance of route waypoint {waypoint} ({target}). Advancing to next waypoint.");
                 waypoint = (waypoint + 1) % Route.Length;
                 target = Route[waypoint];
+                replanAttemptsForCurrentTarget = 0;
+                isReplanPending = false;
                 ClearActivePath();
             }
 
-            // Handle movement failure: advance to next waypoint without oscillation
-            if (Mover.Status == MoveStatus.Failed)
+            // 4. Handle movement failure
+            if (Mover != null && Mover.Status == MoveStatus.Failed)
             {
-                TraceAStar($"Mover failed along path (Reason: {Mover.FailureReason}). Advancing to next route waypoint.");
-                Mover.Stop();
-                waypoint = (waypoint + 1) % Route.Length;
-                ClearActivePath();
+                string reason = Mover.FailureReason;
+                TraceAStar($"Mover failed along path (Reason: {reason}).");
+
+                if (IsObstructionFailure(reason))
+                {
+                    HandleObstructionFailure(now, waypoint);
+                }
+                else
+                {
+                    // Transient non-obstruction failure (e.g. agent/goal outside navigation, setpath rejected)
+                    // Do NOT block any graph edges. Advance to next waypoint cleanly.
+                    Mover.Stop();
+                    waypoint = (waypoint + 1) % Route.Length;
+                    replanAttemptsForCurrentTarget = 0;
+                    isReplanPending = false;
+                    ClearActivePath();
+                }
                 return;
             }
 
-            // Handle intermediate or final waypoint arrival
-            if (Mover.Status == MoveStatus.Arrived && activeAStarPath != null && activeAStarPath.Count > 0)
+            // 5. Handle intermediate or final waypoint arrival
+            if (Mover != null && Mover.Status == MoveStatus.Arrived && activeAStarPath != null && activeAStarPath.Count > 0)
             {
                 TraceAStar($"Arrived at intermediate path node (Index {pathIndex}/{activeAStarPath.Count - 1}, Pos={activeAStarPath[pathIndex]}).");
                 pathIndex++;
@@ -366,21 +438,25 @@ namespace FacilityBreach.AI.Roles
                 {
                     TraceAStar($"Completed full A* path to route waypoint {waypoint} ({target}). Advancing to next route waypoint.");
                     waypoint = (waypoint + 1) % Route.Length;
+                    replanAttemptsForCurrentTarget = 0;
+                    isReplanPending = false;
                     ClearActivePath();
                     return;
                 }
             }
 
-            // Plan a new A* path if needed or if target changed
+            // 6. Plan a new A* path if needed or if target changed
             if (activeAStarPath == null || activeAStarPath.Count == 0 || currentTargetWaypointIndex != waypoint)
             {
+                replanAttemptsForCurrentTarget = 0;
+                isReplanPending = false;
                 PlanPathToWaypoint(waypoint);
             }
 
-            // Sequentially stream next waypoint to Mover if not currently moving
+            // 7. Sequentially stream next waypoint to Mover if not currently moving
             if (activeAStarPath != null && pathIndex < activeAStarPath.Count)
             {
-                if (Mover.Status != MoveStatus.Moving)
+                if (Mover != null && Mover.Status != MoveStatus.Moving)
                 {
                     Vector3 nextStep = activeAStarPath[pathIndex];
                     TraceAStar($"Requesting move to waypoint {pathIndex}/{activeAStarPath.Count - 1} at {nextStep}");
@@ -780,6 +856,337 @@ namespace FacilityBreach.AI.Roles
             }
         }
 
+        private void TraceObstacle(string message)
+        {
+            if (EnableAStarDiagnostics || EnableObstacleDiagnostics)
+            {
+                Debug.Log($"[PG-01 Reroute] {message}", this);
+            }
+            else
+            {
+                GameplayDiagnostics.Trace($"[PG-01 Reroute] {message}", this);
+            }
+        }
+
+        // ====================================================================
+        // Milestone 2.3: Dynamic Obstacle, Barricade Detection & Rerouting
+        // ====================================================================
+
+        public static bool IsObstructionFailure(string reason)
+        {
+            if (string.IsNullOrEmpty(reason)) return false;
+            return reason == "Path invalidated by obstruction" ||
+                   reason == "Blocked/no movement progress" ||
+                   reason == "No complete path";
+        }
+
+        public static bool TryDeriveActiveGraphEdge(IReadOnlyList<int> nodeIds, int currentPathIndex, PatrolAStarGraph graphInstance, out int fromNode, out int toNode)
+        {
+            fromNode = -1;
+            toNode = -1;
+
+            if (nodeIds == null || nodeIds.Count < 2)
+                return false;
+
+            if (currentPathIndex < 1 || currentPathIndex >= nodeIds.Count)
+                return false;
+
+            fromNode = nodeIds[currentPathIndex - 1];
+            toNode = nodeIds[currentPathIndex];
+
+            return fromNode != toNode &&
+                   graphInstance != null &&
+                   graphInstance.ContainsNode(fromNode) &&
+                   graphInstance.ContainsNode(toNode);
+        }
+
+        public bool TryGetActiveGraphEdge(out int fromNode, out int toNode)
+        {
+            return TryDeriveActiveGraphEdge(activeAStarNodeIds, pathIndex, graph, out fromNode, out toNode);
+        }
+
+        public static bool EvaluateReplanAction(float now, float nextAllowedTime, int currentAttempts, int maxAttempts, out bool isDeferred, out bool isExhausted)
+        {
+            if (currentAttempts >= maxAttempts)
+            {
+                isExhausted = true;
+                isDeferred = false;
+                return false;
+            }
+
+            if (now < nextAllowedTime)
+            {
+                isExhausted = false;
+                isDeferred = true;
+                return false;
+            }
+
+            isExhausted = false;
+            isDeferred = false;
+            return true;
+        }
+
+        public void BlockEdge(int fromNode, int toNode, float now)
+        {
+            if (graph == null) return;
+
+            graph.SetEdgeBlocked(fromNode, toNode, true);
+
+            bool alreadyTracked = false;
+            for (int i = 0; i < activeBlockedEdges.Count; i++)
+            {
+                var r = activeBlockedEdges[i];
+                if ((r.FromNode == fromNode && r.ToNode == toNode) || (r.FromNode == toNode && r.ToNode == fromNode))
+                {
+                    alreadyTracked = true;
+                    r.NextProbeTime = now + ObstacleProbeInterval;
+                    break;
+                }
+            }
+
+            if (!alreadyTracked)
+            {
+                activeBlockedEdges.Add(new BlockedEdgeRecord(fromNode, toNode, now, ObstacleProbeInterval));
+            }
+        }
+
+        public void UnblockEdge(int fromNode, int toNode)
+        {
+            if (graph == null) return;
+
+            graph.SetEdgeBlocked(fromNode, toNode, false);
+
+            for (int i = activeBlockedEdges.Count - 1; i >= 0; i--)
+            {
+                var r = activeBlockedEdges[i];
+                if ((r.FromNode == fromNode && r.ToNode == toNode) || (r.FromNode == toNode && r.ToNode == fromNode))
+                {
+                    activeBlockedEdges.RemoveAt(i);
+                }
+            }
+        }
+
+        private void HandleObstructionFailure(float now, int currentTargetIndex)
+        {
+            if (TryGetActiveGraphEdge(out int fromNode, out int toNode))
+            {
+                BlockEdge(fromNode, toNode, now);
+                TraceObstacle($"Physical obstruction identified on edge ({fromNode} <-> {toNode}). Graph edge marked blocked.");
+            }
+            else
+            {
+                TraceObstacle("Obstruction failure occurred on off-graph connector or direct path segment. No graph edge blocked.");
+            }
+
+            ClearActivePath();
+            Mover?.Stop();
+
+            bool canReplan = EvaluateReplanAction(now, nextReplanAllowedTime, replanAttemptsForCurrentTarget, MaxReplansPerTarget, out bool isDeferred, out bool isExhausted);
+
+            if (isExhausted)
+            {
+                TraceObstacle($"Replan budget exhausted ({replanAttemptsForCurrentTarget}/{MaxReplansPerTarget}) for Route[{currentTargetIndex}]. Advancing to next patrol waypoint.");
+                waypoint = (waypoint + 1) % Route.Length;
+                replanAttemptsForCurrentTarget = 0;
+                isReplanPending = false;
+                return;
+            }
+
+            if (isDeferred)
+            {
+                TraceObstacle($"Replan cooldown active. Deferring detour replan for Route[{currentTargetIndex}] until t={nextReplanAllowedTime:F2}.");
+                isReplanPending = true;
+                return;
+            }
+
+            if (canReplan)
+            {
+                ExecuteDetourReplan(now, currentTargetIndex);
+            }
+        }
+
+        private void ExecuteDetourReplan(float now, int currentTargetIndex)
+        {
+            replanAttemptsForCurrentTarget++;
+            lastReplanTime = now;
+            nextReplanAllowedTime = now + ReplanCooldown;
+
+            if (Route == null || currentTargetIndex < 0 || currentTargetIndex >= Route.Length)
+            {
+                waypoint = (waypoint + 1) % (Route?.Length > 0 ? Route.Length : 1);
+                replanAttemptsForCurrentTarget = 0;
+                isReplanPending = false;
+                return;
+            }
+
+            Vector3 targetPos = Route[currentTargetIndex];
+            int startNode = graph.GetNearestNode(transform.position, verifiedOnly: true);
+            int goalNode = graph.GetNearestNode(targetPos, verifiedOnly: true);
+
+            if (startNode < 0 || goalNode < 0)
+            {
+                TraceObstacle($"Cannot replan detour: nearest nodes not found (start={startNode}, goal={goalNode}). Advancing waypoint.");
+                waypoint = (waypoint + 1) % Route.Length;
+                replanAttemptsForCurrentTarget = 0;
+                isReplanPending = false;
+                return;
+            }
+
+            var result = PatrolAStarPathfinder.FindPath(graph, startNode, goalNode);
+            if (!result.Success)
+            {
+                TraceObstacle($"No alternative detour path exists to Route[{currentTargetIndex}] (Start={startNode}, Goal={goalNode}, Reason={result.FailureReason}). Bypassing unreachable target.");
+                waypoint = (waypoint + 1) % Route.Length;
+                replanAttemptsForCurrentTarget = 0;
+                isReplanPending = false;
+                return;
+            }
+
+            activeAStarNodeIds = new List<int>(result.NodeIds);
+            activeAStarPath = new List<Vector3>(result.Waypoints);
+
+            if (Vector3.Distance(result.Waypoints[result.Waypoints.Count - 1], targetPos) > 0.2f)
+            {
+                activeAStarPath.Add(targetPos);
+            }
+
+            if (activeAStarPath.Count > 1 && Vector3.Distance(transform.position, activeAStarPath[0]) <= 0.6f)
+            {
+                pathIndex = 1;
+            }
+            else
+            {
+                pathIndex = 0;
+            }
+
+            string nodeSeq = string.Join(" -> ", result.NodeIds);
+            TraceObstacle($"Successfully planned detour for Route[{currentTargetIndex}] ({targetPos}): nodes [{nodeSeq}], total cost={result.TotalCost:F2}, explored={result.NodesExplored}");
+
+            if (pathIndex < activeAStarPath.Count)
+            {
+                Vector3 nextStep = activeAStarPath[pathIndex];
+                Mover?.RequestMove(nextStep, .5f);
+            }
+        }
+
+        public bool IsEdgePhysicallyClear(int fromNodeId, int toNodeId)
+        {
+            if (EdgeClearanceProbeOverride != null)
+            {
+                return EdgeClearanceProbeOverride(fromNodeId, toNodeId);
+            }
+
+            if (graph == null || !graph.TryGetNode(fromNodeId, out var nodeA) || !graph.TryGetNode(toNodeId, out var nodeB))
+                return false;
+
+            Vector3 posA = nodeA.Position;
+            Vector3 posB = nodeB.Position;
+            Vector3 dir = posB - posA;
+            float dist = dir.magnitude;
+
+            if (dist < 0.05f)
+                return false;
+
+            Vector3 dirNorm = dir / dist;
+
+            // 1. Physical Corridor Clearance Probe (Capsule Cast)
+            Vector3 bottom = posA + dirNorm * 0.35f + Vector3.up * 0.4f;
+            Vector3 top = posA + dirNorm * 0.35f + Vector3.up * 1.4f;
+            float castDist = Mathf.Max(0f, dist - 0.7f);
+
+            if (castDist > 0.05f)
+            {
+                var hits = Physics.CapsuleCastAll(bottom, top, 0.35f, dirNorm, castDist, ~0, QueryTriggerInteraction.Ignore);
+                for (int i = 0; i < hits.Length; i++)
+                {
+                    var col = hits[i].collider;
+                    if (col == null) continue;
+
+                    if (col.name.StartsWith("Barricade") ||
+                        (col.attachedRigidbody != null && col.attachedRigidbody.name.StartsWith("Barricade")) ||
+                        (col.transform.root != null && col.transform.root.name.StartsWith("Barricade")))
+                    {
+                        return false;
+                    }
+
+                    var door = col.GetComponentInParent<InteractiveDoor>();
+                    if (door != null && !door.IsOpen)
+                    {
+                        return false;
+                    }
+                }
+            }
+
+            // 2. NavMesh Centerline Clearance Probe
+            if (UnityEngine.AI.NavMesh.SamplePosition(posA, out var hitA, 1.0f, UnityEngine.AI.NavMesh.AllAreas) &&
+                UnityEngine.AI.NavMesh.SamplePosition(posB, out var hitB, 1.0f, UnityEngine.AI.NavMesh.AllAreas))
+            {
+                if (UnityEngine.AI.NavMesh.Raycast(hitA.position, hitB.position, out var navHit, UnityEngine.AI.NavMesh.AllAreas))
+                {
+                    return false;
+                }
+            }
+            else
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        private void UpdateBlockedEdgeClearance(float now)
+        {
+            if (activeBlockedEdges.Count == 0) return;
+
+            for (int i = activeBlockedEdges.Count - 1; i >= 0; i--)
+            {
+                var record = activeBlockedEdges[i];
+                if (now < record.NextProbeTime)
+                    continue;
+
+                record.NextProbeTime = now + ObstacleProbeInterval;
+
+                if (IsEdgePhysicallyClear(record.FromNode, record.ToNode))
+                {
+                    graph.SetEdgeBlocked(record.FromNode, record.ToNode, false);
+                    activeBlockedEdges.RemoveAt(i);
+                    TraceObstacle($"Obstruction verified cleared on edge ({record.FromNode} <-> {record.ToNode}). Edge unblocked.");
+                }
+                else
+                {
+                    TraceObstacle($"Edge ({record.FromNode} <-> {record.ToNode}) remains obstructed upon probe verification. Block retained.");
+                }
+            }
+        }
+
+        // ====================================================================
+        // Public Test Hooks for Milestone 2.3
+        // ====================================================================
+
+        public void TriggerObstructionFailure(float now)
+        {
+            HandleObstructionFailure(now, waypoint);
+        }
+
+        public void TriggerDetourReplan(float now)
+        {
+            ExecuteDetourReplan(now, waypoint);
+        }
+
+        public void SetTestPathState(List<int> nodeIds, List<Vector3> waypoints, int currentIndex)
+        {
+            activeAStarNodeIds = nodeIds != null ? new List<int>(nodeIds) : null;
+            activeAStarPath = waypoints != null ? new List<Vector3>(waypoints) : null;
+            pathIndex = currentIndex;
+        }
+
+        public void SetTestPendingReplan(bool pending, float nextAllowedTime, int attempts)
+        {
+            isReplanPending = pending;
+            nextReplanAllowedTime = nextAllowedTime;
+            replanAttemptsForCurrentTarget = attempts;
+        }
+
         /// <summary>
         /// Public test hook to evaluate and trigger tactical return to patrol.
         /// </summary>
@@ -802,6 +1209,9 @@ namespace FacilityBreach.AI.Roles
             ClearActivePath();
             ClearSearchState();
             ClearReturnState();
+            activeBlockedEdges.Clear();
+            replanAttemptsForCurrentTarget = 0;
+            isReplanPending = false;
         }
 
         public override void ResetEnemyActions()
@@ -816,6 +1226,15 @@ namespace FacilityBreach.AI.Roles
             ClearReturnState();
             lastInvestigatedPosition = Vector3.zero;
             lastInvestigatedTime = 0;
+            activeBlockedEdges.Clear();
+            replanAttemptsForCurrentTarget = 0;
+            lastReplanTime = -10f;
+            nextReplanAllowedTime = 0f;
+            isReplanPending = false;
+            if (graph != null)
+            {
+                graph.ResetAllEdgeBlocks();
+            }
         }
     }
 }
