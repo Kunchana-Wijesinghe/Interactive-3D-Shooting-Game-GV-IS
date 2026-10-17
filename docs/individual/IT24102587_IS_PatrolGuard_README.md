@@ -689,31 +689,45 @@ All Milestone 2.3 live Play Mode scenario checks passed successfully.
 
 ### 7.5 Normal Gameplay Patrol Verification & Behavioral Evidence
 
-While Section 6 documents 151 automated test assertions across Phase 1, Milestone 2.2A, Milestone 2.2B, and Milestone 2.3, automated unit tests and isolated scenario runners do not, by themselves, prove that `PG-01` completes its normal gameplay patrol loop under continuous Unity Play Mode simulation without player interruption.
+While Section 6 documents 151 automated test assertions across Phase 1, Milestone 2.2A, Milestone 2.2B, and Milestone 2.3, automated unit tests and isolated scenario runners evaluate algorithmic and state logic in controlled conditions. They do not, by themselves, constitute proof of continuous normal gameplay patrol or unscripted player encounters under live Unity Play Mode simulation.
 
 #### 1. Verification Procedure
-To verify normal gameplay patrol without disrupting other gameplay systems, player mechanics, or teammate AI brains:
+To verify normal gameplay patrol and interactive behavior in live gameplay without disrupting other gameplay systems, player mechanics, or teammate AI brains:
 1. Open `Assets/Scenes/Prototype.unity` in the Unity Editor (`6000.6.2f1`).
 2. In the Hierarchy under `FB_Gameplay/FB_Agents`, select `FB_Agent_PG01` and verify that `Enable A Star Diagnostics` is checked on its `PatrolGuardBrain` component.
 3. Enter Play Mode.
 4. On the main menu canvas, click **Start Mission** (unpausing `Time.timeScale` to 1.0 and activating agent decision loops).
-5. Leave the player character stationary at the entrance spawn post (outside `PG-01`'s $110^\circ$ FOV and $13\text{m}$ visual detection range) so that combat, alert, or investigation states are not triggered.
-6. Observe `PG-01`'s physical movement in the Scene/Game views and monitor diagnostic logs in the Unity Console as the agent progresses across its four rectangular waypoints.
+5. For pure patrol observation, observe `PG-01` with the player stationary outside detection range.
+6. For interactive gameplay observation, approach the upper corridor to test visual detection, pursuit, and loss-of-sight recovery.
 
 #### 2. Expected Behaviour
-- **Startup**: Validates the 4-waypoint route against the security zone graph (`ValidateRouteAgainstGraph`) and detects that `PG-01` starts within arrival tolerance of Waypoint 1 (`Route[0]`), immediately advancing target to Waypoint 2 (`Route[1]`).
-- **Sequential Steer**: Queries `PatrolAStarPathfinder` for path `[12 -> 13]`, streams the milestone to `SoundHunterNavMeshMover.RequestMove()`, and navigates north.
-- **Cyclic Progression**: Upon arriving within $\le 0.6\text{m}$ of each waypoint, advances cyclic index `(waypoint + 1) % Route.Length` and navigates east to Waypoint 3 (`Route[2]`), south to Waypoint 4 (`Route[3]`), and west back to Waypoint 1 (`Route[0]`).
-- **Continuous Cycling**: Completes the $2.0\text{m} \times 4.0\text{m}$ rectangular loop and continuously restarts Leg 1 with zero mover stalls, oscillations, or console error messages.
+- **Patrol Cycling**: Validates the 4-waypoint route against the security zone graph (`ValidateRouteAgainstGraph`), detects arrival at Waypoint 1 (`Route[0]`), and sequentially queries $A^*$ paths to navigate through Waypoints 2, 3, and 4 in an approximately rectangular $2.0\text{m} \times 4.0\text{m}$ loop.
+- **Visual Detection & Pursuit**: When the player enters `PG-01`'s $110^\circ$ FOV and $\le 13\text{m}$ range, the agent maintains sight, activates its chest warning light after $\ge 0.5\text{s}$, initiates combat engagement, and pursues the player when the player attempts to retreat.
+- **Search & Tactical Return**: When line of sight is broken, `PG-01` investigates the last-known position, searches for up to 4.0 seconds, and executes a tactical return toward its nearest reachable patrol waypoint before resuming normal corridor patrolling.
+- **Combat Resolution**: Standard weapon firing applies damage through `EnemyCombatAdapter`, capable of reducing player health to zero if the player fails to take cover.
 
-#### 3. Actual Observed Results & Supporting Evidence
-- **Diagnostic Console Traces**: In live Play Mode testing with diagnostics enabled, `PG-01` successfully completed path planning and sequential movement requests across all four legs (`[12 -> 13]`, `[13 -> 14]`, `[14 -> 15]`, and `[15 -> 12]`), as documented in Section 7.2.
-- **Visual Evidence Reference**: In runtime visual evidence, post-return route resumption from Waypoint 1 (`Route[0]`) through Waypoint 2 (`Route[1]`) and subsequent path planning toward Waypoint 3 (`Route[2]`) is verified in screenshot [`IT24102587_IS_M22A_Route_Progression.png`](evidence/IT24102587_IS_M22A_Route_Progression.png) and [`IT24102587_IS_M22A_Patrol_Resumed.png`](evidence/IT24102587_IS_M22A_Patrol_Resumed.png).
+#### 3. Actual Observed Gameplay Results
+During manual interactive Play Mode sessions in `Prototype.unity`, the following specific gameplay behaviors were directly observed and recorded:
+- **Patrol Movement**: `PG-01` was observed physically moving between its configured patrol locations in the upper security corridor via NavMesh movement.
+- **Player Detection**: When the player approached the corridor near the Access Card and yellow barricade, `PG-01` acquired visual line of sight and entered active alert mode with its teal robot model and chest combat indicator visible in front of the player.
+- **Active Pursuit**: When the player retreated around the green cover obstacle in the corridor, `PG-01` followed the player along the corridor, actively maintaining pursuit while the player fell back.
+- **Return to Patrol Area**: When the player broke line of sight and was no longer visible, `PG-01` was observed discontinuing pursuit and returning back towards its designated patrol corridor area.
+- **Lethal Combat Outcome**: During one gameplay attempt, `PG-01` resolved repeated hitscan attacks, reducing player HP from 100 to 60 and ultimately eliminating the player before the player could retreat to cover.
 
-#### 4. Scope Limitation Declaration
+#### 4. Supporting Visual Evidence
+
+##### Figure 7.5.1: Live Gameplay Visual Detection in Corridor
+![Patrol Guard Gameplay Detection](evidence/IT24102587_IS_PatrolGuard_Gameplay_Detection.png)
+*Observation*: `PG-01` (facing player with chest light active) visually detects the player character in the upper corridor near the Access Card and yellow barricade during active mission gameplay.
+
+##### Figure 7.5.2: Live Gameplay Pursuit and Combat Engagement
+![Patrol Guard Gameplay Pursuit](evidence/IT24102587_IS_PatrolGuard_Gameplay_Pursuit.png)
+*Observation*: `PG-01` actively pursues the player retreating past the green obstacle in the corridor, with player HP reduced to 60/100 and minimap displaying `PG-01` (teal dot) tracking the player's movement trajectory.
+
+#### 5. Distinction Between Manual Observations and Automated Verification
 In accordance with academic honesty guidelines:
-- While existing runtime evidence demonstrates live route resumption and progression across multiple waypoints, a dedicated screenshot capturing an uninterrupted full 4-leg loop closure from startup without preceding combat or search states has not been captured as a standalone PNG evidence artifact.
-- Normal gameplay patrol loop execution is therefore documented as **behaviorally demonstrated via diagnostic traces and route progression screenshots, with a standalone uninterrupted full-loop capture identified as an optional visual enhancement.**
+- **Manual Gameplay Observations**: The manual Play Mode sessions confirm that `PG-01` executes real-time movement, detects the player in gameplay, pursues retreating targets, returns toward its patrol area when sight is broken, and engages in lethal combat resolution.
+- **Evidence Scope Limitation**: Static screenshots and observational logs provide qualitative visual evidence of specific gameplay moments (detection, combat pursuit, route resumption). They do **NOT** by themselves constitute mathematical proof of complete algorithmic optimality, heuristic consistency, or edge-blocking recovery across all branches—those algorithmic guarantees are strictly established by the 141 automated unit tests and 10 live scenario runner assertions documented in Section 6.
 
 ---
 
