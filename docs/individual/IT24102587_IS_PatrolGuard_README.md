@@ -160,6 +160,22 @@ Consider `PG-01` situated at Route Waypoint 3 (Node 15 at coordinates $(7, 0, 18
   - $g(14) = 4.0\text{m}$, $g(13) = 4.0 + 2.0 = 6.0\text{m}$.
 - **Tie-Breaking Resolution**: At the start, Node 12 has $h(12) = 4.0$, $f(12) = 2.0 + 4.0 = 6.0$. Node 14 has $h(14) = 2.0$, $f(14) = 4.0 + 2.0 = 6.0$. Since $f$ is identical, Node 14 is prioritized due to lower $h(14) = 2.0 < 4.0$, selecting path **$[15 \to 14 \to 13]$** with minimal explorations.
 
+### 4.4 Configured Patrol Guard Route (`FB_Agent_PG01`)
+
+The Patrol Guard GameObject (`FB_Agent_PG01`) is initialized with a `PatrolGuardBrain` component configured with four discrete waypoints:
+- **Waypoint 1 (`Route[0]` / Node 12)**: `(5.00, 0.00, 18.00)` — Primary security post / initial spawn point in the upper corridor.
+- **Waypoint 2 (`Route[1]` / Node 13)**: `(5.00, 0.00, 22.00)` — North corridor post adjacent to the toxic waste area and Access Card barrier.
+- **Waypoint 3 (`Route[2]` / Node 14)**: `(7.00, 0.00, 22.00)` — Northeast corridor junction connecting to the Exit Approach corridor.
+- **Waypoint 4 (`Route[3]` / Node 15)**: `(7.00, 0.00, 18.00)` — Southeast corridor post adjacent to the Room 3 Machinery doorway.
+
+These coordinates define the configured patrol route, which forms an approximately rectangular loop ($2.0\text{m} \times 4.0\text{m}$) with a total perimeter of $12.0\text{m}$:
+- **Leg 1 (Northward)**: From `(5, 0, 18)` to `(5, 0, 22)` along $X=5$ ($4.0\text{m}$ distance).
+- **Leg 2 (Eastward)**: From `(5, 0, 22)` to `(7, 0, 22)` along $Z=22$ ($2.0\text{m}$ distance).
+- **Leg 3 (Southward)**: From `(7, 0, 22)` to `(7, 0, 18)` along $X=7$ ($4.0\text{m}$ distance).
+- **Leg 4 (Westward / Loop Closure)**: From `(7, 0, 18)` back to `(5, 0, 18)` along $Z=18$ ($2.0\text{m}$ distance).
+
+This clockwise rectangular corridor loop ensures continuous surveillance over both the toxic waste access card corridor and the main exit approach corridor.
+
 ---
 
 ## 5. Completed Development Milestones
@@ -670,6 +686,34 @@ All Milestone 2.3 live Play Mode scenario checks passed successfully.
    - `PatrolGuardBrain.UnblockEdge(13, 14)` unblocked the edge and cleared the blocked record.
    - Subsequent path calculation between Node 13 and Node 14 immediately restored the optimal direct path $[13 \rightarrow 14]$ with original cost $2.00\text{m}$.
    - The runner's `finally` block ensured all test-owned changes were cleanly restored, leaving the scene, graph, and mission state untouched.
+
+### 7.5 Normal Gameplay Patrol Verification & Behavioral Evidence
+
+While Section 6 documents 151 automated test assertions across Phase 1, Milestone 2.2A, Milestone 2.2B, and Milestone 2.3, automated unit tests and isolated scenario runners do not, by themselves, prove that `PG-01` completes its normal gameplay patrol loop under continuous Unity Play Mode simulation without player interruption.
+
+#### 1. Verification Procedure
+To verify normal gameplay patrol without disrupting other gameplay systems, player mechanics, or teammate AI brains:
+1. Open `Assets/Scenes/Prototype.unity` in the Unity Editor (`6000.6.2f1`).
+2. In the Hierarchy under `FB_Gameplay/FB_Agents`, select `FB_Agent_PG01` and verify that `Enable A Star Diagnostics` is checked on its `PatrolGuardBrain` component.
+3. Enter Play Mode.
+4. On the main menu canvas, click **Start Mission** (unpausing `Time.timeScale` to 1.0 and activating agent decision loops).
+5. Leave the player character stationary at the entrance spawn post (outside `PG-01`'s $110^\circ$ FOV and $13\text{m}$ visual detection range) so that combat, alert, or investigation states are not triggered.
+6. Observe `PG-01`'s physical movement in the Scene/Game views and monitor diagnostic logs in the Unity Console as the agent progresses across its four rectangular waypoints.
+
+#### 2. Expected Behaviour
+- **Startup**: Validates the 4-waypoint route against the security zone graph (`ValidateRouteAgainstGraph`) and detects that `PG-01` starts within arrival tolerance of Waypoint 1 (`Route[0]`), immediately advancing target to Waypoint 2 (`Route[1]`).
+- **Sequential Steer**: Queries `PatrolAStarPathfinder` for path `[12 -> 13]`, streams the milestone to `SoundHunterNavMeshMover.RequestMove()`, and navigates north.
+- **Cyclic Progression**: Upon arriving within $\le 0.6\text{m}$ of each waypoint, advances cyclic index `(waypoint + 1) % Route.Length` and navigates east to Waypoint 3 (`Route[2]`), south to Waypoint 4 (`Route[3]`), and west back to Waypoint 1 (`Route[0]`).
+- **Continuous Cycling**: Completes the $2.0\text{m} \times 4.0\text{m}$ rectangular loop and continuously restarts Leg 1 with zero mover stalls, oscillations, or console error messages.
+
+#### 3. Actual Observed Results & Supporting Evidence
+- **Diagnostic Console Traces**: In live Play Mode testing with diagnostics enabled, `PG-01` successfully completed path planning and sequential movement requests across all four legs (`[12 -> 13]`, `[13 -> 14]`, `[14 -> 15]`, and `[15 -> 12]`), as documented in Section 7.2.
+- **Visual Evidence Reference**: In runtime visual evidence, post-return route resumption from Waypoint 1 (`Route[0]`) through Waypoint 2 (`Route[1]`) and subsequent path planning toward Waypoint 3 (`Route[2]`) is verified in screenshot [`IT24102587_IS_M22A_Route_Progression.png`](evidence/IT24102587_IS_M22A_Route_Progression.png) and [`IT24102587_IS_M22A_Patrol_Resumed.png`](evidence/IT24102587_IS_M22A_Patrol_Resumed.png).
+
+#### 4. Scope Limitation Declaration
+In accordance with academic honesty guidelines:
+- While existing runtime evidence demonstrates live route resumption and progression across multiple waypoints, a dedicated screenshot capturing an uninterrupted full 4-leg loop closure from startup without preceding combat or search states has not been captured as a standalone PNG evidence artifact.
+- Normal gameplay patrol loop execution is therefore documented as **behaviorally demonstrated via diagnostic traces and route progression screenshots, with a standalone uninterrupted full-loop capture identified as an optional visual enhancement.**
 
 ---
 
