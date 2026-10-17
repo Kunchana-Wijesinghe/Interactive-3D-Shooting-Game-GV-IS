@@ -21,7 +21,20 @@ namespace FacilityBreach.Editor
         private static readonly List<string> evidence = new List<string>();
         private static double deadline;
         private static int checks;
+        private static bool coverDefenderOnly;
         public static void Run()
+        {
+            coverDefenderOnly = false;
+            SessionState.SetBool("FBEnemyRulesCoverOnly", false);
+            StartValidation();
+        }
+        public static void RunCoverDefender()
+        {
+            coverDefenderOnly = true;
+            SessionState.SetBool("FBEnemyRulesCoverOnly", true);
+            StartValidation();
+        }
+        private static void StartValidation()
         {
             File.Delete("enemy-rules-passed.txt"); File.Delete("enemy-rules-failed.txt");
             EditorSceneManager.OpenScene("Assets/Scenes/Prototype.unity");
@@ -37,10 +50,13 @@ namespace FacilityBreach.Editor
             Application.logMessageReceived -= Console; Application.logMessageReceived += Console;
         }
         private static void Console(string message, string stack, LogType type)
-        { if (type == LogType.Error || type == LogType.Exception || type == LogType.Assert) errors.Add(message); }
+        { if (type == LogType.Error || type == LogType.Exception || type == LogType.Assert) errors.Add(message + "\n" + stack); }
         private static void Changed(PlayModeStateChange state)
         {
-            if (state == PlayModeStateChange.EnteredPlayMode) pending.Push(Checks());
+            if (state == PlayModeStateChange.EnteredPlayMode)
+                pending.Push(SessionState.GetBool("FBEnemyRulesCoverOnly", coverDefenderOnly)
+                    ? CoverDefenderChecks()
+                    : Checks());
             if (state == PlayModeStateChange.EnteredEditMode && File.Exists("enemy-rules-passed.txt"))
             { SessionState.SetBool("FBEnemyRules", false); EditorApplication.Exit(0); }
         }
@@ -60,12 +76,119 @@ namespace FacilityBreach.Editor
         { if (!condition) throw new Exception("FAILED: " + message); checks++; evidence.Add("PASS: " + message); Debug.Log("FB integration PASS: " + message); }
         private static IEnumerator Wait(float duration)
         { float end = Time.time + duration; while (Time.time < end) yield return null; }
+        private static IEnumerator CoverDefenderChecks()
+        {
+            for (int i = 0; i < 20; i++) yield return null;
+            var run = UnityEngine.Object.FindAnyObjectByType<FacilityBreachRuntime>();
+            run.DevelopmentDiagnostics = true;
+            run.StartMission();
+            CheckMachineryWallJoin();
+            var enemies = UnityEngine.Object.FindObjectsByType<EnemyCombatAdapter>();
+            Check(enemies.Length == 4, "Prototype creates exactly four existing enemy agents");
+            Isolate(enemies);
+
+            var cd = enemies.Single(x => x.Identity == "CD-03");
+            var defender = cd.GetComponent<CoverDefenderBrain>();
+            Check(defender && cd.GetComponents<CoverDefenderBrain>().Length == 1,
+                "CD-03 has one Cover Defender brain on its existing combat root");
+            PositionVisiblePlayer(run, cd, 3);
+            var agent = cd.GetComponent<UnityEngine.AI.NavMeshAgent>();
+            var mover = cd.GetComponent<SoundHunterNavMeshMover>();
+            agent.speed = 0;
+            agent.updateRotation = false;
+            cd.MissChance = 1;
+            defender.enabled = true;
+            yield return Wait(.3f);
+            Check(defender.CoverEvaluations == 1 &&
+                Vector3.Distance(defender.LastKnownPosition, run.PlayerTransform.position) < .15f,
+                "CD detects the actual player and remembers the visible position");
+            var path = new UnityEngine.AI.NavMeshPath();
+            Check(defender.HasCoverPosition &&
+                UnityEngine.AI.NavMesh.CalculatePath(cd.transform.position, defender.CoverGoal,
+                    UnityEngine.AI.NavMesh.AllAreas, path) &&
+                path.status == UnityEngine.AI.NavMeshPathStatus.PathComplete,
+                "CD selects safe cover reachable on the gameplay NavMesh");
+            Vector3 origin = defender.CoverGoal + Vector3.up * 1.4f;
+            Vector3 target = defender.LastKnownPosition + Vector3.up;
+            Check(Physics.RaycastAll(origin, (target - origin).normalized,
+                    Vector3.Distance(origin, target), ~0, QueryTriggerInteraction.Ignore)
+                .Any(hit => !hit.transform.IsChildOf(cd.transform) &&
+                    !hit.transform.IsChildOf(run.PlayerTransform) &&
+                    !hit.collider.GetComponentInParent<EnemyCombatAdapter>()),
+                "selected cover blocks the threat's line of sight");
+            Check(cd.Warning || cd.ResolvedShots > 0,
+                "CD engages the visible player through the shared combat adapter");
+
+            yield return Wait(1.5f);
+            Check(defender.CoverEvaluations == 2,
+                "CD re-evaluates utility when the player remains visible");
+            Vector3 start = cd.transform.position;
+            agent.speed = 3;
+            yield return Wait(1.2f);
+            Check(mover.Status == Perera.SoundHunter.MoveStatus.Arrived ||
+                Vector3.Distance(start, cd.transform.position) > .2f,
+                "CD moves to its selected cover using the shared NavMesh mover");
+
+            Vector3 remembered = defender.LastKnownPosition;
+            Warp(run, new Vector3(-12.5f, .1f, -28), Vector3.zero);
+            yield return Wait(.7f);
+            Check(defender.State == RoleState.Search &&
+                defender.LastKnownPosition == remembered && !cd.Warning,
+                "CD searches its last known position without tracking the hidden player");
+            yield return Wait(1);
+            Check(defender.IsPeeking,
+                "CD moves to a reachable peek point when searching from cover");
+            yield return Wait(1.5f);
+            Check(defender.State == RoleState.Return || defender.State == RoleState.Patrol,
+                "CD recovers after its configured lost-sight hold");
+
+            int health = cd.CurrentHealth;
+            Check(cd.TakeDamage(new Perera.Core.DamageInfo(5, cd.transform.position,
+                    Vector3.forward, run.PlayerTransform.gameObject)) &&
+                cd.CurrentHealth == health - 5,
+                "CD receives damage through the shared enemy-health adapter");
+            string evidenceFolder = Path.Combine("docs", "facility-breach", "evidence", "cover-defender");
+            Directory.CreateDirectory(evidenceFolder);
+            string consoleResult = errors.Count == 0
+                ? "PASS: no unexpected Console errors"
+                : "FAIL: Console errors captured (" + errors.Count + "):\n" +
+                    string.Join("\n\n", errors);
+            File.WriteAllText(Path.Combine(evidenceFolder, "playmode-results.txt"),
+                "Cover Defender Play Mode validation\n" +
+                "UTC: " + DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ") + "\n" +
+                "Unity: " + Application.unityVersion + "\n" +
+                "Gameplay assertions: " + checks + " passed\n\n" +
+                string.Join("\n", evidence) + "\n\n" +
+                "Console gate: " + consoleResult + "\n");
+            Check(errors.Count == 0,
+                "no unexpected Console errors: " + string.Join("; ", errors));
+            File.WriteAllText("enemy-rules-passed.txt", checks + " checks\n" +
+                string.Join("\n", evidence));
+            EditorApplication.isPlaying = false;
+        }
         private static void Warp(FacilityBreachRuntime run, Vector3 point, Vector3 aim)
         {
             var body = run.PlayerTransform.GetComponent<CharacterController>(); body.enabled = false;
             run.PlayerTransform.position = point; run.PlayerTransform.rotation = Quaternion.identity; body.enabled = true;
             run.GameplayCamera.transform.rotation = Quaternion.LookRotation(aim - run.GameplayCamera.transform.position);
             Physics.SyncTransforms();
+        }
+        private static void CheckMachineryWallJoin()
+        {
+            var wall = GameObject.Find("Room3_Left_Top");
+            Check(wall && wall.GetComponent<Collider>(),
+                "Machinery room upper-left wall has its blocking collider");
+            bool blocksGap = Physics.RaycastAll(new Vector3(9, 1, 20.25f), Vector3.right,
+                    2, ~0, QueryTriggerInteraction.Ignore)
+                .Any(hit => hit.collider.transform == wall.transform);
+            Check(blocksGap,
+                "Machinery room wall meets the left doorway with no walk-through gap");
+            var accessGates = UnityEngine.Object.FindObjectsByType<Collider>()
+                .Where(collider => collider.name.StartsWith("Card required"))
+                .ToArray();
+            Check(accessGates.Length == 3 &&
+                accessGates.All(collider => collider.gameObject.activeInHierarchy),
+                "Machinery room retains all three active access-card blockers");
         }
         private static void Approach(FacilityBreachRuntime run, ResourceStation station)
         { Warp(run, new Vector3(station.transform.position.x, .1f, station.transform.position.z - 1.2f), station.InteractionPoint); }
@@ -96,6 +219,7 @@ namespace FacilityBreach.Editor
         {
             for(int i=0;i<20;i++) yield return null;
             var run=UnityEngine.Object.FindAnyObjectByType<FacilityBreachRuntime>();run.DevelopmentDiagnostics=true;run.StartMission();
+            CheckMachineryWallJoin();
             Check(run.Resources.Health==100&&run.Run.Remaining==300,"mission starts at 100 HP and five-minute countdown");
             var enemies=UnityEngine.Object.FindObjectsByType<EnemyCombatAdapter>();
             Check(enemies.Length==4&&enemies.All(x=>x.GetComponents<EnemyCombatAdapter>().Length==1),"one shared attack component per robot");
@@ -163,13 +287,28 @@ namespace FacilityBreach.Editor
             cd.transform.rotation=Quaternion.identity;point=cd.transform.position+Vector3.forward*3;
             PositionVisiblePlayer(run,cd,3);run.DevelopmentDiagnostics=true;cd.GetComponent<UnityEngine.AI.NavMeshAgent>().speed=0;cd.GetComponent<UnityEngine.AI.NavMeshAgent>().updateRotation=false;defender.enabled=true;cd.MissChance=1;
             yield return Wait(.3f);Check(defender.CoverEvaluations==1&&Vector3.Distance(defender.LastKnownPosition,run.PlayerTransform.position)<.15f,"CD activates visually and evaluates reachable cover from perceived position");
+            var cdMover=cd.GetComponent<SoundHunterNavMeshMover>();
+            var cdPath=new UnityEngine.AI.NavMeshPath();
+            Check(defender.HasCoverPosition&&UnityEngine.AI.NavMesh.CalculatePath(cd.transform.position,defender.CoverGoal,UnityEngine.AI.NavMesh.AllAreas,cdPath)&&cdPath.status==UnityEngine.AI.NavMeshPathStatus.PathComplete,"CD selects a safe cover position reachable on the gameplay NavMesh");
+            Vector3 coverRay=defender.CoverGoal+Vector3.up*1.4f;
+            Vector3 threatRay=defender.LastKnownPosition+Vector3.up;
+            Check(Physics.RaycastAll(coverRay,(threatRay-coverRay).normalized,Vector3.Distance(coverRay,threatRay),~0,QueryTriggerInteraction.Ignore)
+                .Any(x=>!x.transform.IsChildOf(cd.transform)&&!x.transform.IsChildOf(run.PlayerTransform)&&!x.collider.GetComponentInParent<EnemyCombatAdapter>()),"CD's selected position is occluded from the remembered threat by world cover");
+            Check(cd.Warning||cd.ResolvedShots>0,"CD attacks the visible player through the shared combat adapter");
             yield return Wait(1);Check(defender.CoverEvaluations==1,"CD does not reassess before 1.5-second cadence");
             yield return Wait(.5f);Check(defender.CoverEvaluations==2,"CD reassesses reachable cover after 1.5 seconds of valid sight");
             cd.GetComponent<UnityEngine.AI.NavMeshAgent>().speed=3;cd.GetComponent<UnityEngine.AI.NavMeshAgent>().updateRotation=true;
+            Vector3 cdStart=cd.transform.position;
+            yield return Wait(1.2f);
+            Check(cdMover.Status==Perera.SoundHunter.MoveStatus.Arrived||Vector3.Distance(cdStart,cd.transform.position)>.2f,"CD navigates toward its selected cover during combat");
             Vector3 known=defender.LastKnownPosition;int evaluations=defender.CoverEvaluations;
             Warp(run,new Vector3(-12.5f,.1f,-28),Vector3.zero);yield return Wait(.7f);
             Check(defender.LastKnownPosition==known&&defender.CoverEvaluations==evaluations&&defender.State==RoleState.Search,"CD holds remembered position without hidden-player tracking or reassessment");
+            yield return Wait(1);
+            Check(defender.IsPeeking,"CD searches from cover by moving to a reachable peek position");
             yield return Wait(3.1f);Check(defender.State==RoleState.Return||defender.State==RoleState.Patrol,"CD returns after three-second lost-sight hold");defender.enabled=false;
+            int cdHealth=cd.CurrentHealth;
+            Check(cd.TakeDamage(new Perera.Core.DamageInfo(5,cd.transform.position,Vector3.forward,run.PlayerTransform.gameObject))&&cd.CurrentHealth==cdHealth-5,"CD receives damage through the shared enemy-health adapter");
             var fl=enemies.Single(x=>x.Identity=="FL-04");var flanker=fl.GetComponent<FlankerBrain>();
             fl.transform.rotation=Quaternion.identity;point=fl.transform.position+Vector3.forward*2.5f;
             PositionVisiblePlayer(run,fl,2.5f);fl.GetComponent<UnityEngine.AI.NavMeshAgent>().speed=0;fl.GetComponent<UnityEngine.AI.NavMeshAgent>().updateRotation=false;flanker.enabled=true;fl.MissChance=1;

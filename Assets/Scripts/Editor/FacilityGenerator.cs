@@ -241,8 +241,8 @@ public class FacilityGenerator : EditorWindow
 
         Wall(
             "Room3_Left_Top",
-            new Vector3(10, 2, 22.5f),
-            new Vector3(T, H, 3),
+            new Vector3(10, 2, 21.875f),
+            new Vector3(T, H, 4.25f),
             root.transform
         );
 
