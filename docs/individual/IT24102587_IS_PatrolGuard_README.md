@@ -220,7 +220,7 @@ Consider `PG-01` situated at Route Waypoint 3 (Node 15 at coordinates $(7, 0, 18
 
 The A* pathfinding algorithm is verified by an automated test suite located at [`Assets/Editor/FacilityBreach/PatrolGuardAStarTests.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Editor/FacilityBreach/PatrolGuardAStarTests.cs). 
 
-The test harness is accessible via the Unity Editor top menu (**`Facility Breach` > `AI Tests` > `Run All Patrol Guard A* Tests (37 Checks)`**).
+The test harness is accessible via the Unity Editor top menu (**`Facility Breach` > `Run Patrol Guard A* Tests`**).
 
 ### 6.1 Test Suite Breakdown
 
@@ -279,6 +279,8 @@ The test harness is accessible via the Unity Editor top menu (**`Facility Breach
 [A* Test PASS] SecurityZone_ExitApproachReachable
 [PatrolGuardAStarTests] Completed 37 checks: 37 PASSED, 0 FAILED.
 ```
+
+![Phase 1 A* Tests Passed](evidence/IT24102587_IS_Phase1_AStar_Tests_Passed.png)
 
 ### 6.2 Milestone 2.2A Search & Memory Test Suite Breakdown
 
@@ -457,7 +459,7 @@ Dynamic obstacle classification, corridor edge blocking, bounded detour replanni
 ![Milestone 2.3 Obstacle Tests Passed](evidence/IT24102587_IS_M23_Obstacle_Tests_Passed.png)
 
 **Combined Automated Test Results**:
-- **Phase 1 A* Unit Tests**: **37 / 37 PASSED** (Confirmed by `patrol-astar-tests-passed.txt` on disk)
+- **Phase 1 A* Unit Tests**: **37 / 37 PASSED** (Confirmed by `patrol-astar-tests-passed.txt` and verified in screenshot [`IT24102587_IS_Phase1_AStar_Tests_Passed.png`](evidence/IT24102587_IS_Phase1_AStar_Tests_Passed.png))
 - **Milestone 2.2A Search Unit Tests**: **22 / 22 PASSED** (Confirmed by `patrol-search-tests-passed.txt` and `Logs/Editor.log`)
 - **Milestone 2.2B Return Unit Tests**: **36 / 36 PASSED** (Confirmed by `patrol-return-tests-passed.txt`, `Logs/Editor.log`, and [`IT24102587_IS_M22B_Return_Tests_Passed.png`](evidence/IT24102587_IS_M22B_Return_Tests_Passed.png))
 - **Milestone 2.3 Obstacle Unit Tests**: **46 / 46 PASSED** (Confirmed by `patrol-obstacle-tests-passed.txt` and `Logs/Editor.log`)
