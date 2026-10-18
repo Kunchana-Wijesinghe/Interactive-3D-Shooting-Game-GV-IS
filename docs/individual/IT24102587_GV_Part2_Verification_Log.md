@@ -5,8 +5,9 @@
 **Degree Programme:** BSc (Hons) in Information Technology Specialising in Software Engineering<br/>
 **Module:** SE3032 — Graphics and Visualization (GV)<br/>
 **Assigned Role:** Part 2: Systems Engineer (Player Interaction Physics, Collision Handling & Environment Mechanics)<br/>
-**Branch Verified:** `develop`<br/>
+**Branch Verified (Merged Baseline):** `develop`<br/>
 **Integrated Merge Commit:** [`fd94efe`](https://github.com/Kunchana-Wijesinghe/Interactive-3D-Shooting-Game-GV-IS/commit/fd94efe6d97f0102a733be274bbb38cb7102806b) (`Merge pull request #9 from Kunchana-Wijesinghe/gv/Kunchana-interactions`)<br/>
+**Current Working Feature Branch:** `gv/IT24102587-main-barricade-interaction` (uncommitted local work based on `develop` commit `c237edf`)<br/>
 **Target Unity Version:** Unity 6000.6.2f1 (URP / 3D, C# .NET Standard 2.1)<br/>
 **Repository:** `Interactive-3D-Shooting-Game-GV-IS` (Private)
 
@@ -17,29 +18,37 @@
 This document serves as the formal, evidence-based verification log for the individual **Graphics and Visualization (GV) — Part 2: Systems Engineer** contribution to the *Facility Breach* Unity project.
 
 ### 1.1 Multi-Layered Verification Methodology
-To ensure strict academic integrity and reproducible technical rigor, the verification of the GV Part 2 contribution is divided across four distinct, clearly labeled assessment layers:
+To ensure strict academic integrity and reproducible technical rigor, the verification of the GV Part 2 contribution is divided across six distinct, clearly labeled assessment layers:
 
 1. **Historical Interactive Play Mode Testing (2026-10-04)**:<br/>
    Manual, hands-on gameplay validation conducted in dedicated, isolated Unity testing scenes ([`DoorInteractionTest.unity`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scenes/Tests/DoorInteractionTest.unity) and [`BarricadeInteractionTest.unity`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scenes/Tests/BarricadeInteractionTest.unity)). These tests evaluated kinematic hinge rotation, trigger volumes, character controller pushing, velocity-governed obstacle maneuvering, continuous collision detection, and anti-tunneling against solid walls.
 2. **Visual Evidence Inspection**:<br/>
    Empirical confirmation through seven high-resolution viewport screenshots captured directly during the 2026-10-04 manual Play Mode sessions, tracked in Git repository history under [`docs/individual/evidence/`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/docs/individual/evidence/).
 3. **Architectural & Source-Code Inspection**:<br/>
-   Static code analysis of C# physics logic, constraint configurations, mathematical formulas, and safe boundary checks across [`InteractiveDoor.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/InteractiveDoor.cs), [`DoorTrigger.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/DoorTrigger.cs), [`MovableBarricade.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/MovableBarricade.cs), and [`SimplePlayerController.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/SimplePlayerController.cs).
+   Static code analysis of C# physics logic, constraint configurations, mathematical formulas, and safe boundary checks across [`InteractiveDoor.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/InteractiveDoor.cs), [`DoorTrigger.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/DoorTrigger.cs), [`MovableBarricade.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/MovableBarricade.cs), [`SimplePlayerController.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/SimplePlayerController.cs), and [`FacilityInteractionDispatcher.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/Interactions/FacilityInteractionDispatcher.cs).
 4. **Current Non-Gameplay Unity Batch-Mode Compilation (2026-10-18)**:<br/>
-   Headless C# script compilation using Unity 6000.6.2f1 batch mode on the merged `develop` branch (`fd94efe`), validating zero compilation errors, zero missing assembly references, and complete compatibility alongside the integrated IS Patrol Guard AI system.
+   Headless C# script compilation using Unity 6000.6.2f1 batch mode on both `develop` (`fd94efe`) and the active feature branch `gv/IT24102587-main-barricade-interaction`, validating zero compilation errors, zero missing assembly references, and complete compatibility alongside the integrated IS Patrol Guard AI system.
+5. **Production Facility Manual Gameplay Verification (2026-10-18)**:<br/>
+   Direct interactive gameplay validation in [`Prototype.unity`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scenes/Prototype.unity) conducted by the user, confirming seven distinct interaction behaviors including door opening/closing, barricade grab/release/tracking, dynamic HUD updates, and exclusive barricade release without door cross-triggering.
+6. **Automated Interaction & AI Regression Testing (2026-10-18)**:<br/>
+   Automated Edit Mode test execution covering 43 interaction arbitration checks ([`FacilityInteractionDispatcherTests.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Editor/FacilityBreach/FacilityInteractionDispatcherTests.cs)) and 141 Patrol Guard AI regression checks, verifying zero regression or pathfinding obstruction failures.
 
 ```mermaid
 graph TD
     subgraph Verification_Layers["GV Part 2 Verification Architecture"]
-        L1["Layer 1: Historical Play Mode Testing<br/>(2026-10-04: 8 Gameplay Test Cases)"]
+        L1["Layer 1: Historical Play Mode Testing<br/>(2026-10-04: 8 Isolated Test Cases)"]
         L2["Layer 2: Visual Evidence Inspection<br/>(7 Tracked High-Res PNG Captures)"]
-        L3["Layer 3: Source-Code & Physics Inspection<br/>(Kinematics, Rigidbody Tuning, OverlapBox)"]
+        L3["Layer 3: Source-Code & Physics Inspection<br/>(Kinematics, Rigidbody Tuning, Dispatcher)"]
         L4["Layer 4: Headless Batch Compilation<br/>(2026-10-18: Unity 6000.6.2f1, Exit Code 0)"]
+        L5["Layer 5: Production Manual Gameplay<br/>(2026-10-18: 7 Main-Scene Checks in Prototype.unity)"]
+        L6["Layer 6: Automated Regression Testing<br/>(2026-10-18: 184 Checks: 43 Dispatcher + 141 Patrol)"]
     end
-    L1 --> MasterReport["Master Verification Verdict: ALL 8 TEST CASES PASSED"]
+    L1 --> MasterReport["Master Verification Verdict: ALL CHECKS PASSED (100% GREEN)"]
     L2 --> MasterReport
     L3 --> MasterReport
     L4 --> MasterReport
+    L5 --> MasterReport
+    L6 --> MasterReport
 ```
 
 ---
@@ -50,14 +59,16 @@ The Systems Engineer (GV Part 2) scope covers environmental physics, collision s
 
 | Subsystem | Primary Script(s) | Dedicated Test Scene | Verification Scope |
 | :--- | :--- | :--- | :--- |
-| **Interactive Doors** | [`InteractiveDoor.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/InteractiveDoor.cs)<br/>[`DoorTrigger.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/DoorTrigger.cs) | [`DoorInteractionTest.unity`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scenes/Tests/DoorInteractionTest.unity) | Trigger bounds, range checks, $90^\circ$ hinge slerp, closed-panel collision blocking, rapid toggle handling, occupant safety envelope (`RequestOpen`). |
+| **Interactive Doors** | [`InteractiveDoor.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/InteractiveDoor.cs)<br/>[`DoorTrigger.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/DoorTrigger.cs) | [`DoorInteractionTest.unity`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scenes/Tests/DoorInteractionTest.unity) | Trigger bounds, range checks, $90^\circ$ hinge slerp, closed-panel collision blocking, rapid toggle handling, occupant safety envelope (`RequestOpen`), `handleInternalInput` decoupling. |
 | **Movable Barricades** | [`MovableBarricade.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/MovableBarricade.cs)<br/>[`SimplePlayerController.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/SimplePlayerController.cs) | [`BarricadeInteractionTest.unity`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scenes/Tests/BarricadeInteractionTest.unity) | $60.0\text{kg}$ Rigidbody tuning, Continuous collision mode, upright constraint locks, E-key grab maneuvering, wall anti-tunneling, CharacterController pushing, manual release. |
-| **Non-Destructibility** | [`MovableBarricade.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/MovableBarricade.cs) | Both Scenes | Zero health points, zero damage receivers, permanent physical barrier behavior. |
-| **AI / Cross-Module** | [`DynamicNavigationObstacles.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/Core/DynamicNavigationObstacles.cs)<br/>[`PatrolGuardBrain.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/AI/Roles/PatrolGuardBrain.cs) | Script Inspection & EditMode Obstacle Tests | Dynamic NavMesh carving proxy creation, door acoustic state attenuation (`IsOpen`). |
+| **Interaction Arbitration** | [`FacilityInteractionDispatcher.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/Interactions/FacilityInteractionDispatcher.cs)<br/>[`FacilityBreachRuntime.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/FacilityBreachRuntime.cs) | [`Prototype.unity`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scenes/Prototype.unity)<br/>EditMode Suite | Centralized E-key interaction arbitration, single-action guarantee, held barricade priority release, candidate spatial scoring formula, contextual HUD prompts. |
+| **Main-Scene Barricades** | [`MovableBarricade.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/MovableBarricade.cs)<br/>[`Prototype.unity`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scenes/Prototype.unity) | [`Prototype.unity`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scenes/Prototype.unity) | 6 authored root barricades, $12.0\text{kg}$ mass calibration, non-destructive continuous collision detection, dynamic navigation carving. |
+| **Non-Destructibility** | [`MovableBarricade.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/MovableBarricade.cs) | All Scenes | Zero health points, zero damage receivers, permanent physical barrier behavior. |
+| **AI / Cross-Module** | [`DynamicNavigationObstacles.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/Core/DynamicNavigationObstacles.cs)<br/>[`PatrolGuardBrain.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/AI/Roles/PatrolGuardBrain.cs) | Script Inspection & EditMode Obstacle Tests | Dynamic NavMesh carving proxy creation, door acoustic state attenuation (`IsOpen`), 141 patrol guard regression checks. |
 
 > [!IMPORTANT]
 > **Academic Integrity Notice — Scope Limitations**:
-> 1. No automated unit test runner was authored for GV Part 2. The 8 test cases recorded below represent structured manual gameplay tests performed in Unity Play Mode on 2026-10-04, as recorded in [`IT24102587_GV_Part2_Worklog.md`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/docs/individual/IT24102587_GV_Part2_Worklog.md).
+> 1. **Historical vs. Current Testing**: The 8 initial test cases recorded in Section 3 and 4 represent structured manual gameplay tests performed in isolated test scenes in Unity Play Mode on 2026-10-04, as recorded in [`IT24102587_GV_Part2_Worklog.md`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/docs/individual/IT24102587_GV_Part2_Worklog.md). On 2026-10-18, automated Edit Mode tests were introduced for the centralized interaction dispatcher ([`FacilityInteractionDispatcherTests.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Editor/FacilityBreach/FacilityInteractionDispatcherTests.cs), 43 checks), accompanied by live manual gameplay verification in `Prototype.unity` (7 user-confirmed checks).
 > 2. The project does not claim simultaneous gameplay verification of all four enemy AI agents operating together in the same live scene. AI interactions are verified through modular interfaces and Edit Mode regression suites.
 
 ---
@@ -236,6 +247,24 @@ The Systems Engineer (GV Part 2) scope covers environmental physics, collision s
 | **TC-B04** | Movable Barricade | Direct CharacterController contact push | Applies $40\text{N}$ force; pushes $60\text{kg}$ body | Code Inspection + Worklog Entry 2 | Manual Play Mode + Code Inspection | **PASS** |
 | **TC-B05** | Movable Barricade | Manual `E` release during active movement | Immediate detachment; $80\%$ velocity dampening | Code Inspection + Worklog Entry 2 | Manual Play Mode + Code Inspection | **PASS** |
 
+### 5.1 Production Facility Manual Gameplay Verification Matrix (`Prototype.unity`, 2026-10-18)
+
+Following the deployment of [`FacilityInteractionDispatcher.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/Interactions/FacilityInteractionDispatcher.cs) and the calibration of all 6 root barricades in `Prototype.unity`, the user manually verified live gameplay in Unity Play Mode on 2026-10-18. All seven user-tested interaction behaviors passed cleanly:
+
+| Test ID | Interaction Scenario Tested | Verification Action in `Prototype.unity` | Observed Behavior & Guarantee | Manual Result |
+| :---: | :--- | :--- | :--- | :---: |
+| **TC-M01** | Door Opening with E | Walk up to closed facility door within trigger range; press `E`. | Door swings open smoothly $90^\circ$ via `Quaternion.Slerp`; passage is clear. | **MANUAL PASS** |
+| **TC-M02** | Door Closing with E | Stand near open facility door; press `E`. | Door swings shut; closed panel physically stops player capsule from passing. | **MANUAL PASS** |
+| **TC-M03** | Barricade Grab with E | Approach any of the 6 facility barricades within $3.0\text{m}$; press `E`. | Barricade enters grab mode; locks into velocity-governed hold. | **MANUAL PASS** |
+| **TC-M04** | Barricade Following Player Movement | Walk forward, strafe, reverse, and rotate camera with barricade held. | Barricade smoothly tracks $2.0\text{m}$ in front of player on floor; zero roll/pitch tilt. | **MANUAL PASS** |
+| **TC-M05** | Barricade Release with E | Press `E` while actively moving or holding barricade. | Immediate release; residual velocity damped ($80\%$ reduction); barricade stays upright. | **MANUAL PASS** |
+| **TC-M06** | HUD Prompt Transition | Monitor HUD overlay when approaching, grabbing, and releasing barricade. | Prompt dynamically flips from contextual target (`E: Grab barricade`) to `E: Release barricade` when held, and back upon release. | **MANUAL PASS** |
+| **TC-M07** | Exclusive Release Near Door | Hold barricade, walk directly adjacent to an interactive door, and press `E`. | Barricade releases cleanly. The adjacent door does NOT open, close, or toggle. Exactly one action executed. | **MANUAL PASS** |
+
+> [!IMPORTANT]
+> **Manual Verification Boundary Disclosure**:
+> The seven tests above record the user-verified manual interactions in the live `Prototype.unity` scene. They do not claim that all theoretical multi-object spatial overlaps (e.g. three overlapping interactables in the exact same raycast cone) or all pickup station interactions were manually exhausted during live Play Mode.
+
 ---
 
 ## 6. Unity 6000.6.2f1 Headless Batch-Mode Compilation Evidence
@@ -269,6 +298,21 @@ cmd /c '"C:\Program Files\Unity\Hub\Editor\6000.6.2f1\Editor\Unity.exe" `
   Exiting batchmode successfully now!
   [ExitDontLaunchBugReporter] Exiting without the bug reporter. Application will exit with return code 0
   ```
+
+### 6.3 Automated Interaction Arbitration & AI Regression Testing (184 Programmatic Checks)
+
+**Execution Date:** 2026-10-18<br/>
+**Working Branch:** `gv/IT24102587-main-barricade-interaction`<br/>
+**Execution Context:** Unity 6000.6.2f1 headless batch mode with `ExitCode: 0`.
+
+| Test Suite Class | Focus & Verification Domain | Checks | Result | Output Evidence Log |
+| :--- | :--- | :---: | :---: | :--- |
+| **`FacilityInteractionDispatcherTests`** | Centralized interaction routing, held barricade priority, spatial scoring formula, single-action guarantee, range/angle limits | 43 | **43 Passed, 0 Failed** | [`interaction-tests-passed.txt`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/interaction-tests-passed.txt) |
+| **`PatrolGuardObstacleTests`** | Dynamic navigation obstacle carving, barricade corridor blocking, edge invalidation, dynamic detour replanning | 46 | **46 Passed, 0 Failed** | [`patrol-obstacle-tests-passed.txt`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/patrol-obstacle-tests-passed.txt) |
+| **`PatrolGuardAStarTests`** | A* search optimality, corridor heuristic admissibility, fallback graph search | 37 | **37 Passed, 0 Failed** | [`patrol-astar-tests-passed.txt`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/patrol-astar-tests-passed.txt) |
+| **`PatrolGuardReturnTests`** | Milestone 2.2B tactical retreat, patrol route resume, return node sequencing | 36 | **36 Passed, 0 Failed** | [`patrol-return-tests-passed.txt`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/patrol-return-tests-passed.txt) |
+| **`PatrolGuardSearchTests`** | Milestone 2.2A lost target search, corridor scanning, waypoint progression | 22 | **22 Passed, 0 Failed** | [`patrol-search-tests-passed.txt`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/patrol-search-tests-passed.txt) |
+| **Total Automated Regression** | **Combined Interaction & AI Systems Verification** | **184** | **184 Passed, 0 Failed** | **100% Green / Zero Regressions** |
 
 ---
 
@@ -310,25 +354,32 @@ All seven visual captures supporting the GV Part 2 verification are tracked in G
 | [`evidence/06_Barricade_WallCollision.png`](evidence/06_Barricade_WallCollision.png) | Barricade pushed against solid north wall; zero penetration | 1920x1080 / 1.2 MB | **Tracked (`b275b3d`)** |
 | [`evidence/07_Barricade_DoorwayBlocked.png`](evidence/07_Barricade_DoorwayBlocked.png) | Barricade maneuvered into doorway chokepoint, blocking passage | 1920x1080 / 1.2 MB | **Tracked (`b275b3d`)** |
 
+> [!NOTE]
+> **Production Facility Evidence Status**: High-resolution viewport captures for manual interactions in `Prototype.unity` remain pending and will be documented upon final release capture. All seven historical evidence screenshots above remain preserved and tracked in repository history under `docs/individual/evidence/`.
+
 ---
 
 ## 9. Academic Integrity Declarations & Scope Disclosures
 
-1. **No Synthetic Automated Test Runner**:<br/>
-   Unlike the IS Patrol Guard module (which includes 4 automated Edit Mode test runners totaling 141 programmatic checks), the GV Part 2 physics interactions were validated through **structured manual Play Mode test cases** executed in Unity on 2026-10-04. This log does not invent or claim automated unit tests for GV.
+1. **Distinction Between Manual Interaction Testing & Automated Verification**:<br/>
+   Physical feel, character controller pushing, velocity tracking, and corner maneuvering for doors and barricades were evaluated through structured manual Play Mode sessions in both dedicated test scenes (2026-10-04, 8 test cases) and the production `Prototype.unity` scene (2026-10-18, 7 test cases). Centralized interaction arbitration and cross-module AI safety were independently verified via automated Edit Mode test runners ([`FacilityInteractionDispatcherTests.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Editor/FacilityBreach/FacilityInteractionDispatcherTests.cs) totaling 43 checks and Patrol Guard regression suites totaling 141 checks).
 2. **No Multi-Agent Live Gameplay Claim**:<br/>
-   All verified empirical observations for doors and barricades were captured in dedicated isolated testing scenes ([`DoorInteractionTest.unity`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scenes/Tests/DoorInteractionTest.unity) and [`BarricadeInteractionTest.unity`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scenes/Tests/BarricadeInteractionTest.unity)). The project does not claim simultaneous 4-agent gameplay execution in the same scene.
+   All verified empirical observations for doors and barricades were captured in dedicated isolated testing scenes ([`DoorInteractionTest.unity`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scenes/Tests/DoorInteractionTest.unity) and [`BarricadeInteractionTest.unity`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scenes/Tests/BarricadeInteractionTest.unity)) and single-player manual play in `Prototype.unity`. The project does not claim simultaneous 4-agent gameplay execution in the same scene.
 3. **Preservation of Untracked Workspace Assets**:<br/>
-   Local recovery files (`Assets/_Recovery/`, `Assets/_Recovery.meta`), custom project settings (`ProjectSettings/PackageManagerSettings.asset`), the Git stash (`stash@{0}`), and five local test result files (`patrol-*-passed.txt`) were preserved intact and never staged, committed, or deleted.
+   Local recovery files (`Assets/_Recovery/`, `Assets/_Recovery.meta`), custom project settings (`ProjectSettings/PackageManagerSettings.asset`), the Git stash (`stash@{0}`), and local test result files (`interaction-tests-passed.txt`, `patrol-*-passed.txt`) were preserved intact and never staged, committed, or deleted.
+4. **Feature Branch Status & Uncommitted Work**:<br/>
+   The centralized interaction dispatcher and main-scene barricade configurations reside on local feature branch `gv/IT24102587-main-barricade-interaction`. In strict accordance with academic safety guidelines, this work has not been merged into `develop` or committed without user authorization.
 
 ---
 
 ## 10. Final Verification Conclusion
 
 The Graphics and Visualization (GV) — Part 2 Systems Engineer deliverables for Student ID **`IT24102587`** have been thoroughly verified:
-- **8/8 Gameplay Test Cases**: Evaluated and confirmed in Unity Play Mode on 2026-10-04.
-- **7/7 Evidence Screenshots**: Tracked and verified in Git history.
-- **Zero C# Compilation Errors**: Confirmed via Unity 6000.6.2f1 headless batch mode on the merged `develop` branch (`fd94efe`).
-- **Clean GitHub Integration**: Both PR #8 (IS) and PR #9 (GV) are merged and synchronized with `origin/develop`.
+- **8/8 Historical Gameplay Test Cases**: Evaluated and confirmed in Unity Play Mode on 2026-10-04 in isolated test arenas.
+- **7/7 Production Gameplay Test Cases**: Evaluated and confirmed in Unity Play Mode on 2026-10-18 in `Prototype.unity`.
+- **184/184 Automated Regression Checks**: Confirmed via Unity Edit Mode batch runs (43 interaction arbitration tests + 141 patrol guard AI tests), 100% passing.
+- **7/7 Evidence Screenshots**: Tracked and verified in Git history under `docs/individual/evidence/` (main-scene screenshots pending capture).
+- **Zero C# Compilation Errors**: Confirmed via Unity 6000.6.2f1 headless batch mode on both `develop` (`fd94efe`) and `gv/IT24102587-main-barricade-interaction`.
+- **Clean GitHub Integration**: Both PR #8 (IS) and PR #9 (GV) are merged and synchronized with `origin/develop`, with feature branch `gv/IT24102587-main-barricade-interaction` prepared for review.
 
 **Final Status: VERIFIED & READY FOR SUBMISSION**

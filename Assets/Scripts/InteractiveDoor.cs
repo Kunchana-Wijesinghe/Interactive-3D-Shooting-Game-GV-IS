@@ -12,7 +12,12 @@ public class InteractiveDoor : MonoBehaviour
     private bool isOpen = false;
     private bool playerNearby = false;
 
+    [Header("Input Handling")]
+    [Tooltip("If true, this door listens to KeyCode.E internally. Set to false when using centralized interaction dispatchers.")]
+    public bool handleInternalInput = true;
+
     public bool IsOpen => isOpen;
+    public bool PlayerNearby => playerNearby;
 
     // Shared adapter boundary: opening is safe; closing waits until characters clear.
     public bool RequestOpen(bool open)
@@ -48,7 +53,7 @@ public class InteractiveDoor : MonoBehaviour
 
     void Update()
     {
-        if (Time.timeScale > 0 && playerNearby && Input.GetKeyDown(KeyCode.E))
+        if (handleInternalInput && Time.timeScale > 0 && playerNearby && Input.GetKeyDown(KeyCode.E))
         {
             RequestOpen(!isOpen);
         }

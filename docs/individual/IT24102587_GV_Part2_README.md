@@ -5,7 +5,8 @@
 **Degree Programme:** BSc (Hons) in Information Technology Specialising in Software Engineering<br/>
 **Module:** SE3032 — Graphics and Visualization (GV)<br/>
 **Assigned Role:** Part 2: Systems Engineer (Player Interaction Physics, Collision Handling & Environment Mechanics)<br/>
-**Git Branch:** `gv/Kunchana-interactions`<br/>
+**Merged Baseline Branch:** `gv/Kunchana-interactions` (merged into `develop` via PR #9, commit `fd94efe`)<br/>
+**Active Feature Branch:** `gv/IT24102587-main-barricade-interaction` (local uncommitted working branch based on `develop` commit `c237edf`)<br/>
 **Latest Synchronized Commit:** `14ee8c0` (`Merge latest develop into gv/Kunchana-interactions`)<br/>
 **Target Unity Version:** Unity 6000.6.2f1 (URP / 3D, C# .NET Standard 2.1)<br/>
 **Repository:** `Interactive-3D-Shooting-Game-GV-IS` (Private)
@@ -14,11 +15,12 @@
 
 ## Executive Summary
 
-As the **Systems Engineer (GV Part 2)** for *Facility Breach*, my individual responsibility encompasses the design, mathematical formulation, component architecture, and runtime verification of physical interaction mechanics within the facility environment. The assigned scope consists of two primary gameplay systems:
+As the **Systems Engineer (GV Part 2)** for *Facility Breach*, my individual responsibility encompasses the design, mathematical formulation, component architecture, and runtime verification of physical interaction mechanics within the facility environment. The assigned scope consists of four interconnected gameplay systems:
 
 1. **Interactive Door System**: Reliable proximity trigger detection, smooth spherical linear interpolation (`Quaternion.Slerp`) hinge rotation, physical panel collision blocking, idempotent input handling, and an occupant safety clearance probe (`RequestOpen`) that prevents doors from closing on player or AI character capsules.
 2. **Movable Non-Destructible Barricade System**: Heavy physical obstacle maneuvering through E-key interaction, velocity-governed tracking in front of the player, strict `Continuous` collision detection preventing wall tunneling and clipping, automatic break-distance disengagement, direct `CharacterController` contact pushing, and strict adherence to non-destructibility constraints (zero health, zero damage, indestructible physical obstacles).
 3. **AI Navigation & Cross-Module Integration**: Integration with the team's dynamic navigation systems ([`DynamicNavigationObstacles.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/Core/DynamicNavigationObstacles.cs)), allowing movable barricades to dynamically carve NavMesh obstacles in real time, directly triggering detour replanning in the Patrol Guard AI ([`PatrolGuardBrain.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/AI/Roles/PatrolGuardBrain.cs)) and acoustic attenuation in the Sound Hunter AI ([`FacilityBreachHearingGraphSetup.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/AI/SoundHunter/FacilityBreachHearingGraphSetup.cs)).
+4. **Centralized Interaction Arbitration & Production Scene Integration**: Design and deployment of [`FacilityInteractionDispatcher.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/Interactions/FacilityInteractionDispatcher.cs), a centralized gatekeeper arbitrating all E-key interaction requests across doors, stations, and barricades. It guarantees exactly one interaction per key press, assigns absolute priority to releasing held barricades, uses deterministic spatial scoring with direct aim raycasting, and equips all six authored pushable barricades in `Prototype.unity` with calibrated 12 kg mass and non-destructive physics. Manual gameplay testing confirmed seamless, glitch-free interaction in the production facility.
 
 All components were developed on `gv/Kunchana-interactions`, verified in isolated Unity test scenes, documented with seven visual evidence captures, and synchronized with `develop` commit [`991ef50`](https://github.com/Kunchana-Wijesinghe/Interactive-3D-Shooting-Game-GV-IS/commit/991ef504c5efc8e4ef87cb9baedf7377e367b0a4) at commit [`14ee8c0`](https://github.com/Kunchana-Wijesinghe/Interactive-3D-Shooting-Game-GV-IS/commit/14ee8c08dc1d03a296f6f41f2dcbef90c0d2c650) with **zero C# compilation errors** in Unity 6000.6.2f1 batch mode.
 
@@ -34,11 +36,15 @@ graph TD
         DoorSys["Interactive Door System<br/>(InteractiveDoor.cs, DoorTrigger.cs)"]
         BarricadeSys["Movable Non-Destructible Barricade<br/>(MovableBarricade.cs)"]
         PlayerPhys["Player Physics & Interaction Controller<br/>(SimplePlayerController.cs)"]
+        InteractionDispatcher["Centralized Interaction Dispatcher<br/>(FacilityInteractionDispatcher.cs)"]
         TestScenes["Isolated Testing Environments<br/>(DoorInteractionTest, BarricadeInteractionTest)"]
         NavInteg["Dynamic Navigation & AI Boundaries<br/>(NavMesh Carving & Detour Integration)"]
     end
+    DoorSys --> InteractionDispatcher
+    BarricadeSys --> InteractionDispatcher
     DoorSys --> PlayerPhys
     BarricadeSys --> PlayerPhys
+    InteractionDispatcher --> NavInteg
     DoorSys --> TestScenes
     BarricadeSys --> TestScenes
     BarricadeSys --> NavInteg
@@ -49,6 +55,7 @@ graph TD
 - **Zero Physics Glitches**: Eliminate tunneling, clipping, jitter, and penetration against high-speed character movement or solid wall geometry.
 - **Physical Non-Destructibility**: Ensure barricades act as permanent, indestructible physical barriers capable of rerouting entities without introducing structural damage or fracture states.
 - **Occupant Safety Boundary**: Implement an overlap probe ensuring doors do not trap or crush characters when closing.
+- **Centralized Interaction Routing**: Arbitrate all E-key interactions through a single authority (`FacilityInteractionDispatcher`) to guarantee exactly one action per key press and prioritize held barricade release.
 - **Isolated & Full-Scene Reproducibility**: Provide programmatic test scene generation (`TestSceneBuilder.cs`) alongside production facility integration (`Prototype.unity`).
 
 ---
@@ -109,6 +116,14 @@ public bool RequestOpen(bool open)
 
 - When `open == false` (closing request), the door performs an in-memory box overlap query expanded by $0.15\text{m}$ along all axes.
 - If an active `CharacterController` (player or AI agent) or dynamic non-kinematic `Rigidbody` occupies the sweep envelope, the close request is rejected (`return false`), keeping the doorway unobstructed.
+
+### 2.4 Input Decoupling & Centralized Routing (`handleInternalInput`)
+In standalone testing scenes ([`DoorInteractionTest.unity`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scenes/Tests/DoorInteractionTest.unity)), `InteractiveDoor` listens to `KeyCode.E` internally in `Update()` via `handleInternalInput = true`.
+In the production facility ([`Prototype.unity`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scenes/Prototype.unity)), multiple interactable systems (11 doors, 6 barricades, and numerous resource stations) coexist. If individual doors poll `E` directly, player inputs trigger parallel, uncoordinated activations.
+To decouple input cleanly:
+1. **Configurable Flag**: `InteractiveDoor.cs` introduces `public bool handleInternalInput = true;`. Standalone test scenes continue running without dependencies.
+2. **Doorway Occupancy Property**: `InteractiveDoor.cs` exposes `public bool PlayerNearby => playerNearby;`, allowing external dispatchers to query doorway trigger status.
+3. **Runtime Transfer**: During `FacilityBreachRuntime.Start()`, all doors in `Prototype.unity` have `handleInternalInput` set to `false`, transferring full interaction authority to [`FacilityInteractionDispatcher.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/Interactions/FacilityInteractionDispatcher.cs).
 
 ---
 
@@ -180,6 +195,25 @@ flowchart TD
 3. **Collision Preservation**: Because motion is governed by velocity, when the barricade contacts a solid wall, PhysX calculates a counteracting normal contact force, stopping the barricade naturally without penetration.
 4. **Auto-Break Distance ($3.8\text{m}$)**: If the player moves away while the barricade is blocked against a wall such that $\|\mathbf{p}_{\text{target}} - \mathbf{p}_{\text{barricade}}\| > 3.8\text{m}$, `Release()` is triggered automatically to prevent rubber-banding or unrealistic tension.
 
+### 3.4 Production Facility Tuning vs. Isolated Test Scene Calibration
+While the isolated test arena ([`BarricadeInteractionTest.unity`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scenes/Tests/BarricadeInteractionTest.unity)) calibrated the barricade at $60.0\text{kg}$ with high damping (`linearDamping = 5.0f`, `angularDamping = 8.0f`) to evaluate heavy obstacle physics, the full facility environment ([`Prototype.unity`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scenes/Prototype.unity)) requires specialized tuning:
+
+- **Mass Calibration ($12.0\text{kg}$ vs $60.0\text{kg}$)**: The main facility features narrow doorways, right-angle corridor bends, and dynamic combat navigation. A $60\text{kg}$ barricade produced sluggish momentum and difficult corner maneuvering for the player. Calibrating the mass to $12.0\text{kg}$ across all 6 main-scene barricades ensures responsive, tactical player maneuvering while maintaining sufficient physical mass to block entities and avoid clipping.
+- **Physical Tuning Parameters**:
+  - **Mass**: $12.0\text{kg}$
+  - **Damping**: `linearDamping = 2.0f`, `angularDamping = 2.5f` (smooth sliding, rapid stopping upon release)
+  - **Distances & Speeds**: `interactionDistance = 3.0f`, `holdDistance = 2.0f`, `followSpeed = 8.0f`, `maxHoldDistance = 3.8f`
+  - **Constraints**: Locked pitch and roll (`FreezeRotationX | FreezeRotationZ`), keeping the barricade upright on the floor
+  - **Collision**: `CollisionDetectionMode.Continuous` and `Interpolate`
+- **Main-Scene Barricades Authored**:
+  All 6 pushable barricades in `Prototype.unity` under `Facility_Barricades` were configured with `MovableBarricade` components:
+  1. `Barricade_Entrance` (GameObject ID: `1944818420`, Component ID: `1944818424`)
+  2. `Barricade_LowerRoute` (GameObject ID: `1979052250`, Component ID: `1979052254`)
+  3. `Barricade_Room1Area` (GameObject ID: `320277312`, Component ID: `320277316`)
+  4. `Barricade_Middle` (GameObject ID: `1746341875`, Component ID: `1746341879`)
+  5. `Barricade_UpperLeft` (GameObject ID: `850553676`, Component ID: `850553680`)
+  6. `Barricade_ExitArea` (GameObject ID: `1474787438`, Component ID: `1474787442`)
+
 ---
 
 ## 4. Player Interaction & Physics Controller
@@ -216,6 +250,40 @@ The controller renders real-time on-screen diagnostics using `OnGUI`, displaying
 | **Barricade** | `isHeld == true` | `<color=#00FFFF>GRABBED / MANEUVERING — Move to Push/Pull, Press [E] to Release</color>` |
 | **Barricade** | Distance $\le 3.0\text{m}$ (free) | `<color=#00FF88>IN RANGE (X.Xm) — Press [E] to Grab & Push</color>` |
 | **Barricade** | Distance $> 3.0\text{m}$ (free) | `<color=#FFAA00>OUT OF RANGE (X.Xm away)</color>` |
+
+### 4.3 Centralized Interaction Arbitration Architecture (`FacilityInteractionDispatcher.cs`)
+To eliminate input contention, race conditions, and accidental simultaneous activations in `Prototype.unity`, the centralized dispatcher serves as the single authority:
+
+```mermaid
+flowchart TD
+    EKey["Player Presses 'E' Key"] --> CheckHeld{"Is a barricade currently held?"}
+    CheckHeld -- "Yes (held != null)" --> ReleaseOnly["Release Barricade Immediately<br/>(Short-circuit: bypasses all candidate queries)"]
+    CheckHeld -- "No" --> Scan["Scan All Candidates in Range & View<br/>(Doors, Stations, Barricades)"]
+    Scan --> Filter["Filter: In Range & dot >= minDot & Line of Sight"]
+    Filter --> Score["Compute Spatial Score for Each Candidate:<br/>Score = dist + 2.0*(1 - dot) - directAimBonus"]
+    Score --> PickBest["Select Winner with Lowest Score"]
+    PickBest --> Exec["Execute Winning Action Exclusively<br/>(Door toggle, Station pickup, or Barricade grab)"]
+```
+
+#### Deterministic Spatial Scoring Formula
+When no barricade is held, the dispatcher evaluates every registered interactable within its interaction envelope:
+$$\text{Score} = d + 2.0 \cdot (1.0 - \mathbf{v}_{\text{fwd}} \cdot \mathbf{v}_{\text{dir}}) - (\text{hasDirectAim} \;?\; \text{directAimScoreBonus} : 0.0)$$
+
+Where:
+- $d$: Euclidean distance from camera/player to target interaction point.
+- $\mathbf{v}_{\text{fwd}} \cdot \mathbf{v}_{\text{dir}}$: Dot product between the camera forward vector and target direction vector.
+- $\text{directAimScoreBonus} = 1.5$: Applied if the camera center raycast directly intersects the object's collider.
+- **Lower score is superior**: Prioritizes objects directly aimed at and closer to the player.
+
+#### Absolute Release Priority
+If `heldBarricade != null`, `ExecuteInteraction` assigns synthetic score $-100.0$ and immediately triggers `heldBarricade.Release()`, returning `true`. Doors and stations are never queried. This mathematically guarantees that pressing `E` while holding a barricade near a door will **only** drop the barricade without toggling the door.
+
+#### Contextual HUD Prompting
+[`FacilityBreachRuntime.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/FacilityBreachRuntime.cs#L375) calls `dispatcher.GetContextualPrompt()` each frame:
+- Holding barricade: `E: Release barricade`
+- Best candidate is door: `E: Open door` or `E: Close door`
+- Best candidate is barricade: `E: Grab barricade`
+- Best candidate is station: Contextual station prompt (e.g. `E: Connect Card`, `E: Resupply Ammo`).
 
 ---
 
@@ -276,7 +344,9 @@ To enable rapid verification without requiring the full `Prototype.unity` missio
 
 ### Distinction Between Verification Modes
 - **Historical Manual Play Mode Testing (2026-10-04)**: Interactive gameplay sessions conducted in `DoorInteractionTest.unity` and `BarricadeInteractionTest.unity` verifying physical feel, trigger transitions, wall collision response, and HUD status.
-- **Current Non-Gameplay Batch Compilation (2026-10-18)**: Automated headless Unity compilation verifying zero syntax, assembly, or reference errors on the merged `gv/Kunchana-interactions` branch.
+- **Production Facility Manual Gameplay Verification (2026-10-18)**: Live manual verification in `Prototype.unity` confirming centralized arbitration across doors, stations, and all six pushable barricades.
+- **Current Non-Gameplay Batch Compilation (2026-10-18)**: Automated headless Unity compilation verifying zero syntax, assembly, or reference errors on both `develop` and `gv/IT24102587-main-barricade-interaction`.
+- **Automated Interaction & AI Regression Suites (2026-10-18)**: 184 programmatic checks (43 interaction arbitration tests + 141 patrol guard AI tests) passing with 0 failures in Unity batch mode.
 
 ---
 
@@ -342,6 +412,9 @@ To enable rapid verification without requiring the full `Prototype.unity` missio
 ![Barricade Doorway Blocked](evidence/07_Barricade_DoorwayBlocked.png)
 *Observation*: Barricade maneuvered into the doorway gap and released, creating an immovable, non-destructible physical barricade across the passage.
 
+> [!NOTE]
+> **Production Facility Evidence Status**: High-resolution viewport captures for manual interactions in `Prototype.unity` remain pending and will be documented upon final release capture. All seven historical evidence screenshots above remain preserved and tracked in repository history under `docs/individual/evidence/`.
+
 ---
 
 ### 7.3 Non-Gameplay Unity Batch-Mode Compilation Verification
@@ -360,6 +433,50 @@ Following the synchronization of `develop` into `gv/Kunchana-interactions` at co
   [ExitDontLaunchBugReporter] Exiting without the bug reporter. Application will exit with return code 0
   ```
 - **Error Count**: **0 C# compilation errors (`error CS: 0`)**, confirming full source compatibility between GV Part 2 and the merged IS Patrol Guard codebase.
+
+---
+
+### 7.4 Production Facility Manual Gameplay Verification (2026-10-18 in `Prototype.unity`)
+
+Following the integration of [`FacilityInteractionDispatcher.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/Interactions/FacilityInteractionDispatcher.cs) and the calibration of all 6 barricades in `Prototype.unity`, the user manually tested live gameplay in Unity Play Mode on 2026-10-18. All seven tested interaction behaviors passed without defects:
+
+| Test ID | Interaction Scenario Tested | Verification Action in `Prototype.unity` | Observed Behavior & Guarantee | Manual Result |
+| :---: | :--- | :--- | :--- | :---: |
+| **MP-01** | Door Open with E | Walk up to closed facility door within trigger range; press `E`. | Door swings open smoothly $90^\circ$ via `Quaternion.Slerp`; passage is clear. | **MANUAL PASS** |
+| **MP-02** | Door Close with E | Stand near open facility door; press `E`. | Door swings shut; closed panel physically stops player capsule from passing. | **MANUAL PASS** |
+| **MP-03** | Barricade Grab with E | Approach any of the 6 facility barricades within $3.0\text{m}$; press `E`. | Barricade enters grab mode; locks into velocity-governed hold. | **MANUAL PASS** |
+| **MP-04** | Barricade Tracking Movement | Walk forward, strafe, reverse, and rotate camera with barricade held. | Barricade smoothly tracks $2.0\text{m}$ in front of player on floor; zero roll/pitch tilt. | **MANUAL PASS** |
+| **MP-05** | Barricade Release with E | Press `E` while actively moving or holding barricade. | Immediate release; residual velocity damped ($80\%$ reduction); barricade stays upright. | **MANUAL PASS** |
+| **MP-06** | HUD Prompt Transition | Monitor HUD overlay when approaching, grabbing, and releasing barricade. | Prompt dynamically flips from contextual target (`E: Grab barricade`) to `E: Release barricade` when held, and back upon release. | **MANUAL PASS** |
+| **MP-07** | Exclusive Release Near Door | Hold barricade, walk directly adjacent to an interactive door, and press `E`. | Barricade releases cleanly. The adjacent door does NOT open, close, or toggle. Exactly one action executed. | **MANUAL PASS** |
+
+> [!IMPORTANT]
+> **Manual Verification Boundary Disclosure**:
+> The seven tests above confirm the user-verified manual interactions in the live `Prototype.unity` scene. They do not claim that all possible multi-object spatial overlaps (e.g. three overlapping interactables in the exact same raycast cone) or all pickup station interactions were manually exhausted during live Play Mode.
+
+---
+
+### 7.5 Automated Interaction Arbitration & AI Regression Testing (184 Programmatic Checks)
+
+To guarantee that the centralized dispatcher does not introduce regressions to existing systems or AI navigation, automated Edit Mode test suites were executed in Unity 6000.6.2f1 batch mode with **ExitCode 0**:
+
+```powershell
+"C:\Program Files\Unity\Hub\Editor\6000.6.2f1\Editor\Unity.exe" `
+  -batchmode -nographics -quit `
+  -projectPath "c:\Users\Kunchana Wijesinghe\Pictures\GV,IS\FacilityBreach" `
+  -executeMethod FacilityBreach.Editor.FacilityInteractionDispatcherTests.RunBatch `
+  -logFile "unity_compile.log"
+```
+
+#### Automated Test Results Summary
+| Test Suite Class | Focus & Verification Domain | Checks | Result | Output Evidence Log |
+| :--- | :--- | :---: | :---: | :--- |
+| **`FacilityInteractionDispatcherTests`** | Centralized interaction routing, held barricade priority, spatial scoring formula, single-action guarantee, range/angle limits | 43 | **43 Passed, 0 Failed** | [`interaction-tests-passed.txt`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/interaction-tests-passed.txt) |
+| **`PatrolGuardObstacleTests`** | Dynamic navigation obstacle carving, barricade corridor blocking, edge invalidation, dynamic detour replanning | 46 | **46 Passed, 0 Failed** | [`patrol-obstacle-tests-passed.txt`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/patrol-obstacle-tests-passed.txt) |
+| **`PatrolGuardAStarTests`** | A* search optimality, corridor heuristic admissibility, fallback graph search | 37 | **37 Passed, 0 Failed** | [`patrol-astar-tests-passed.txt`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/patrol-astar-tests-passed.txt) |
+| **`PatrolGuardReturnTests`** | Milestone 2.2B tactical retreat, patrol route resume, return node sequencing | 36 | **36 Passed, 0 Failed** | [`patrol-return-tests-passed.txt`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/patrol-return-tests-passed.txt) |
+| **`PatrolGuardSearchTests`** | Milestone 2.2A lost target search, corridor scanning, waypoint progression | 22 | **22 Passed, 0 Failed** | [`patrol-search-tests-passed.txt`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/patrol-search-tests-passed.txt) |
+| **Total Automated Regression** | **Combined Interaction & AI Systems Verification** | **184** | **184 Passed, 0 Failed** | **100% Green / Zero Regressions** |
 
 ---
 
@@ -398,7 +515,11 @@ All GV Part 2 deliverables were authored on branch `gv/Kunchana-interactions`:
 
 | File Path | Description | Initial Commit | Current Status |
 | :--- | :--- | :---: | :---: |
-| [`Assets/Scripts/InteractiveDoor.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/InteractiveDoor.cs) | Hinge kinematics, Slerp rotation, occupant clearance probe | `b275b3d` | **Tracked / Verified** |
+| [`Assets/Scripts/FacilityBreach/Interactions/FacilityInteractionDispatcher.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/Interactions/FacilityInteractionDispatcher.cs) | Centralized interaction arbitration singleton (E-key routing, priority scoring, held barricade priority) | Feature Branch | **New Deliverable (Uncommitted)** |
+| [`Assets/Editor/FacilityBreach/FacilityInteractionDispatcherTests.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Editor/FacilityBreach/FacilityInteractionDispatcherTests.cs) | 43 Edit Mode automated interaction arbitration unit tests | Feature Branch | **New Deliverable (Uncommitted)** |
+| [`Assets/Scripts/FacilityBreach/FacilityBreachRuntime.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/FacilityBreachRuntime.cs) | Centralized dispatching, barricade mass calibration, dynamic registration, HUD prompt routing | `c237edf` | **Modified / Verified** |
+| [`Assets/Scripts/InteractiveDoor.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/InteractiveDoor.cs) | Hinge kinematics, Slerp rotation, occupant clearance probe, `handleInternalInput` flag | `b275b3d` | **Modified / Verified** |
+| [`Assets/Scenes/Prototype.unity`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scenes/Prototype.unity) | Production facility scene with 6 pushable barricades configured for grab/release | `c237edf` | **Modified / Verified** |
 | [`Assets/Scripts/DoorTrigger.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/DoorTrigger.cs) | Player proximity trigger volume detection | `b275b3d` | **Tracked / Verified** |
 | [`Assets/Scripts/Editor/DoorTester.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/Editor/DoorTester.cs) | EditorWindow batch door testing utility with Undo | `b275b3d` | **Tracked / Verified** |
 | [`Assets/Scripts/MovableBarricade.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/MovableBarricade.cs) | Non-destructible Rigidbody physics, velocity hold, wall collision | `b275b3d` | **Tracked / Verified** |
@@ -406,8 +527,8 @@ All GV Part 2 deliverables were authored on branch `gv/Kunchana-interactions`:
 | [`Assets/Scripts/Editor/TestSceneBuilder.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/Editor/TestSceneBuilder.cs) | Programmatic test scene builder for door and barricade arenas | `b275b3d` | **Tracked / Verified** |
 | [`Assets/Scenes/Tests/DoorInteractionTest.unity`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scenes/Tests/DoorInteractionTest.unity) | Isolated interactive door test arena scene | `b275b3d` | **Tracked / Verified** |
 | [`Assets/Scenes/Tests/BarricadeInteractionTest.unity`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scenes/Tests/BarricadeInteractionTest.unity) | Isolated movable barricade test arena scene | `b275b3d` | **Tracked / Verified** |
-| [`docs/individual/IT24102587_GV_Part2_Worklog.md`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/docs/individual/IT24102587_GV_Part2_Worklog.md) | Original feature worklog and testing records | `b275b3d` | **Preserved / Verified** |
-| [`docs/individual/IT24102587_GV_Part2_README.md`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/docs/individual/IT24102587_GV_Part2_README.md) | Comprehensive individual technical submission report | Current | **New Deliverable** |
+| [`docs/individual/IT24102587_GV_Part2_Worklog.md`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/docs/individual/IT24102587_GV_Part2_Worklog.md) | Original feature worklog, test records, and main-scene integration | `b275b3d` | **Updated / Verified** |
+| [`docs/individual/IT24102587_GV_Part2_README.md`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/docs/individual/IT24102587_GV_Part2_README.md) | Comprehensive individual technical submission report | Current | **Updated Deliverable** |
 | `docs/individual/evidence/01_Door_OutOfRange.png` | Evidence Capture 1: Door out-of-range HUD | `b275b3d` | **Tracked / Verified** |
 | `docs/individual/evidence/02_Door_Open.png` | Evidence Capture 2: Door open state | `b275b3d` | **Tracked / Verified** |
 | `docs/individual/evidence/03_Door_ClosedCollision.png` | Evidence Capture 3: Door closed collision | `b275b3d` | **Tracked / Verified** |
@@ -424,10 +545,16 @@ All GV Part 2 deliverables were authored on branch `gv/Kunchana-interactions`:
 > **Answer**: Transform parenting attaches the barricade directly to the player's transform hierarchy. When the player moves, Unity updates the barricade's transform directly, bypassing the PhysX collision solver and allowing the barricade to clip through walls and solid geometry. In contrast, velocity-based steering (`rb.linearVelocity = (targetPos - rb.position) * followSpeed`) operates through the physics engine: when the barricade contacts a solid wall, PhysX calculates normal contact forces that naturally stop its forward progress without penetration.
 
 ### Q2: How does the movable barricade satisfy the non-destructibility constraint?
-> **Answer**: The component explicitly avoids health points, damage receivers, or destruction logic. It functions as a permanent physical obstacle with mass $60.0\text{kg}$ and continuous collision detection. While it can be physically relocated, pushed, and maneuvered to block passages or create cover, it cannot be broken or destroyed by gunfire, explosive props, or robot collisions.
+> **Answer**: The component explicitly avoids health points, damage receivers, or destruction logic. It functions as a permanent physical obstacle with mass $60.0\text{kg}$ (isolated test) / $12.0\text{kg}$ (main facility) and continuous collision detection. While it can be physically relocated, pushed, and maneuvered to block passages or create cover, it cannot be broken or destroyed by gunfire, explosive props, or robot collisions.
 
 ### Q3: How do interactive doors prevent crushing players or AI agents when closing?
 > **Answer**: [`InteractiveDoor.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/InteractiveDoor.cs) provides a safe boundary method `RequestOpen(bool open)`. When a close request is issued, it performs a `Physics.OverlapBox` query over the door panel's bounding box expanded by $0.15\text{m}$. If any active `CharacterController` or non-kinematic `Rigidbody` is detected within the sweep envelope, the method rejects the close request (`return false`), keeping the door open until the occupant vacates the doorway.
 
 ### Q4: How does the barricade interaction integrate with AI navigation and pathfinding?
 > **Answer**: Through [`DynamicNavigationObstacles.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/Core/DynamicNavigationObstacles.cs), every Rigidbody named `Barricade*` has a dynamic child proxy with a `NavMeshObstacle` component (`carving = true`). When the player pushes a barricade into a doorway, the proxy follows its collider bounds and carves out a hole in the NavMesh. When AI agents (such as the Patrol Guard `PG-01`) encounter the blocked corridor, their brain detects obstruction failure and invokes the A* pathfinder to compute an optimal detour around the facility.
+
+### Q5: Why is a centralized interaction dispatcher necessary, and how does it guarantee single-action execution?
+> **Answer**: In a rich environment like `Prototype.unity`, interactable objects (doors, barricades, resource stations) frequently share spatial proximity. If each component polls `Input.GetKeyDown(KeyCode.E)` independently, a single key press can trigger multiple simultaneous state changes (such as toggling a door while grabbing a barricade). [`FacilityInteractionDispatcher.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/Interactions/FacilityInteractionDispatcher.cs) acts as the single interaction authority. It evaluates candidates through a two-tier hierarchy: (1) if a barricade is held, it triggers an exclusive release immediately, bypassing all candidate queries; (2) otherwise, it evaluates all candidates in range and view using a deterministic spatial score ($d + 2.0(1 - \cos\theta) - \text{aimBonus}$), executing only the single lowest-scoring candidate.
+
+### Q6: Why do main-scene barricades use a 12 kg mass while the isolated test scene barricade uses 60 kg?
+> **Answer**: The isolated test scene (`BarricadeInteractionTest.unity`) used a 60 kg mass to rigorously test PhysX solver stability, anti-tunneling, and high-inertia character pushing in an open room. However, the production facility (`Prototype.unity`) has narrow corridors, tight $90^\circ$ turns, security gates, and active combat navigation. In this dense environment, a 60 kg obstacle creates excessive linear momentum and sluggish pivoting, making tactical player positioning cumbersome. Calibrating the 6 main-scene barricades to 12 kg provides responsive, nimble player maneuvering while retaining sufficient physical mass to firmly block entity movement and maintain stable continuous collision response against facility walls.

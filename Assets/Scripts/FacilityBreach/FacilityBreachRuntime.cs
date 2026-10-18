@@ -29,6 +29,8 @@ namespace FacilityBreach
         public Camera GameplayCamera => view;
         public Collider LastShotCollider { get; private set; }
         public string InteractionRejection { get; private set; }
+        public FacilityInteractionDispatcher Dispatcher => dispatcher;
+        private FacilityInteractionDispatcher dispatcher;
         private NavMeshDataInstance navigationInstance;
         private GameObject equippedVisual;
         private readonly List<ResourceStation> stations = new List<ResourceStation>();
@@ -73,6 +75,28 @@ namespace FacilityBreach
             var muzzleObject = new GameObject("FB_Muzzle_VisualPending"); muzzleObject.transform.SetParent(view.transform);
             muzzleObject.transform.localPosition = new Vector3(.2f, -.15f, .45f); muzzle = muzzleObject.transform;
             UpdateWeaponVisual();
+            dispatcher = gameObject.AddComponent<FacilityInteractionDispatcher>();
+            dispatcher.Initialize(this, view, player.transform);
+            foreach (var door in FindObjectsByType<InteractiveDoor>(FindObjectsSortMode.None))
+            {
+                door.handleInternalInput = false;
+                dispatcher.RegisterDoor(door);
+            }
+            foreach (var barricadeRb in FindObjectsByType<Rigidbody>())
+            {
+                if (!barricadeRb.name.StartsWith("Barricade")) continue;
+                var mb = barricadeRb.GetComponent<MovableBarricade>();
+                if (!mb) mb = barricadeRb.gameObject.AddComponent<MovableBarricade>();
+                mb.mass = 12f;
+                mb.linearDamping = 2f;
+                mb.angularDamping = 2.5f;
+                mb.interactionDistance = 3.0f;
+                mb.holdDistance = 2.0f;
+                mb.followSpeed = 8.0f;
+                mb.maxHoldDistance = 3.8f;
+                mb.ConfigurePhysics();
+                dispatcher.RegisterBarricade(mb);
+            }
             // The committed scene lacks the waste root despite shipping its generator.
             // Add only an obstacle here; never call the destructive world generators.
             Vector3 waste = new Vector3(-2, 0, 20);
@@ -172,7 +196,7 @@ namespace FacilityBreach
         {
             position = ClearPlacement(position, kind == StationKind.Card ? new Vector3(.2f, .05f, .125f) : Vector3.one * .25f);
             var obj = Box(name, position, kind == StationKind.Card ? new Vector3(.4f, .1f, .25f) : Vector3.one * .5f, color);
-            var station = obj.AddComponent<ResourceStation>(); station.Kind = kind; station.PickupModels = WeaponPickupModels; stations.Add(station); Label(obj, name); return station;
+            var station = obj.AddComponent<ResourceStation>(); station.Kind = kind; station.PickupModels = WeaponPickupModels; stations.Add(station); if (dispatcher != null) dispatcher.RegisterStation(station); Label(obj, name); return station;
         }
         private Vector3 ClearPlacement(Vector3 desired, Vector3 halfSize)
         {
@@ -245,14 +269,43 @@ namespace FacilityBreach
         }
         public bool TryInteract()
         {
-            target = FindInteractionTarget(out var rejection);
-            if (!AcceptsGameplay) rejection = "Mission inactive, paused or player eliminated";
+            if (dispatcher != null)
+            {
+                bool success = dispatcher.ExecuteInteraction(out var rejection, out var kind, out var targetObj);
+                if (kind == InteractionTargetKind.Station && targetObj is ResourceStation st)
+                {
+                    target = st;
+                    if (success && st.Kind == StationKind.Weapon) { reload = 0; UpdateWeaponVisual(); }
+                }
+                else if (kind != InteractionTargetKind.None)
+                {
+                    target = null;
+                }
+                else
+                {
+                    target = FindInteractionTarget(out _);
+                }
+
+                InteractionRejection = success ? "" : rejection;
+                string msg = success
+                    ? (kind == InteractionTargetKind.HeldBarricade ? "Released barricade"
+                        : kind == InteractionTargetKind.Barricade ? "Grabbed barricade"
+                        : kind == InteractionTargetKind.Door ? "Door toggled"
+                        : "Interaction complete")
+                    : rejection;
+                Say(msg);
+                GameplayDiagnostics.Trace($"E state={Run.State} accepted={AcceptsGameplay} kind={kind} candidate={(targetObj != null ? targetObj.ToString() : (target ? target.name : "none"))} distance={(target ? Vector3.Distance(view.transform.position, target.InteractionPoint) : -1):F2} result={success} reason={rejection}", this);
+                return success;
+            }
+
+            target = FindInteractionTarget(out var fallbackRejection);
+            if (!AcceptsGameplay) fallbackRejection = "Mission inactive, paused or player eliminated";
             bool used = AcceptsGameplay && target && target.Use(Run, Resources);
             if (used && target.Kind == StationKind.Weapon) { reload = 0; UpdateWeaponVisual(); }
-            if (!used && AcceptsGameplay && target) rejection = target.RejectionReason;
-            InteractionRejection = used ? "" : rejection;
-            Say(used ? "Interaction complete" : rejection);
-            GameplayDiagnostics.Trace($"E state={Run.State} accepted={AcceptsGameplay} candidate={(target ? target.name : "none")} distance={(target ? Vector3.Distance(view.transform.position, target.InteractionPoint) : -1):F2} result={used} reason={rejection}", this);
+            if (!used && AcceptsGameplay && target) fallbackRejection = target.RejectionReason;
+            InteractionRejection = used ? "" : fallbackRejection;
+            Say(used ? "Interaction complete" : fallbackRejection);
+            GameplayDiagnostics.Trace($"E state={Run.State} accepted={AcceptsGameplay} candidate={(target ? target.name : "none")} distance={(target ? Vector3.Distance(view.transform.position, target.InteractionPoint) : -1):F2} result={used} reason={fallbackRejection}", this);
             return used;
         }
         public bool TryFire()
@@ -319,7 +372,8 @@ namespace FacilityBreach
             if (!player) return;
             GUI.Box(new Rect(15, 15, 355, 130), $"FACILITY BREACH\nHP {Resources.Health}/100\nAmmo{Resources.Equipped + 1}gun   {Resources.Magazine}/{Resources.Reserve}\n{(reload > 0 ? "RELOADING" : "")}\nCARD: {(Run.HasCard ? "ACQUIRED" : "MISSING")}");
             string objective = Run.State == MissionState.Escape ? "DEVICE DEACTIVATED — reach the exit" : Run.State == MissionState.Deactivating ? $"Deactivating: {5 - Run.ShutdownRemaining:F1}/5 seconds" : !Run.HasCard ? "Find the access card near toxic waste" : player.transform.position.x > 10 && player.transform.position.z > 12 && player.transform.position.z < 24 ? "Connect the card to deactivate the device" : "Use the card to enter Machinery";
-            GUI.Box(new Rect(15, Screen.height - 65, 570, 50), objective + "\n" + (feedbackTime > 0 ? feedback : target ? target.Prompt : ""));
+            string prompt = feedbackTime > 0 ? feedback : (dispatcher != null ? dispatcher.GetContextualPrompt(target) : target ? target.Prompt : "");
+            GUI.Box(new Rect(15, Screen.height - 65, 570, 50), objective + "\n" + prompt);
             if (Run.State == MissionState.Deactivating)
             {
                 GUI.color = Color.cyan;

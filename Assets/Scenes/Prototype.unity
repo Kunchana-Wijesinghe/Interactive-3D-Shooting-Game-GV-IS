@@ -16588,6 +16588,7 @@ GameObject:
   - component: {fileID: 320277313}
   - component: {fileID: 320277315}
   - component: {fileID: 320277314}
+  - component: {fileID: 320277316}
   m_Layer: 0
   m_Name: Barricade_Room1Area
   m_TagString: Untagged
@@ -16676,6 +16677,29 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 3.4, y: 1.85, z: 1.15}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &320277316
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 320277312}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e8a9314c2b9a47159d3e8e19c00b7d22, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::MovableBarricade
+  interactionDistance: 3
+  holdDistance: 2
+  followSpeed: 8
+  maxHoldDistance: 3.8
+  mass: 12
+  pushImpulse: 15
+  linearDamping: 2
+  angularDamping: 2.5
+  audioSource: {fileID: 0}
+  grabSound: {fileID: 0}
+  releaseSound: {fileID: 0}
 --- !u!1 &321113675
 GameObject:
   m_ObjectHideFlags: 0
@@ -48493,6 +48517,7 @@ GameObject:
   - component: {fileID: 850553677}
   - component: {fileID: 850553679}
   - component: {fileID: 850553678}
+  - component: {fileID: 850553680}
   m_Layer: 0
   m_Name: Barricade_UpperLeft
   m_TagString: Untagged
@@ -48581,6 +48606,29 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 3.4, y: 1.85, z: 1.15}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &850553680
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 850553676}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e8a9314c2b9a47159d3e8e19c00b7d22, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::MovableBarricade
+  interactionDistance: 3
+  holdDistance: 2
+  followSpeed: 8
+  maxHoldDistance: 3.8
+  mass: 12
+  pushImpulse: 15
+  linearDamping: 2
+  angularDamping: 2.5
+  audioSource: {fileID: 0}
+  grabSound: {fileID: 0}
+  releaseSound: {fileID: 0}
 --- !u!1 &855115514
 GameObject:
   m_ObjectHideFlags: 0
@@ -81869,6 +81917,7 @@ GameObject:
   - component: {fileID: 1474787439}
   - component: {fileID: 1474787441}
   - component: {fileID: 1474787440}
+  - component: {fileID: 1474787442}
   m_Layer: 0
   m_Name: Barricade_ExitArea
   m_TagString: Untagged
@@ -81957,6 +82006,29 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 3.4, y: 1.85, z: 1.15}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &1474787442
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1474787438}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e8a9314c2b9a47159d3e8e19c00b7d22, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::MovableBarricade
+  interactionDistance: 3
+  holdDistance: 2
+  followSpeed: 8
+  maxHoldDistance: 3.8
+  mass: 12
+  pushImpulse: 15
+  linearDamping: 2
+  angularDamping: 2.5
+  audioSource: {fileID: 0}
+  grabSound: {fileID: 0}
+  releaseSound: {fileID: 0}
 --- !u!1 &1476173695
 GameObject:
   m_ObjectHideFlags: 0
@@ -98289,6 +98361,7 @@ GameObject:
   - component: {fileID: 1746341876}
   - component: {fileID: 1746341878}
   - component: {fileID: 1746341877}
+  - component: {fileID: 1746341879}
   m_Layer: 0
   m_Name: Barricade_Middle
   m_TagString: Untagged
@@ -98377,6 +98450,29 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 3.4, y: 1.85, z: 1.15}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &1746341879
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1746341875}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e8a9314c2b9a47159d3e8e19c00b7d22, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::MovableBarricade
+  interactionDistance: 3
+  holdDistance: 2
+  followSpeed: 8
+  maxHoldDistance: 3.8
+  mass: 12
+  pushImpulse: 15
+  linearDamping: 2
+  angularDamping: 2.5
+  audioSource: {fileID: 0}
+  grabSound: {fileID: 0}
+  releaseSound: {fileID: 0}
 --- !u!1 &1747235070
 GameObject:
   m_ObjectHideFlags: 0
@@ -109250,6 +109346,7 @@ GameObject:
   - component: {fileID: 1944818421}
   - component: {fileID: 1944818423}
   - component: {fileID: 1944818422}
+  - component: {fileID: 1944818424}
   m_Layer: 0
   m_Name: Barricade_Entrance
   m_TagString: Untagged
@@ -109338,6 +109435,29 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 3.4, y: 1.85, z: 1.15}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &1944818424
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1944818420}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e8a9314c2b9a47159d3e8e19c00b7d22, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::MovableBarricade
+  interactionDistance: 3
+  holdDistance: 2
+  followSpeed: 8
+  maxHoldDistance: 3.8
+  mass: 12
+  pushImpulse: 15
+  linearDamping: 2
+  angularDamping: 2.5
+  audioSource: {fileID: 0}
+  grabSound: {fileID: 0}
+  releaseSound: {fileID: 0}
 --- !u!1 &1945536479
 GameObject:
   m_ObjectHideFlags: 0
@@ -111235,6 +111355,7 @@ GameObject:
   - component: {fileID: 1979052251}
   - component: {fileID: 1979052253}
   - component: {fileID: 1979052252}
+  - component: {fileID: 1979052254}
   m_Layer: 0
   m_Name: Barricade_LowerRoute
   m_TagString: Untagged
@@ -111323,6 +111444,29 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 3.4, y: 1.85, z: 1.15}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &1979052254
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1979052250}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e8a9314c2b9a47159d3e8e19c00b7d22, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::MovableBarricade
+  interactionDistance: 3
+  holdDistance: 2
+  followSpeed: 8
+  maxHoldDistance: 3.8
+  mass: 12
+  pushImpulse: 15
+  linearDamping: 2
+  angularDamping: 2.5
+  audioSource: {fileID: 0}
+  grabSound: {fileID: 0}
+  releaseSound: {fileID: 0}
 --- !u!1 &1979462578
 GameObject:
   m_ObjectHideFlags: 0
