@@ -384,36 +384,91 @@ To enable rapid verification without requiring the full `Prototype.unity` missio
 
 ### 7.2 Embedded Visual Evidence Artifacts
 
+All nineteen visual artifacts supporting GV Part 2 verification reside in [`docs/individual/evidence/IT24102587 GV evidence/`](evidence/IT24102587%20GV%20evidence/).
+
+#### 7.2.1 Dedicated Test Scene Verification (Captures 01–07)
+
 ##### Figure 1: Door Out-of-Range Interaction State
-![Door Out of Range](evidence/01_Door_OutOfRange.png)
+![Door Out of Range](evidence/IT24102587%20GV%20evidence/01_Door_OutOfRange.png)
 *Observation*: Player character positioned $5.0\text{m}$ away from the closed facility door. HUD displays `Door: OUT OF RANGE (5.0m away)`, confirming distance threshold enforcement.
 
 ##### Figure 2: Door Open State & Passable Corridor
-![Door Open](evidence/02_Door_Open.png)
+![Door Open](evidence/IT24102587%20GV%20evidence/02_Door_Open.png)
 *Observation*: Interactive door rotated $90^\circ$ into open configuration following in-range `E` press. Doorway is fully clear and passable by the player character.
 
 ##### Figure 3: Closed Door Physical Collision Blocking
-![Door Closed Collision](evidence/03_Door_ClosedCollision.png)
+![Door Closed Collision](evidence/IT24102587%20GV%20evidence/03_Door_ClosedCollision.png)
 *Observation*: Closed door panel physically blocking the player's `CharacterController` capsule from passing through the doorway corridor.
 
 ##### Figure 4: Movable Barricade Test Arena Overview
-![Barricade Scene Overview](evidence/04_Barricade_SceneOverview.png)
+![Barricade Scene Overview](evidence/IT24102587%20GV%20evidence/04_Barricade_SceneOverview.png)
 *Observation*: Scene overview of `BarricadeInteractionTest.unity` showing the heavy movable barricade, containment walls, and doorway gap prior to interaction.
 
 ##### Figure 5: Barricade in Grabbed / Maneuvering Mode
-![Barricade Grabbed](evidence/05_Barricade_Grabbed.png)
+![Barricade Grabbed](evidence/IT24102587%20GV%20evidence/05_Barricade_Grabbed.png)
 *Observation*: Barricade grabbed via `E` key interaction. HUD indicates `GRABBED / MANEUVERING`, tracking $2.0\text{m}$ in front of the player along the floor plane.
 
 ##### Figure 6: Barricade Wall Collision & Anti-Tunneling
-![Barricade Wall Collision](evidence/06_Barricade_WallCollision.png)
+![Barricade Wall Collision](evidence/IT24102587%20GV%20evidence/06_Barricade_WallCollision.png)
 *Observation*: Barricade pushed directly against the solid north facility wall. PhysX contact solver stops forward motion dead with zero penetration or geometry clipping.
 
 ##### Figure 7: Barricade Positioned to Block Doorway Corridor
-![Barricade Doorway Blocked](evidence/07_Barricade_DoorwayBlocked.png)
+![Barricade Doorway Blocked](evidence/IT24102587%20GV%20evidence/07_Barricade_DoorwayBlocked.png)
 *Observation*: Barricade maneuvered into the doorway gap and released, creating an immovable, non-destructible physical barricade across the passage.
 
-> [!NOTE]
-> **Production Facility Evidence Status**: High-resolution viewport captures for manual interactions in `Prototype.unity` remain pending and will be documented upon final release capture. All seven historical evidence screenshots above remain preserved and tracked in repository history under `docs/individual/evidence/`.
+#### 7.2.2 Production Facility Play Mode Verification (`Prototype.unity`, Captures 08–19)
+
+##### Figure 8: Main-Scene Barricade Release Prompt
+![Main Scene Barricade Release](evidence/IT24102587%20GV%20evidence/08_GV_MainScene_Barricade_Release.png)
+*Observation*: In `Prototype.unity`, the player maneuvers a held barricade through the facility. HUD dynamically updates to `E: Release barricade`, confirming state tracking.
+
+##### Figure 9: Main-Scene Barricade Grab Approach
+![Main Scene Barricade Grab](evidence/IT24102587%20GV%20evidence/09_GV_MainScene_Barricade_Grab.png)
+*Observation*: Approaching a barricade within $3.0\text{m}$ raycast distance; centralized dispatcher targets the barricade and renders `E: Grab barricade`.
+
+##### Figure 10: Main-Scene Interactive Door Open State
+![Main Scene Door Open](evidence/IT24102587%20GV%20evidence/10_GV_MainScene_Door_Open.png)
+*Observation*: Main facility door opened via centralized E-key interaction; HUD displays contextual prompt `E: Close door`.
+
+##### Figure 11: Main-Scene Barricade Ground-Plane Maneuvering & Relocation
+![Main Scene Barricade Moved](evidence/IT24102587%20GV%20evidence/11_GV_MainScene_Barricade_Moved.png)
+*Observation*: Player actively maneuvers the held barricade through the corridor into the northern junction. Barricade maintains stable $2.0\text{m}$ tracking along the floor plane at zero pitch/roll tilt with HUD prompt `E: Release barricade`.
+
+##### Figure 12: Barricade & Door Priority Arbitration
+![Main Scene Door Barricade Priority](evidence/IT24102587%20GV%20evidence/12_GV_MainScene_Door_Barricade.png)
+*Observation*: Player holding a barricade directly adjacent to an interactive door. The dispatcher assigns $-100\text{f}$ score to the held barricade, displaying `E: Release barricade` exclusively and preventing concurrent door actuation.
+
+##### Figure 13: Access Card Station Prior to Retrieval
+![Access Card Station Before](evidence/IT24102587%20GV%20evidence/13_GV_MainScene_AccessCard_Before.png)
+*Observation*: Player approaches the access card station; HUD indicates `CARD: MISSING` and displays prompt `E: Access card`.
+
+##### Figure 14: Access Card Acquired & Objective Advancement
+![Access Card Acquired](evidence/IT24102587%20GV%20evidence/14_GV_MainScene_AccessCard_Acquired.png)
+*Observation*: Upon pressing `E`, card is collected; HUD status updates to `CARD: ACQUIRED` and objective advances to `Use the card to enter Machinery`.
+
+##### Figure 15: Resource Station Weapon Swap Prompt
+![Resource Station Prompt](evidence/IT24102587%20GV%20evidence/15_GV_MainScene_ResourceStation_Prompt.png)
+*Observation*: Player aims at the weapon station; dispatcher displays `E: Ammo3gun swap` while player is equipped with Ammo1gun.
+
+##### Figure 16: Weapon Swap & First-Person Visual Model Update
+![Weapon Swapped](evidence/IT24102587%20GV%20evidence/16_GV_MainScene_Weapon_Swapped.png)
+*Observation*: Swapping weapon updates inventory to `Ammo3gun 100/50` and dynamically swaps the 3D firearm model held in first-person view.
+
+##### Figure 17: Central Device Deactivation Countdown
+![Device Deactivating](evidence/IT24102587%20GV%20evidence/17_GV_MainScene_Device_Deactivating.png)
+*Observation*: Connecting access card at the central machinery terminal initiates the 5-second countdown; UI renders cyan timer bar `Deactivating: 2.4/5 seconds`.
+
+##### Figure 18: Central Device Deactivated State
+![Device Deactivated](evidence/IT24102587%20GV%20evidence/18_GV_MainScene_Device_Deactivated.png)
+*Observation*: Terminal deactivation completes; objective advances to `DEVICE DEACTIVATED — reach the exit`.
+
+##### Figure 19: Main-Scene Mission Completion Screen
+![Mission Complete](evidence/IT24102587%20GV%20evidence/19_GV_MainScene_Mission_Complete.png)
+*Observation*: Player reaches exit zone to complete facility run in `77.3s`. Note: The completion screen explicitly reports `Four-agent challenge: unavailable (team AI pending)`, confirming single-player mission flow without multi-agent challenge execution.
+
+> [!IMPORTANT]
+> **Distinction Between Visual Artifacts and Dynamic Gameplay Confirmation**:
+> Static screenshots corroborate UI prompt states, objective advancement, and 3D visual changes at specific captured instances. Dynamic physical behavior (such as continuous player capsule collision resistance, rigid non-penetration against walls, velocity damping on release, and the absence of concurrent door actuation) was confirmed through active, user-confirmed manual play-mode sessions and 184 automated regression checks.
 
 ---
 
@@ -515,11 +570,11 @@ All GV Part 2 deliverables were authored on branch `gv/Kunchana-interactions`:
 
 | File Path | Description | Initial Commit | Current Status |
 | :--- | :--- | :---: | :---: |
-| [`Assets/Scripts/FacilityBreach/Interactions/FacilityInteractionDispatcher.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/Interactions/FacilityInteractionDispatcher.cs) | Centralized interaction arbitration singleton (E-key routing, priority scoring, held barricade priority) | Feature Branch | **New Deliverable (Uncommitted)** |
-| [`Assets/Editor/FacilityBreach/FacilityInteractionDispatcherTests.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Editor/FacilityBreach/FacilityInteractionDispatcherTests.cs) | 43 Edit Mode automated interaction arbitration unit tests | Feature Branch | **New Deliverable (Uncommitted)** |
-| [`Assets/Scripts/FacilityBreach/FacilityBreachRuntime.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/FacilityBreachRuntime.cs) | Centralized dispatching, barricade mass calibration, dynamic registration, HUD prompt routing | `c237edf` | **Modified / Verified** |
-| [`Assets/Scripts/InteractiveDoor.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/InteractiveDoor.cs) | Hinge kinematics, Slerp rotation, occupant clearance probe, `handleInternalInput` flag | `b275b3d` | **Modified / Verified** |
-| [`Assets/Scenes/Prototype.unity`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scenes/Prototype.unity) | Production facility scene with 6 pushable barricades configured for grab/release | `c237edf` | **Modified / Verified** |
+| [`Assets/Scripts/FacilityBreach/Interactions/FacilityInteractionDispatcher.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/Interactions/FacilityInteractionDispatcher.cs) | Centralized interaction arbitration singleton (E-key routing, priority scoring, held barricade priority) | `8d7b3dc` | **Committed / Pushed (PR #11)** |
+| [`Assets/Editor/FacilityBreach/FacilityInteractionDispatcherTests.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Editor/FacilityBreach/FacilityInteractionDispatcherTests.cs) | 43 Edit Mode automated interaction arbitration unit tests | `8d7b3dc` | **Committed / Pushed (PR #11)** |
+| [`Assets/Scripts/FacilityBreach/FacilityBreachRuntime.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/FacilityBreachRuntime.cs) | Centralized dispatching, barricade mass calibration, dynamic registration, HUD prompt routing | `8d7b3dc` | **Committed / Pushed (PR #11)** |
+| [`Assets/Scripts/InteractiveDoor.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/InteractiveDoor.cs) | Hinge kinematics, Slerp rotation, occupant clearance probe, `handleInternalInput` flag | `8d7b3dc` | **Committed / Pushed (PR #11)** |
+| [`Assets/Scenes/Prototype.unity`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scenes/Prototype.unity) | Production facility scene with 6 pushable barricades configured for grab/release | `8d7b3dc` | **Committed / Pushed (PR #11)** |
 | [`Assets/Scripts/DoorTrigger.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/DoorTrigger.cs) | Player proximity trigger volume detection | `b275b3d` | **Tracked / Verified** |
 | [`Assets/Scripts/Editor/DoorTester.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/Editor/DoorTester.cs) | EditorWindow batch door testing utility with Undo | `b275b3d` | **Tracked / Verified** |
 | [`Assets/Scripts/MovableBarricade.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/MovableBarricade.cs) | Non-destructible Rigidbody physics, velocity hold, wall collision | `b275b3d` | **Tracked / Verified** |
@@ -527,15 +582,27 @@ All GV Part 2 deliverables were authored on branch `gv/Kunchana-interactions`:
 | [`Assets/Scripts/Editor/TestSceneBuilder.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/Editor/TestSceneBuilder.cs) | Programmatic test scene builder for door and barricade arenas | `b275b3d` | **Tracked / Verified** |
 | [`Assets/Scenes/Tests/DoorInteractionTest.unity`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scenes/Tests/DoorInteractionTest.unity) | Isolated interactive door test arena scene | `b275b3d` | **Tracked / Verified** |
 | [`Assets/Scenes/Tests/BarricadeInteractionTest.unity`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scenes/Tests/BarricadeInteractionTest.unity) | Isolated movable barricade test arena scene | `b275b3d` | **Tracked / Verified** |
-| [`docs/individual/IT24102587_GV_Part2_Worklog.md`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/docs/individual/IT24102587_GV_Part2_Worklog.md) | Original feature worklog, test records, and main-scene integration | `b275b3d` | **Updated / Verified** |
+| [`docs/individual/IT24102587_GV_Part2_Worklog.md`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/docs/individual/IT24102587_GV_Part2_Worklog.md) | Original feature worklog, test records, and main-scene integration | `8d7b3dc` | **Committed / Pushed (PR #11)** |
 | [`docs/individual/IT24102587_GV_Part2_README.md`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/docs/individual/IT24102587_GV_Part2_README.md) | Comprehensive individual technical submission report | Current | **Updated Deliverable** |
-| `docs/individual/evidence/01_Door_OutOfRange.png` | Evidence Capture 1: Door out-of-range HUD | `b275b3d` | **Tracked / Verified** |
-| `docs/individual/evidence/02_Door_Open.png` | Evidence Capture 2: Door open state | `b275b3d` | **Tracked / Verified** |
-| `docs/individual/evidence/03_Door_ClosedCollision.png` | Evidence Capture 3: Door closed collision | `b275b3d` | **Tracked / Verified** |
-| `docs/individual/evidence/04_Barricade_SceneOverview.png` | Evidence Capture 4: Barricade arena overview | `b275b3d` | **Tracked / Verified** |
-| `docs/individual/evidence/05_Barricade_Grabbed.png` | Evidence Capture 5: Barricade maneuver mode | `b275b3d` | **Tracked / Verified** |
-| `docs/individual/evidence/06_Barricade_WallCollision.png` | Evidence Capture 6: Barricade wall collision | `b275b3d` | **Tracked / Verified** |
-| `docs/individual/evidence/07_Barricade_DoorwayBlocked.png` | Evidence Capture 7: Barricade blocking doorway | `b275b3d` | **Tracked / Verified** |
+| `docs/individual/evidence/IT24102587 GV evidence/01_Door_OutOfRange.png` | Evidence Capture 1: Door out-of-range HUD | `b275b3d` | **Verified** |
+| `docs/individual/evidence/IT24102587 GV evidence/02_Door_Open.png` | Evidence Capture 2: Door open state | `b275b3d` | **Verified** |
+| `docs/individual/evidence/IT24102587 GV evidence/03_Door_ClosedCollision.png` | Evidence Capture 3: Door closed collision | `b275b3d` | **Verified** |
+| `docs/individual/evidence/IT24102587 GV evidence/04_Barricade_SceneOverview.png` | Evidence Capture 4: Barricade arena overview | `b275b3d` | **Verified** |
+| `docs/individual/evidence/IT24102587 GV evidence/05_Barricade_Grabbed.png` | Evidence Capture 5: Barricade maneuver mode | `b275b3d` | **Verified** |
+| `docs/individual/evidence/IT24102587 GV evidence/06_Barricade_WallCollision.png` | Evidence Capture 6: Barricade wall collision | `b275b3d` | **Verified** |
+| `docs/individual/evidence/IT24102587 GV evidence/07_Barricade_DoorwayBlocked.png` | Evidence Capture 7: Barricade blocking doorway | `b275b3d` | **Verified** |
+| `docs/individual/evidence/IT24102587 GV evidence/08_GV_MainScene_Barricade_Release.png` | Evidence Capture 8: Main-scene barricade release HUD prompt | Current | **Captured / Verified** |
+| `docs/individual/evidence/IT24102587 GV evidence/09_GV_MainScene_Barricade_Grab.png` | Evidence Capture 9: Main-scene barricade grab approach | Current | **Captured / Verified** |
+| `docs/individual/evidence/IT24102587 GV evidence/10_GV_MainScene_Door_Open.png` | Evidence Capture 10: Main-scene door open prompt | Current | **Captured / Verified** |
+| `docs/individual/evidence/IT24102587 GV evidence/11_GV_MainScene_Barricade_Moved.png` | Evidence Capture 11: Main-scene barricade maneuvering | Current | **Captured / Verified** |
+| `docs/individual/evidence/IT24102587 GV evidence/12_GV_MainScene_Door_Barricade.png` | Evidence Capture 12: Barricade/door arbitration priority | Current | **Captured / Verified** |
+| `docs/individual/evidence/IT24102587 GV evidence/13_GV_MainScene_AccessCard_Before.png` | Evidence Capture 13: Access card station before pickup | Current | **Captured / Verified** |
+| `docs/individual/evidence/IT24102587 GV evidence/14_GV_MainScene_AccessCard_Acquired.png` | Evidence Capture 14: Access card acquired & objective advance | Current | **Captured / Verified** |
+| `docs/individual/evidence/IT24102587 GV evidence/15_GV_MainScene_ResourceStation_Prompt.png` | Evidence Capture 15: Resource station weapon swap prompt | Current | **Captured / Verified** |
+| `docs/individual/evidence/IT24102587 GV evidence/16_GV_MainScene_Weapon_Swapped.png` | Evidence Capture 16: Weapon swapped visual model update | Current | **Captured / Verified** |
+| `docs/individual/evidence/IT24102587 GV evidence/17_GV_MainScene_Device_Deactivating.png` | Evidence Capture 17: Central device deactivation timer bar | Current | **Captured / Verified** |
+| `docs/individual/evidence/IT24102587 GV evidence/18_GV_MainScene_Device_Deactivated.png` | Evidence Capture 18: Central device deactivated escape state | Current | **Captured / Verified** |
+| `docs/individual/evidence/IT24102587 GV evidence/19_GV_MainScene_Mission_Complete.png` | Evidence Capture 19: Mission complete overlay screen | Current | **Captured / Verified** |
 
 ---
 
