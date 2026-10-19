@@ -280,7 +280,7 @@ namespace FacilityBreach.AI.Roles
                 if (activeSearchPoints == null || activeSearchPoints.Count == 0 || currentSearchPointIndex >= activeSearchPoints.Count)
                 {
                     ClearActivePath();
-                    transform.Rotate(0, 9, 0);
+                    Mover.Scan();
                     return;
                 }
 
@@ -296,7 +296,7 @@ namespace FacilityBreach.AI.Roles
                     currentSearchPointIndex++;
                     Mover.Stop();
                     ClearActivePath();
-                    transform.Rotate(0, 9, 0);
+                    Mover.Scan();
                     return;
                 }
 
@@ -321,7 +321,7 @@ namespace FacilityBreach.AI.Roles
                         currentSearchPointIndex++;
                         Mover.Stop();
                         ClearActivePath();
-                        transform.Rotate(0, 9, 0);
+                        Mover.Scan();
                         return;
                     }
                 }

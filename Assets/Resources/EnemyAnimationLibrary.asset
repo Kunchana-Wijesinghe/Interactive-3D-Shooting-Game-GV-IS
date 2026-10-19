@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3b3226e3a6cc47dfbdd9b9625c993499, type: 3}
+  m_Name: EnemyAnimationLibrary
+  m_EditorClassIdentifier: Assembly-CSharp::FacilityBreach.Combat.EnemyAnimationLibrary
+  Enemies:
+  - Identity: PG-01
+    Idle: {fileID: -8025436699888564719, guid: cca1b816b981ca649848b5590d83132c, type: 3}
+    Move: {fileID: -3383271352092510786, guid: cca1b816b981ca649848b5590d83132c, type: 3}
+    Search: {fileID: 831529812320633395, guid: cca1b816b981ca649848b5590d83132c, type: 3}
+    Attack: {fileID: 8592998540569738485, guid: cca1b816b981ca649848b5590d83132c, type: 3}
+    Defeat: {fileID: 4340054814145909575, guid: cca1b816b981ca649848b5590d83132c, type: 3}
+  - Identity: SH-01
+    Idle: {fileID: 6137540654806105807, guid: 5942180cc9de4e545a22200cbec0720b, type: 3}
+    Move: {fileID: 3301654035867995808, guid: 5942180cc9de4e545a22200cbec0720b, type: 3}
+    Search: {fileID: -8366551687181914432, guid: 5942180cc9de4e545a22200cbec0720b, type: 3}
+    Attack: {fileID: 8961271006361953568, guid: 5942180cc9de4e545a22200cbec0720b, type: 3}
+    Defeat: {fileID: -647089875298621964, guid: 5942180cc9de4e545a22200cbec0720b, type: 3}
+  - Identity: CD-03
+    Idle: {fileID: 7729965552669889364, guid: 6c15fa5d31db1834688e3da5214bdbf1, type: 3}
+    Move: {fileID: -5073906691973643187, guid: 6c15fa5d31db1834688e3da5214bdbf1, type: 3}
+    Search: {fileID: 7952840612326281975, guid: 6c15fa5d31db1834688e3da5214bdbf1, type: 3}
+    Attack: {fileID: 3488051298767430190, guid: 6c15fa5d31db1834688e3da5214bdbf1, type: 3}
+    Defeat: {fileID: -5128427422320813583, guid: 6c15fa5d31db1834688e3da5214bdbf1, type: 3}
+  - Identity: FL-04
+    Idle: {fileID: -3531261240458191827, guid: c696c311e39cf42498b5b311ff587c6a, type: 3}
+    Move: {fileID: 4362129904257965112, guid: c696c311e39cf42498b5b311ff587c6a, type: 3}
+    Search: {fileID: 3782101383598934885, guid: c696c311e39cf42498b5b311ff587c6a, type: 3}
+    Attack: {fileID: 3474853111139364886, guid: c696c311e39cf42498b5b311ff587c6a, type: 3}
+    Defeat: {fileID: 7235840958288192976, guid: c696c311e39cf42498b5b311ff587c6a, type: 3}

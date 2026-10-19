@@ -13,9 +13,11 @@ namespace FacilityBreach.Combat
         private Transform visual;
         private Quaternion restingRotation;
         private Vector3 restingPosition;
+        private EnemyModelAnimation animationPlayer;
         private void Start()
         {
             combat = GetComponent<EnemyCombatAdapter>();
+            animationPlayer = GetComponent<EnemyModelAnimation>();
             visual = transform.Find("ModelVisual");
             if (visual) { restingPosition = visual.localPosition; restingRotation = visual.localRotation; }
             foreach (var renderer in GetComponentsInChildren<Renderer>())
@@ -29,7 +31,7 @@ namespace FacilityBreach.Combat
         private void LateUpdate()
         {
             if (!combat) return;
-            if (visual)
+            if (visual && (!animationPlayer || !animationPlayer.HasClips))
             {
                 visual.localRotation = combat.IsDead ? restingRotation * Quaternion.Euler(85, 0, 0) : restingRotation;
                 visual.localPosition = restingPosition + (combat.IsDead ? Vector3.up * .15f : Vector3.zero);

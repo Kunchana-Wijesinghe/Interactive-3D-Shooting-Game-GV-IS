@@ -53,6 +53,8 @@ namespace FacilityBreach.Combat
         }
         public bool TryAttack(Transform perceivedTarget)
         {
+            if (perceivedTarget && !IsDead && runtime && runtime.AcceptsGameplay)
+                GetComponent<FacilityBreach.AI.SoundHunter.SoundHunterNavMeshMover>()?.FacePoint(perceivedTarget.position);
             if (IsDead || !runtime.AcceptsGameplay || pending || reload > 0 || cadence > 0 || Magazine <= 0 || !ClearSight(perceivedTarget)) return false;
             pending = perceivedTarget; warning = Mathf.Max(.35f, WarningSeconds); return true;
         }

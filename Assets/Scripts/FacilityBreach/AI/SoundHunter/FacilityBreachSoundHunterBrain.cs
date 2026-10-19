@@ -75,7 +75,7 @@ namespace FacilityBreach.AI.SoundHunter
             }
             if(CurrentState==SoundHunterState.Search)
             {
-                transform.Rotate(0,9,0);
+                GetComponent<SoundHunterNavMeshMover>()?.Scan();
                 if(now>=searchEnd){if(soundTarget)memory.Forget(entry);soundTarget=false;SetState(SoundHunterState.Patrol);}
             }
             if(CurrentState==SoundHunterState.Patrol&&patrol.Count>0)

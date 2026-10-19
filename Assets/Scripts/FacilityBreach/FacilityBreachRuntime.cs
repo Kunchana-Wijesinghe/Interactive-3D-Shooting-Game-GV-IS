@@ -131,7 +131,6 @@ namespace FacilityBreach
             
             // PG-01 Patrol Guard (60 HP, Teal)
             var pg = CreateAgent(agentsRoot, "FB_Agent_PG01", "PG-01", 60, new Vector3(5, 0, 18), new Color(0, 0.8f, 0.8f), 0);
-            pg.AddComponent<SoundHunterNavMeshMover>();
             pg.AddComponent<PatrolGuardBrain>().Route = new[] { new Vector3(5, 0, 18), new Vector3(5, 0, 22), new Vector3(7, 0, 22), new Vector3(7, 0, 18) };
             // SH-01 Sound Hunter (80 HP, Orange) with IS decision brain
             var shObj = CreateAgent(agentsRoot, "FB_Agent_SH01", "SH-01", 80, exit + Vector3.left * 3, new Color(1, 0.5f, 0), 1);
@@ -167,6 +166,8 @@ namespace FacilityBreach
             }
             foreach (var gate in gates) Physics.IgnoreCollision(hitbox, gate.GetComponent<Collider>());
             var adapter = obj.AddComponent<EnemyCombatAdapter>(); adapter.Identity = identity; adapter.MaximumHealth = hp;
+            obj.AddComponent<SoundHunterNavMeshMover>();
+            obj.AddComponent<EnemyModelAnimation>();
             obj.AddComponent<EnemyPresentation>();
             return obj;
         }

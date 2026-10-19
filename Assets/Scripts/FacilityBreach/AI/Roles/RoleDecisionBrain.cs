@@ -39,7 +39,7 @@ namespace FacilityBreach.AI.Roles
         protected void FaceRememberedPosition()
         {
             Vector3 direction = LastKnownPosition - transform.position; direction.y = 0;
-            if (direction.sqrMagnitude > .01f) transform.rotation = Quaternion.LookRotation(direction);
+            if (direction.sqrMagnitude > .01f) Mover.FacePoint(LastKnownPosition);
         }
         protected abstract void Decide(float now);
         protected void SetState(RoleState state)
