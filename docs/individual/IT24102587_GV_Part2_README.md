@@ -5,9 +5,9 @@
 **Degree Programme:** BSc (Hons) in Information Technology Specialising in Software Engineering<br/>
 **Module:** SE3032 — Graphics and Visualization (GV)<br/>
 **Assigned Role:** Part 2: Systems Engineer (Player Interaction Physics, Collision Handling & Environment Mechanics)<br/>
-**Merged Baseline Branch:** `gv/Kunchana-interactions` (merged into `develop` via PR #9, commit `fd94efe`)<br/>
-**Active Feature Branch:** `gv/IT24102587-main-barricade-interaction` (local uncommitted working branch based on `develop` commit `c237edf`)<br/>
-**Latest Synchronized Commit:** `14ee8c0` (`Merge latest develop into gv/Kunchana-interactions`)<br/>
+**Merged Baseline Branch:** `develop` (integrated via GV PR #9 commit `fd94efe` and PR #11 commit `4ac6a2f`)<br/>
+**Active Feature Branch:** `gv/IT24102587-fps-viewmodel-obstruction` (branch based on `develop` commit `4ac6a2f`)<br/>
+**Latest Synchronized Base Commit:** `4ac6a2f` (`Merge pull request #11 from Kunchana-Wijesinghe/gv/IT24102587-main-barricade-interaction`)<br/>
 **Target Unity Version:** Unity 6000.6.2f1 (URP / 3D, C# .NET Standard 2.1)<br/>
 **Repository:** `Interactive-3D-Shooting-Game-GV-IS` (Private)
 
@@ -384,7 +384,7 @@ To enable rapid verification without requiring the full `Prototype.unity` missio
 
 ### 7.2 Embedded Visual Evidence Artifacts
 
-All nineteen visual artifacts supporting GV Part 2 verification reside in [`docs/individual/evidence/IT24102587 GV evidence/`](evidence/IT24102587%20GV%20evidence/).
+The visual artifacts supporting GV Part 2 verification reside in [`docs/individual/evidence/IT24102587 GV evidence/`](evidence/IT24102587%20GV%20evidence/) (totaling 25 PNG captures: 7 historical test-arena captures, 12 production main-scene captures from PR #11, and 6 post-merge visual polish captures from feature branch `gv/IT24102587-fps-viewmodel-obstruction`).
 
 #### 7.2.1 Dedicated Test Scene Verification (Captures 01–07)
 
@@ -466,9 +466,39 @@ All nineteen visual artifacts supporting GV Part 2 verification reside in [`docs
 ![Mission Complete](evidence/IT24102587%20GV%20evidence/19_GV_MainScene_Mission_Complete.png)
 *Observation*: Player reaches exit zone to complete facility run in `77.3s`. Note: The completion screen explicitly reports `Four-agent challenge: unavailable (team AI pending)`, confirming single-player mission flow without multi-agent challenge execution.
 
+#### 7.2.3 Post-Merge First-Person Weapon-Wall Obstruction & Interaction Polish (Captures 20–25)
+
+> [!NOTE]
+> **Post-Merge Polish Scope Distinction**:
+> Captures 20 through 25 belong to feature branch `gv/IT24102587-fps-viewmodel-obstruction` (branched from `develop` at merge commit `4ac6a2f`). They demonstrate an isolated post-merge visual polish extending beyond the original assignment scope to prevent first-person weapon meshes from penetrating walls in close quarters. They were not part of the original PR #11 merge.
+
+##### Figure 20: Door Interaction Range & First-Person Weapon Posture
+![FPS Door Interaction](evidence/IT24102587%20GV%20evidence/20_GV_FPS_Door_Interaction.png)
+*Observation*: Player character positioned at close proximity to the closed red facility door. HUD renders contextual prompt `Find the access card near toxic waste \n E: Open door`. The equipped weapon (`Ammo3gun`) remains visible in first-person view in the lower right foreground without clipping through the door frame or panel.
+
+##### Figure 21: Weapon Model Retraction at Solid Wall Proximity
+![FPS Weapon Retracted](evidence/IT24102587%20GV%20evidence/21_GV_FPS_Weapon_Wall_Retracted.png)
+*Observation*: Player character standing point-blank against an industrial concrete wall ($02:46$ timer, `Ammo3gun 100/50`). The procedural obstruction controller dynamically detects wall proximity via forward SphereCast, sliding the weapon model backward along camera local Z and lowering it along local Y into a compressed low-ready stance with zero barrel penetration into the wall geometry.
+
+##### Figure 22: Extreme Wall Proximity & Compressed Low-Ready Stance
+![FPS Weapon Wall Closeup](evidence/IT24102587%20GV%20evidence/22_GV_FPS_Weapon_Wall_Closeup.png)
+*Observation*: Extreme close-up facing a rough wall surface ($02:34$ timer). The weapon model smoothly retracts to its authored bounds limit (`maxRetractZ = 0.28m`, `maxLowerY = 0.16m`), tucking the barrel safely below and behind the wall plane with only the rear receiver visible at the bottom of the screen.
+
+##### Figure 23: Weapon Swap Reach Adaptation & Wall Obstruction
+![FPS Weapon Swap Retraction](evidence/IT24102587%20GV%20evidence/23_GV_FPS_Weapon_Swap_Retraction.png)
+*Observation*: Following a weapon station swap to `Ammo3gun` ($02:18$ timer), the obstruction controller automatically recalibrates forward reach from the new weapon's camera-space muzzle position, immediately tucking the longer barrel into low-ready when facing the wall.
+
+##### Figure 24: Unobstructed Viewmodel Normal Stance
+![FPS Weapon Normal](evidence/IT24102587%20GV%20evidence/24_GV_FPS_Weapon_Normal.png)
+*Observation*: Player equipped with `Ammo1gun 50/50` backed away into open corridor space ($01:44$ timer). The obstruction controller detects clear forward clearance, smoothly restoring the weapon viewmodel to its default authored hip-fire posture.
+
+##### Figure 25: Door Interaction Prompt & In-Game Pause Verification
+![FPS Door Prompt](evidence/IT24102587%20GV%20evidence/25_GV_FPS_Door_Prompt.png)
+*Observation*: Player facing the facility door with active prompt `E: Open door` under the in-game pause menu ($01:23$ timer), confirming that interaction triggers, HUD prompt positioning, and viewmodel rendering remain stable during menu interactions.
+
 > [!IMPORTANT]
 > **Distinction Between Visual Artifacts and Dynamic Gameplay Confirmation**:
-> Static screenshots corroborate UI prompt states, objective advancement, and 3D visual changes at specific captured instances. Dynamic physical behavior (such as continuous player capsule collision resistance, rigid non-penetration against walls, velocity damping on release, and the absence of concurrent door actuation) was confirmed through active, user-confirmed manual play-mode sessions and 184 automated regression checks.
+> Static screenshots (Captures 01–25) corroborate UI prompt states, objective advancement, and 3D visual poses at specific captured instances. Static captures demonstrate instantaneous weapon poses and HUD text, not continuous interpolation motion, physical collision resistance, or hitscan bullet trajectory. Dynamic physical behavior (such as smooth weapon retraction/recovery, continuous player capsule collision resistance, rigid non-penetration against walls, velocity damping on release, and the absence of concurrent door actuation) was confirmed through active, user-confirmed manual play-mode sessions and 208 automated regression checks.
 
 ---
 
@@ -535,6 +565,45 @@ To guarantee that the centralized dispatcher does not introduce regressions to e
 
 ---
 
+### 7.6 Post-Merge FPS Weapon Obstruction Manual Gameplay Verification (`Prototype.unity`, 2026-10-19)
+
+Following the implementation of [`FpsViewModelObstruction.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/FpsViewModelObstruction.cs) on feature branch `gv/IT24102587-fps-viewmodel-obstruction`, live manual play-mode sessions were conducted in `Prototype.unity` on 2026-10-19 to evaluate close-quarters wall proximity behavior, stance recovery, multi-weapon compatibility, shooting continuity, and door interaction. All five manual checks passed cleanly:
+
+| Test ID | Scenario Tested | Action in `Prototype.unity` | Observed Behavior & Guarantee | Corroborating Visual Capture | Result |
+| :---: | :--- | :--- | :--- | :--- | :---: |
+| **MP-W01** | Wall Proximity Retraction | Walk up point-blank to facility wall with weapon equipped. | Weapon visual smoothly retracts along local Z and lowers along local Y into compressed low-ready stance; zero barrel mesh penetration into wall. | [`21_GV_FPS_Weapon_Wall_Retracted.png`](evidence/IT24102587%20GV%20evidence/21_GV_FPS_Weapon_Wall_Retracted.png)<br/>[`22_GV_FPS_Weapon_Wall_Closeup.png`](evidence/IT24102587%20GV%20evidence/22_GV_FPS_Weapon_Wall_Closeup.png) | **MANUAL PASS** |
+| **MP-W02** | Wall Clearance Stance Recovery | Back away from wall into open corridor space. | Weapon visual smoothly recovers to default authored hip-fire posture via interpolated lerp/slerp without jitter or angular snapping. | [`24_GV_FPS_Weapon_Normal.png`](evidence/IT24102587%20GV%20evidence/24_GV_FPS_Weapon_Normal.png) | **MANUAL PASS** |
+| **MP-W03** | Multi-Weapon Swap Compatibility | Swap weapons at station (`Ammo1gun` $\leftrightarrow$ `Ammo3gun`) and approach wall. | Obstruction controller recalibrates weapon reach dynamically from camera-space muzzle Z; adapts retraction distance properly to short and long barrels. | [`23_GV_FPS_Weapon_Swap_Retraction.png`](evidence/IT24102587%20GV%20evidence/23_GV_FPS_Weapon_Swap_Retraction.png) | **MANUAL PASS** |
+| **MP-W04** | Shooting Continuity Near Wall | Fire weapon while close to wall in low-ready stance. | Hitscan bullets and raycast trajectories continue firing from camera center toward crosshair without deflection; muzzle remains outside wall geometry. | Verified live in Play Mode | **MANUAL PASS** |
+| **MP-W05** | Door E-Key Interaction Compatibility | Approach closed door with weapon equipped and press E. | Door opens/closes cleanly via centralized dispatcher; viewmodel does not trigger unwanted tuck against door frame; HUD prompt displays correctly. | [`20_GV_FPS_Door_Interaction.png`](evidence/IT24102587%20GV%20evidence/20_GV_FPS_Door_Interaction.png)<br/>[`25_GV_FPS_Door_Prompt.png`](evidence/IT24102587%20GV%20evidence/25_GV_FPS_Door_Prompt.png) | **MANUAL PASS** |
+
+---
+
+### 7.7 Automated Viewmodel Obstruction & Master Regression Testing (208 Programmatic Checks)
+
+To ensure that the procedural viewmodel obstruction component operates deterministically without introducing regressions to interaction arbitration or AI navigation, automated Edit Mode regression test suites were executed in Unity 6000.6.2f1 headless batch mode with **ExitCode 0**:
+
+```powershell
+"C:\Program Files\Unity\Hub\Editor\6000.6.2f1\Editor\Unity.exe" `
+  -batchmode -quit `
+  -projectPath "C:\Users\Kunchana Wijesinghe\Pictures\GV,IS\FacilityBreach" `
+  -executeMethod FacilityBreach.Editor.FpsViewModelObstructionTests.RunBatch `
+  -logFile "<scratch>\obstruction_tests.log"
+```
+
+#### Master Automated Test Results Summary (208 Total Checks)
+| Test Suite Class | Focus & Verification Domain | Checks | Result | Output Evidence Log |
+| :--- | :--- | :---: | :---: | :--- |
+| **`FpsViewModelObstructionTests`** | Procedural retraction bounds, low-ready pitch/yaw, nearClipPlane margin, multi-weapon reach adaptation, obstacle filters, weapon swap reset | 24 | **24 Passed, 0 Failed** | [`scratch/obstruction_tests.log`](file:///C:/Users/Kunchana%20Wijesinghe/.gemini/antigravity/brain/233253cf-39ec-4544-894f-e1d9d7a0da8c/scratch/obstruction_tests.log) |
+| **`FacilityInteractionDispatcherTests`** | Centralized interaction routing, held barricade priority, spatial scoring formula, single-action guarantee, range/angle limits | 43 | **43 Passed, 0 Failed** | [`interaction-tests-passed.txt`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/interaction-tests-passed.txt) |
+| **`PatrolGuardObstacleTests`** | Dynamic navigation obstacle carving, barricade corridor blocking, edge invalidation, dynamic detour replanning | 46 | **46 Passed, 0 Failed** | [`patrol-obstacle-tests-passed.txt`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/patrol-obstacle-tests-passed.txt) |
+| **`PatrolGuardAStarTests`** | A* search optimality, corridor heuristic admissibility, fallback graph search | 37 | **37 Passed, 0 Failed** | [`patrol-astar-tests-passed.txt`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/patrol-astar-tests-passed.txt) |
+| **`PatrolGuardReturnTests`** | Milestone 2.2B tactical retreat, patrol route resume, return node sequencing | 36 | **36 Passed, 0 Failed** | [`patrol-return-tests-passed.txt`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/patrol-return-tests-passed.txt) |
+| **`PatrolGuardSearchTests`** | Milestone 2.2A lost target search, corridor scanning, waypoint progression | 22 | **22 Passed, 0 Failed** | [`patrol-search-tests-passed.txt`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/patrol-search-tests-passed.txt) |
+| **Total Master Regression** | **Complete Facility Breach Automated Suite** | **208** | **208 Passed, 0 Failed** | **100% Green / Zero Regressions** |
+
+---
+
 ## 8. Technical Challenges, Edge Cases & Solutions
 
 ### 8.1 Unity 6 Rigidbody API Deprecation
@@ -566,15 +635,17 @@ To guarantee that the centralized dispatcher does not introduce regressions to e
 
 ## 9. Individual File Inventory & Git Contribution
 
-All GV Part 2 deliverables were authored on branch `gv/Kunchana-interactions`:
+All core GV Part 2 deliverables were authored across branch `gv/Kunchana-interactions` (PR #9) and `gv/IT24102587-main-barricade-interaction` (PR #11, merged into `develop` at commit `4ac6a2f`), while the post-merge FPS viewmodel obstruction polish was authored on feature branch `gv/IT24102587-fps-viewmodel-obstruction`:
 
-| File Path | Description | Initial Commit | Current Status |
+| File Path | Description | Lineage / Initial Commit | Current Status |
 | :--- | :--- | :---: | :---: |
-| [`Assets/Scripts/FacilityBreach/Interactions/FacilityInteractionDispatcher.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/Interactions/FacilityInteractionDispatcher.cs) | Centralized interaction arbitration singleton (E-key routing, priority scoring, held barricade priority) | `8d7b3dc` | **Committed / Pushed (PR #11)** |
-| [`Assets/Editor/FacilityBreach/FacilityInteractionDispatcherTests.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Editor/FacilityBreach/FacilityInteractionDispatcherTests.cs) | 43 Edit Mode automated interaction arbitration unit tests | `8d7b3dc` | **Committed / Pushed (PR #11)** |
-| [`Assets/Scripts/FacilityBreach/FacilityBreachRuntime.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/FacilityBreachRuntime.cs) | Centralized dispatching, barricade mass calibration, dynamic registration, HUD prompt routing | `8d7b3dc` | **Committed / Pushed (PR #11)** |
-| [`Assets/Scripts/InteractiveDoor.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/InteractiveDoor.cs) | Hinge kinematics, Slerp rotation, occupant clearance probe, `handleInternalInput` flag | `8d7b3dc` | **Committed / Pushed (PR #11)** |
-| [`Assets/Scenes/Prototype.unity`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scenes/Prototype.unity) | Production facility scene with 6 pushable barricades configured for grab/release | `8d7b3dc` | **Committed / Pushed (PR #11)** |
+| [`Assets/Scripts/FacilityBreach/Interactions/FacilityInteractionDispatcher.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/Interactions/FacilityInteractionDispatcher.cs) | Centralized interaction arbitration singleton (E-key routing, priority scoring, held barricade priority) | `8d7b3dc` | **Merged into develop (PR #11)** |
+| [`Assets/Editor/FacilityBreach/FacilityInteractionDispatcherTests.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Editor/FacilityBreach/FacilityInteractionDispatcherTests.cs) | 43 Edit Mode automated interaction arbitration unit tests | `8d7b3dc` | **Merged into develop (PR #11)** |
+| [`Assets/Scripts/FacilityBreach/FacilityBreachRuntime.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/FacilityBreachRuntime.cs) | Centralized dispatching, barricade mass calibration, dynamic registration, HUD prompt routing, and viewmodel obstruction hook | `8d7b3dc` | **Merged (PR #11) / Updated on Feature Branch** |
+| [`Assets/Scripts/FacilityBreach/FpsViewModelObstruction.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/FpsViewModelObstruction.cs) | Procedural viewmodel wall-obstruction and low-ready retraction controller | Feature Branch | **Verified on Feature Branch** |
+| [`Assets/Editor/FacilityBreach/FpsViewModelObstructionTests.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Editor/FacilityBreach/FpsViewModelObstructionTests.cs) | 24 Edit Mode automated viewmodel obstruction regression tests | Feature Branch | **Verified on Feature Branch** |
+| [`Assets/Scripts/InteractiveDoor.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/InteractiveDoor.cs) | Hinge kinematics, Slerp rotation, occupant clearance probe, `handleInternalInput` flag | `8d7b3dc` | **Merged into develop (PR #11)** |
+| [`Assets/Scenes/Prototype.unity`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scenes/Prototype.unity) | Production facility scene with 6 pushable barricades configured for grab/release | `8d7b3dc` | **Merged into develop (PR #11)** |
 | [`Assets/Scripts/DoorTrigger.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/DoorTrigger.cs) | Player proximity trigger volume detection | `b275b3d` | **Tracked / Verified** |
 | [`Assets/Scripts/Editor/DoorTester.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/Editor/DoorTester.cs) | EditorWindow batch door testing utility with Undo | `b275b3d` | **Tracked / Verified** |
 | [`Assets/Scripts/MovableBarricade.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/MovableBarricade.cs) | Non-destructible Rigidbody physics, velocity hold, wall collision | `b275b3d` | **Tracked / Verified** |
@@ -582,27 +653,34 @@ All GV Part 2 deliverables were authored on branch `gv/Kunchana-interactions`:
 | [`Assets/Scripts/Editor/TestSceneBuilder.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/Editor/TestSceneBuilder.cs) | Programmatic test scene builder for door and barricade arenas | `b275b3d` | **Tracked / Verified** |
 | [`Assets/Scenes/Tests/DoorInteractionTest.unity`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scenes/Tests/DoorInteractionTest.unity) | Isolated interactive door test arena scene | `b275b3d` | **Tracked / Verified** |
 | [`Assets/Scenes/Tests/BarricadeInteractionTest.unity`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scenes/Tests/BarricadeInteractionTest.unity) | Isolated movable barricade test arena scene | `b275b3d` | **Tracked / Verified** |
-| [`docs/individual/IT24102587_GV_Part2_Worklog.md`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/docs/individual/IT24102587_GV_Part2_Worklog.md) | Original feature worklog, test records, and main-scene integration | `8d7b3dc` | **Committed / Pushed (PR #11)** |
+| [`docs/individual/IT24102587_GV_Part2_Worklog.md`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/docs/individual/IT24102587_GV_Part2_Worklog.md) | Individual feature worklog, test records, and main-scene integration | `8d7b3dc` | **Updated Deliverable** |
+| [`docs/individual/IT24102587_GV_Part2_Verification_Log.md`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/docs/individual/IT24102587_GV_Part2_Verification_Log.md) | Multi-layered empirical verification log and test matrix | Current | **Updated Deliverable** |
 | [`docs/individual/IT24102587_GV_Part2_README.md`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/docs/individual/IT24102587_GV_Part2_README.md) | Comprehensive individual technical submission report | Current | **Updated Deliverable** |
-| `docs/individual/evidence/IT24102587 GV evidence/01_Door_OutOfRange.png` | Evidence Capture 1: Door out-of-range HUD | `b275b3d` | **Verified** |
-| `docs/individual/evidence/IT24102587 GV evidence/02_Door_Open.png` | Evidence Capture 2: Door open state | `b275b3d` | **Verified** |
-| `docs/individual/evidence/IT24102587 GV evidence/03_Door_ClosedCollision.png` | Evidence Capture 3: Door closed collision | `b275b3d` | **Verified** |
-| `docs/individual/evidence/IT24102587 GV evidence/04_Barricade_SceneOverview.png` | Evidence Capture 4: Barricade arena overview | `b275b3d` | **Verified** |
-| `docs/individual/evidence/IT24102587 GV evidence/05_Barricade_Grabbed.png` | Evidence Capture 5: Barricade maneuver mode | `b275b3d` | **Verified** |
-| `docs/individual/evidence/IT24102587 GV evidence/06_Barricade_WallCollision.png` | Evidence Capture 6: Barricade wall collision | `b275b3d` | **Verified** |
-| `docs/individual/evidence/IT24102587 GV evidence/07_Barricade_DoorwayBlocked.png` | Evidence Capture 7: Barricade blocking doorway | `b275b3d` | **Verified** |
-| `docs/individual/evidence/IT24102587 GV evidence/08_GV_MainScene_Barricade_Release.png` | Evidence Capture 8: Main-scene barricade release HUD prompt | Current | **Captured / Verified** |
-| `docs/individual/evidence/IT24102587 GV evidence/09_GV_MainScene_Barricade_Grab.png` | Evidence Capture 9: Main-scene barricade grab approach | Current | **Captured / Verified** |
-| `docs/individual/evidence/IT24102587 GV evidence/10_GV_MainScene_Door_Open.png` | Evidence Capture 10: Main-scene door open prompt | Current | **Captured / Verified** |
-| `docs/individual/evidence/IT24102587 GV evidence/11_GV_MainScene_Barricade_Moved.png` | Evidence Capture 11: Main-scene barricade maneuvering | Current | **Captured / Verified** |
-| `docs/individual/evidence/IT24102587 GV evidence/12_GV_MainScene_Door_Barricade.png` | Evidence Capture 12: Barricade/door arbitration priority | Current | **Captured / Verified** |
-| `docs/individual/evidence/IT24102587 GV evidence/13_GV_MainScene_AccessCard_Before.png` | Evidence Capture 13: Access card station before pickup | Current | **Captured / Verified** |
-| `docs/individual/evidence/IT24102587 GV evidence/14_GV_MainScene_AccessCard_Acquired.png` | Evidence Capture 14: Access card acquired & objective advance | Current | **Captured / Verified** |
-| `docs/individual/evidence/IT24102587 GV evidence/15_GV_MainScene_ResourceStation_Prompt.png` | Evidence Capture 15: Resource station weapon swap prompt | Current | **Captured / Verified** |
-| `docs/individual/evidence/IT24102587 GV evidence/16_GV_MainScene_Weapon_Swapped.png` | Evidence Capture 16: Weapon swapped visual model update | Current | **Captured / Verified** |
-| `docs/individual/evidence/IT24102587 GV evidence/17_GV_MainScene_Device_Deactivating.png` | Evidence Capture 17: Central device deactivation timer bar | Current | **Captured / Verified** |
-| `docs/individual/evidence/IT24102587 GV evidence/18_GV_MainScene_Device_Deactivated.png` | Evidence Capture 18: Central device deactivated escape state | Current | **Captured / Verified** |
-| `docs/individual/evidence/IT24102587 GV evidence/19_GV_MainScene_Mission_Complete.png` | Evidence Capture 19: Mission complete overlay screen | Current | **Captured / Verified** |
+| `docs/individual/evidence/IT24102587 GV evidence/01_Door_OutOfRange.png` | Evidence Capture 1: Door out-of-range HUD | `b275b3d` | **Verified (Historical)** |
+| `docs/individual/evidence/IT24102587 GV evidence/02_Door_Open.png` | Evidence Capture 2: Door open state | `b275b3d` | **Verified (Historical)** |
+| `docs/individual/evidence/IT24102587 GV evidence/03_Door_ClosedCollision.png` | Evidence Capture 3: Door closed collision | `b275b3d` | **Verified (Historical)** |
+| `docs/individual/evidence/IT24102587 GV evidence/04_Barricade_SceneOverview.png` | Evidence Capture 4: Barricade arena overview | `b275b3d` | **Verified (Historical)** |
+| `docs/individual/evidence/IT24102587 GV evidence/05_Barricade_Grabbed.png` | Evidence Capture 5: Barricade maneuver mode | `b275b3d` | **Verified (Historical)** |
+| `docs/individual/evidence/IT24102587 GV evidence/06_Barricade_WallCollision.png` | Evidence Capture 6: Barricade wall collision | `b275b3d` | **Verified (Historical)** |
+| `docs/individual/evidence/IT24102587 GV evidence/07_Barricade_DoorwayBlocked.png` | Evidence Capture 7: Barricade blocking doorway | `b275b3d` | **Verified (Historical)** |
+| `docs/individual/evidence/IT24102587 GV evidence/08_GV_MainScene_Barricade_Release.png` | Evidence Capture 8: Main-scene barricade release HUD prompt | `c9a0343` | **Merged into develop (PR #11)** |
+| `docs/individual/evidence/IT24102587 GV evidence/09_GV_MainScene_Barricade_Grab.png` | Evidence Capture 9: Main-scene barricade grab approach | `c9a0343` | **Merged into develop (PR #11)** |
+| `docs/individual/evidence/IT24102587 GV evidence/10_GV_MainScene_Door_Open.png` | Evidence Capture 10: Main-scene door open prompt | `c9a0343` | **Merged into develop (PR #11)** |
+| `docs/individual/evidence/IT24102587 GV evidence/11_GV_MainScene_Barricade_Moved.png` | Evidence Capture 11: Main-scene barricade maneuvering | `c9a0343` | **Merged into develop (PR #11)** |
+| `docs/individual/evidence/IT24102587 GV evidence/12_GV_MainScene_Door_Barricade.png` | Evidence Capture 12: Barricade/door arbitration priority | `c9a0343` | **Merged into develop (PR #11)** |
+| `docs/individual/evidence/IT24102587 GV evidence/13_GV_MainScene_AccessCard_Before.png` | Evidence Capture 13: Access card station before pickup | `c9a0343` | **Merged into develop (PR #11)** |
+| `docs/individual/evidence/IT24102587 GV evidence/14_GV_MainScene_AccessCard_Acquired.png` | Evidence Capture 14: Access card acquired & objective advance | `c9a0343` | **Merged into develop (PR #11)** |
+| `docs/individual/evidence/IT24102587 GV evidence/15_GV_MainScene_ResourceStation_Prompt.png` | Evidence Capture 15: Resource station weapon swap prompt | `c9a0343` | **Merged into develop (PR #11)** |
+| `docs/individual/evidence/IT24102587 GV evidence/16_GV_MainScene_Weapon_Swapped.png` | Evidence Capture 16: Weapon swapped visual model update | `c9a0343` | **Merged into develop (PR #11)** |
+| `docs/individual/evidence/IT24102587 GV evidence/17_GV_MainScene_Device_Deactivating.png` | Evidence Capture 17: Central device deactivation timer bar | `c9a0343` | **Merged into develop (PR #11)** |
+| `docs/individual/evidence/IT24102587 GV evidence/18_GV_MainScene_Device_Deactivated.png` | Evidence Capture 18: Central device deactivated escape state | `c9a0343` | **Merged into develop (PR #11)** |
+| `docs/individual/evidence/IT24102587 GV evidence/19_GV_MainScene_Mission_Complete.png` | Evidence Capture 19: Mission complete overlay screen | `c9a0343` | **Merged into develop (PR #11)** |
+| `docs/individual/evidence/IT24102587 GV evidence/20_GV_FPS_Door_Interaction.png` | Evidence Capture 20: Door interaction prompt with weapon viewmodel | Feature Branch | **Captured / Verified (Feature Branch)** |
+| `docs/individual/evidence/IT24102587 GV evidence/21_GV_FPS_Weapon_Wall_Retracted.png` | Evidence Capture 21: Weapon model retracted at wall proximity | Feature Branch | **Captured / Verified (Feature Branch)** |
+| `docs/individual/evidence/IT24102587 GV evidence/22_GV_FPS_Weapon_Wall_Closeup.png` | Evidence Capture 22: Extreme close-up low-ready stance against wall | Feature Branch | **Captured / Verified (Feature Branch)** |
+| `docs/individual/evidence/IT24102587 GV evidence/23_GV_FPS_Weapon_Swap_Retraction.png` | Evidence Capture 23: Weapon swap reach adaptation against wall | Feature Branch | **Captured / Verified (Feature Branch)** |
+| `docs/individual/evidence/IT24102587 GV evidence/24_GV_FPS_Weapon_Normal.png` | Evidence Capture 24: Unobstructed viewmodel normal hip-fire stance | Feature Branch | **Captured / Verified (Feature Branch)** |
+| `docs/individual/evidence/IT24102587 GV evidence/25_GV_FPS_Door_Prompt.png` | Evidence Capture 25: Door prompt and viewmodel during pause menu | Feature Branch | **Captured / Verified (Feature Branch)** |
 
 ---
 
@@ -625,3 +703,57 @@ All GV Part 2 deliverables were authored on branch `gv/Kunchana-interactions`:
 
 ### Q6: Why do main-scene barricades use a 12 kg mass while the isolated test scene barricade uses 60 kg?
 > **Answer**: The isolated test scene (`BarricadeInteractionTest.unity`) used a 60 kg mass to rigorously test PhysX solver stability, anti-tunneling, and high-inertia character pushing in an open room. However, the production facility (`Prototype.unity`) has narrow corridors, tight $90^\circ$ turns, security gates, and active combat navigation. In this dense environment, a 60 kg obstacle creates excessive linear momentum and sluggish pivoting, making tactical player positioning cumbersome. Calibrating the 6 main-scene barricades to 12 kg provides responsive, nimble player maneuvering while retaining sufficient physical mass to firmly block entity movement and maintain stable continuous collision response against facility walls.
+
+### Q7: How does the procedural weapon-wall obstruction controller prevent clipping without affecting shooting accuracy?
+> **Answer**: [`FpsViewModelObstruction.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/FpsViewModelObstruction.cs) governs only the local visual transform offsets (`localPosition` and `localRotation`) of the `equippedVisual` GameObject parented under the camera. Hitscan weapon firing in [`FacilityBreachRuntime.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/FacilityBreachRuntime.cs) originates strictly from the camera world position (`view.transform.position`) along the camera forward aim vector (`view.transform.forward`). Because crosshair aiming and ballistics are completely decoupled from the cosmetic viewmodel pose, smoothly sliding the weapon backward and pitching it downward in close-quarters combat eliminates wall clipping while ensuring bullets always hit the true crosshair center without angular deviation.
+
+---
+
+## 11. Post-Merge Supplementary Visual Enhancement: Procedural Weapon-Wall Obstruction Controller (`FpsViewModelObstruction`)
+
+> [!NOTE]
+> **Academic & Scope Disclosure**:
+> The procedural weapon-wall obstruction controller is an isolated visual polish enhancement developed on feature branch `gv/IT24102587-fps-viewmodel-obstruction` (branched from `develop` at merge commit `4ac6a2f`). This enhancement is strictly supplementary and separate from the core GV Part 2 assignment deliverables merged in PR #9 and PR #11.
+
+### 11.1 Problem Analysis: First-Person Weapon Wall-Clipping in CQB
+In first-person shooter architectures, the equipped firearm model is typically parented directly to the player camera. When navigating tight indoor corridors or pressing against cover, the authored length of long-barrel firearms (such as `Ammo3gun`, where the muzzle extends $0.67\text{m}$ ahead of the viewmodel origin) inevitably penetrates through static environment geometry (walls, door panels, crates). This causes distracting visual artifacts where barrels stick through solid walls.
+
+### 11.2 Architectural Design & Kinematic Model
+To resolve clipping cleanly without altering camera near clip planes or modifying weapon prefab meshes, [`FpsViewModelObstruction.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/FpsViewModelObstruction.cs) introduces an isolated, procedural response:
+
+1. **Volumetric Proximity Query**:
+   - Each frame in `LateUpdate()`, a forward `Physics.SphereCastAll` ($r = 0.08\text{m}$) probes the corridor along the camera forward vector up to $\text{weaponReach} + \text{forwardCushion}$ ($0.08\text{m}$).
+   - A direct `Physics.RaycastAll` fallback ensures acute wall corners and high-angle obstacles are detected point-blank.
+2. **Dynamic Reach Calibration Per Weapon**:
+   - On [`Initialize()`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/FpsViewModelObstruction.cs#L78-L106), the component queries the authored `Muzzle` transform in camera local coordinates:
+     $$\text{weaponReach} = \max(0.70\text{m},\; \mathbf{p}_{\text{muzzle},\, \text{cam}}.z)$$
+   - Short rifles (`Ammo1gun`), medium carbines (`Ammo2gun`), and long rifles (`Ammo3gun`) automatically calibrate their reach envelope without hardcoded values.
+3. **Rigorous Obstacle Validation**:
+   - `IsValidObstacle(Collider col)` explicitly excludes:
+     - Player character colliders (`col.transform.IsChildOf(playerRoot)`)
+     - Weapon visual colliders (`col.transform.IsChildOf(weaponTransform)`)
+     - Trigger volumes (`col.isTrigger`)
+     - Resource station interaction consoles (`col.GetComponentInParent<ResourceStation>()`)
+     - Actively carried barricades ([`MovableBarricade.IsHeld`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/InteractiveDoor.cs))
+4. **Analytical Target Pose Calculation**:
+   - Given closest obstacle distance $d$:
+     $$\text{penetration} = (\text{weaponReach} + \text{forwardCushion}) - d$$
+     $$t = \text{Clamp01}\left(\frac{\text{penetration}}{\text{weaponReach} + \text{forwardCushion} - \text{minClearance}}\right)$$
+   - Procedural offsets:
+     $$\Delta z = -\min(\text{penetration} \cdot 0.75,\; 0.28\text{m})$$
+     $$\Delta y = -t \cdot 0.16\text{m}$$
+     $$\theta_{\text{pitch}} = t \cdot 32^\circ, \quad \theta_{\text{yaw}} = -t \cdot 8^\circ$$
+   - The weapon slides backward, lowers, and tilts down into a natural compressed low-ready stance.
+   - Retraction bounds maintain $z \ge 0.22\text{m}$, remaining well ahead of the camera near clip plane ($0.05\text{m}$) to prevent weapon model geometry from clipping into the camera viewport.
+5. **Decoupled Ballistics & Zero Aim Deflection**:
+   - Hitscan firing in `FacilityBreachRuntime.cs` originates from the camera center ray, completely independent of the visual model's pose. Players retain full crosshair aiming accuracy regardless of weapon retraction.
+
+### 11.3 Runtime Integration & Compatibility
+Integrated via a 3-line hook inside [`FacilityBreachRuntime.UpdateWeaponVisual()`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/FacilityBreachRuntime.cs#L184-L189):
+```csharp
+var obstruction = view.GetComponent<FpsViewModelObstruction>();
+if (!obstruction) obstruction = view.gameObject.AddComponent<FpsViewModelObstruction>();
+obstruction.Initialize(view, player ? player.transform : null, equippedVisual.transform, muzzle);
+```
+- Re-initializes automatically upon initial startup and whenever a weapon swap occurs at a weapon resource station.
+- Verified across 24 automated unit tests ([`FpsViewModelObstructionTests.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Editor/FacilityBreach/FpsViewModelObstructionTests.cs)) and live manual play mode sessions in `Prototype.unity`.

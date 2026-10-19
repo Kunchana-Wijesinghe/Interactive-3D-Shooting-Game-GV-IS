@@ -4,8 +4,8 @@
 **Student ID:** IT24102587  
 **Module:** SE3032 - Graphics and Visualization (GV)  
 **Assigned Role:** Part 2: Systems Engineer (Player Interaction Physics)  
-**Git Branch (Merged Baseline):** `gv/Kunchana-interactions` (merged into `develop` via PR #9, commit `fd94efe`)<br/>
-**Current Working Feature Branch:** `gv/IT24102587-main-barricade-interaction` (local uncommitted working branch)<br/>
+**Git Branch (Merged Baseline):** `develop` (integrated via GV PR #9 commit `fd94efe` and PR #11 commit `4ac6a2f`)<br/>
+**Current Working Feature Branch:** `gv/IT24102587-fps-viewmodel-obstruction`<br/>
 **Target Unity Version:** Unity 6000.6.2f1 (URP / 3D)<br/>
 **Repository:** `Interactive-3D-Shooting-Game-GV-IS` (Private)
 
@@ -232,14 +232,87 @@ Executed in Unity 6000.6.2f1 headless batch mode with **ExitCode 0**:
 
 #### Git Status & Integrity
 - Feature work committed under [`8d7b3dc`](https://github.com/Kunchana-Wijesinghe/Interactive-3D-Shooting-Game-GV-IS/commit/8d7b3dcf3975a91086218004c57989c3fc477c69) on branch `gv/IT24102587-main-barricade-interaction`.
-- Pushed to remote and submitted as GitHub Pull Request #11 targeting `develop`.
-- Protected recovery directories (`Assets/_Recovery/`), package settings, `stash@{0}`, and test logs are preserved untouched.
+- Pushed to remote and successfully merged into `develop` as GitHub Pull Request #11 at merge commit [`4ac6a2f`](https://github.com/Kunchana-Wijesinghe/Interactive-3D-Shooting-Game-GV-IS/commit/4ac6a2f8d8311b1a0f88debc3c00bdb4b84c6e3f).
+- Protected recovery directories (`Assets/_Recovery/`), package settings, `stash@{0}`, and test logs preserved untouched.
+
+---
+
+### Feature Entry 4: Post-Merge FPS Viewmodel Wall-Clipping Prevention & Visual Polish
+- **Date:** 2026-10-19
+- **Feature Name:** Procedural First-Person Viewmodel Obstruction Controller & Close-Quarters Wall-Clipping Prevention
+- **Working Feature Branch:** `gv/IT24102587-fps-viewmodel-obstruction` (branch based off `develop` merge commit `4ac6a2f`)
+- **Files Created / Changed:**
+  - `Assets/Scripts/FacilityBreach/FpsViewModelObstruction.cs` (created procedural viewmodel wall-obstruction component)
+  - `Assets/Scripts/FacilityBreach/FpsViewModelObstruction.cs.meta` (created asset metadata)
+  - `Assets/Editor/FacilityBreach/FpsViewModelObstructionTests.cs` (created 24-check Edit Mode test suite)
+  - `Assets/Editor/FacilityBreach/FpsViewModelObstructionTests.cs.meta` (created asset metadata)
+  - `Assets/Scripts/FacilityBreach/FacilityBreachRuntime.cs` (modified: hooked 3-line initialization in `UpdateWeaponVisual()`)
+
+#### Architectural Scope & Distinction
+- **Post-Merge Polish Distinction**: GV Part 2 deliverables (interactive doors, movable barricades, centralized interaction arbitration) were finalized and merged into `develop` in PR #11 (`4ac6a2f`). This entry records an isolated post-merge visual polish feature that prevents first-person firearm meshes from protruding through solid wall geometry during close-quarters combat (CQB), without modifying existing weapon prefabs, camera near-clip planes, or core interaction systems.
+
+#### Physics & Procedural Mechanics
+- **Proximity Detection**: In `LateUpdate()`, executes a forward volumetric `Physics.SphereCastAll` ($r = 0.08\text{m}$) from the camera position along the forward look vector up to $\text{weaponReach} + \text{forwardCushion}$ ($0.08\text{m}$). A point-blank `Physics.RaycastAll` fallback ensures detection against razor-sharp acute wall corners.
+- **Dynamic Reach Calibration**: On `Initialize()`, inspects the authored `Muzzle` transform in camera local coordinates:
+  $$\text{weaponReach} = \max(0.70\text{m},\; \mathbf{p}_{\text{muzzle},\, \text{cam}}.z)$$
+  Automatically calibrates reach across all three player weapons: `Ammo1gun` ($0.70\text{m}$), `Ammo2gun` ($0.75\text{m}$), and `Ammo3gun` ($0.87\text{m}$).
+- **Environment & Surface Filtering**:
+  - Excludes the player capsule collider (`col.transform.IsChildOf(playerRoot)`).
+  - Excludes viewmodel colliders (`col.transform.IsChildOf(weaponTransform)`).
+  - Excludes trigger volumes (`col.isTrigger`).
+  - Excludes resource stations (`col.GetComponentInParent<ResourceStation>()`).
+  - Excludes actively carried barricades (`MovableBarricade.IsHeld`).
+- **Tactical Low-Ready Posing**:
+  - Analytically computes target viewmodel local offsets: slides backward along local Z (max $0.28\text{m}$), lowers along local Y (max $0.16\text{m}$), pitches downward (max $32^\circ$), and yaws inward (max $8^\circ$).
+  - Smoothly interpolates transform using `Vector3.Lerp` and `Quaternion.Slerp` (`smoothSpeed = 14f`).
+  - Retraction envelope enforces $z \ge 0.22\text{m}$, maintaining a safe distance outside the camera near clip plane ($0.05\text{m}$).
+- **Decoupled Aim & Shooting Continuity**:
+  - Hitscan firing in `FacilityBreachRuntime.cs` originates from the camera center ray (`view.transform.position` along `view.transform.forward`).
+  - Tilting and retracting the cosmetic visual model does NOT deflect bullets or crosshair aiming, ensuring 100% shooting continuity and accuracy.
+
+#### Manual Unity Play Mode Gameplay Verification (2026-10-19)
+The user manually verified live gameplay in `Prototype.unity` on 2026-10-19 across five distinct interaction scenarios:
+1. **Wall Proximity Retraction**: **MANUAL PASS** — Walking point-blank to facility walls smoothly tucks the weapon backward and downward; zero barrel mesh penetration into walls.
+2. **Wall Clearance Restoration**: **MANUAL PASS** — Backing away from walls into open space smoothly restores the weapon viewmodel to its default authored hip-fire posture.
+3. **Weapon Swap Compatibility**: **MANUAL PASS** — Swapping between `Ammo1gun` and `Ammo3gun` at weapon stations dynamically recalibrates obstruction reach; wall tucking adapts properly to both short and long barrels.
+4. **Shooting Continuity Near Walls**: **MANUAL PASS** — Firing while close to walls correctly targets the crosshair center without deflection; muzzle remains outside wall geometry.
+5. **Door E-Key Interaction Compatibility**: **MANUAL PASS** — Approaching and interacting with closed doors opens and closes them cleanly via centralized dispatcher; viewmodel does not trigger unwanted tuck against door frames.
+
+#### Automated Test Suite Verification (208 Total Checks)
+Executed in Unity 6000.6.2f1 headless batch mode with **ExitCode 0**:
+- **FPS Viewmodel Obstruction Suite** (`FpsViewModelObstructionTests.cs`):
+  - **24 checks: 24 PASSED, 0 FAILED** (`scratch/obstruction_tests.log`).
+  - Covers default pose retention, proximity retraction/lowering, nearClipPlane margin safety, reach adaptation across all 3 weapons, obstacle filters (player, weapon, triggers, stations, held barricades), weapon swap pose reset, and live physics obstacle queries.
+- **Combined Facility Breach Regression Suite**:
+  - `FacilityInteractionDispatcherTests`: 43 PASSED, 0 FAILED
+  - `PatrolGuardObstacleTests`: 46 PASSED, 0 FAILED
+  - `PatrolGuardAStarTests`: 37 PASSED, 0 FAILED
+  - `PatrolGuardReturnTests`: 36 PASSED, 0 FAILED
+  - `PatrolGuardSearchTests`: 22 PASSED, 0 FAILED
+  - `FpsViewModelObstructionTests`: 24 PASSED, 0 FAILED
+  - **Master Regression Total: 208/208 PASSED, 0 FAILED (100% Green)**.
+
+#### Evidence & Screenshots (Captures 20–25)
+All six new visual captures reside in [`docs/individual/evidence/IT24102587 GV evidence/`](evidence/IT24102587%20GV%20evidence/):
+- [`20_GV_FPS_Door_Interaction.png`](evidence/IT24102587%20GV%20evidence/20_GV_FPS_Door_Interaction.png): Close door interaction prompt `E: Open door` with equipped Ammo3gun in view without clipping (1145x626).
+- [`21_GV_FPS_Weapon_Wall_Retracted.png`](evidence/IT24102587%20GV%20evidence/21_GV_FPS_Weapon_Wall_Retracted.png): Ammo3gun retracted backward and lowered into tactical low-ready stance against wall (1193x705).
+- [`22_GV_FPS_Weapon_Wall_Closeup.png`](evidence/IT24102587%20GV%20evidence/22_GV_FPS_Weapon_Wall_Closeup.png): Extreme close-up low-ready stance; barrel safely tucked behind wall plane with zero mesh penetration (1192x770).
+- [`23_GV_FPS_Weapon_Swap_Retraction.png`](evidence/IT24102587%20GV%20evidence/23_GV_FPS_Weapon_Swap_Retraction.png): Weapon swap re-test at wall, confirming dynamic reach calibration and low-ready retraction for Ammo3gun (1147x690).
+- [`24_GV_FPS_Weapon_Normal.png`](evidence/IT24102587%20GV%20evidence/24_GV_FPS_Weapon_Normal.png): Player equipped with Ammo1gun in open corridor, showing viewmodel restored to normal hip-fire posture (1186x700).
+- [`25_GV_FPS_Door_Prompt.png`](evidence/IT24102587%20GV%20evidence/25_GV_FPS_Door_Prompt.png): Pause menu and gameplay background showing player facing red door with `E: Open door` prompt and Ammo3gun visible (1170x641).
+
+> [!NOTE]
+> **Static Visual Disclosure**: Static screenshots corroborate captured weapon poses and UI text at specific moments. Dynamic motion smoothness, obstacle detection speed, and bullet hit accuracy were confirmed through manual play-mode testing and 208 automated regression checks.
+
+#### Git Status & Integrity
+- Feature work authored on branch `gv/IT24102587-fps-viewmodel-obstruction`.
+- Protected recovery directories (`Assets/_Recovery/`), package settings, `stash@{0}`, and test logs preserved untouched.
 - `git diff --check` passes with zero whitespace or line-ending warnings.
 
 ---
 
 ## 3. Future Roadmap (GV Part 2)
 1. **AI Navigation Carving**: Attach `NavMeshObstacle` components with runtime carving to doors and movable barricades to dynamically reshape NavMesh pathways when objects are opened, closed, or maneuvered to block pathways. *(Completed: Integrated via `DynamicNavigationObstacles.cs` and verified by 141 Patrol Guard regression checks).*
-2. **Full Scene Integration**: Integrate tested interactive doors and movable barricades into `Prototype.unity` and main facility corridors with centralized arbitration. *(Completed: Centralized `FacilityInteractionDispatcher` deployed, 6 barricades configured in `Prototype.unity`, and verified via manual Play Mode testing).*
-3. **Audio & Visual Polish**: Add particle dust effects and scraping audio clips when sliding heavy metal/wood barricades across concrete floors.
-4. **Final Submission & Evidence Capture**: Capture high-resolution viewport screenshots of main-scene `Prototype.unity` barricade interactions, perform final peer review, and submit pull request to `develop`. *(Completed: 12 main-scene screenshots captured into `docs/individual/evidence/IT24102587 GV evidence/` (totaling 19 captures), verified, and PR #11 opened).*
+2. **Full Scene Integration**: Integrate tested interactive doors and movable barricades into `Prototype.unity` and main facility corridors with centralized arbitration. *(Completed: Centralized `FacilityInteractionDispatcher` deployed, 6 barricades configured in `Prototype.unity`, and verified via manual Play Mode testing; merged in PR #11).*
+3. **First-Person Viewmodel Obstruction Polish**: Prevent weapon model clipping through solid walls in close-quarters combat via procedural low-ready retraction. *(Completed: `FpsViewModelObstruction` implemented, verified across 24 automated checks and 6 visual captures on feature branch `gv/IT24102587-fps-viewmodel-obstruction`).*
+4. **First-Person Tactical Arms/Gloves**: In a future phase, evaluate tactical-gloved hands rigging for the equipped firearm viewmodel to further elevate first-person visual fidelity.
