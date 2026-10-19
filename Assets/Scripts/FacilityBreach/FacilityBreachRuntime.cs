@@ -184,6 +184,9 @@ namespace FacilityBreach
             equippedVisual.transform.localRotation = Quaternion.identity;
             RemoveVisualColliders(equippedVisual);
             foreach (var node in equippedVisual.GetComponentsInChildren<Transform>()) if (node.name == "Muzzle") { muzzle = node; break; }
+            var obstruction = view.GetComponent<FpsViewModelObstruction>();
+            if (!obstruction) obstruction = view.gameObject.AddComponent<FpsViewModelObstruction>();
+            obstruction.Initialize(view, player ? player.transform : null, equippedVisual.transform, muzzle);
         }
         private GameObject Box(string label, Vector3 position, Vector3 scale, Color color)
         {
