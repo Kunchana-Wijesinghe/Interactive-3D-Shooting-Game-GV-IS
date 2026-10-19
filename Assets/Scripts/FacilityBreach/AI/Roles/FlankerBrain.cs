@@ -1,60 +1,74 @@
-using Perera.SoundHunter;
+using FacilityBreach.AI.Roles.Flanking;
+using FacilityBreach.Combat;
 using UnityEngine;
+using UnityEngine.AI;
+
 namespace FacilityBreach.AI.Roles
 {
-    public sealed class FlankerBrain : RoleDecisionBrain
+    // Baseline FL-04 integration retained; Ashen's IS policy/scorer replace its tactical decisions.
+    public sealed class FlankerBrain : RoleDecisionBrain, IEnemyActivitySink
     {
-        public Vector3 FlankGoal { get; private set; }
-        public float FlankAngle { get; private set; }
-        public float FlankRadius { get; private set; }
-        public int Plans { get; private set; }
-        private Vector3 plannedAgainst;
-        private bool planned, attempted;
-        private float plannedAt, searchUntil;
-        protected override void Start() { base.Start(); Combat.Range = 12; }
+        public FlankDecisionPolicy Policy { get; } = new FlankDecisionPolicy();
+        public Vector3 FlankGoal => Policy.HasGoal ? Policy.Goal : Vector3.zero;
+        public float FlankAngle => Policy.Selected?.AngleDegrees ?? 0;
+        public float FlankRadius => Policy.Selected?.TargetDistance ?? 0;
+        public int Plans => Policy.ReplanCount;
+        public int NavigationQueries => environment?.PathQueries ?? 0;
+        private FlankUnityEnvironment environment;
+        private int tracedPlan;
+
+        protected override void Start()
+        {
+            base.Start(); Combat.Range = 12;
+            environment = new FlankUnityEnvironment(transform, GetComponent<NavMeshAgent>());
+        }
         protected override void BeforePerception()
-        { if (HasLastKnown && Mover.Status == MoveStatus.Arrived) FaceRememberedPosition(); }
+        {
+            if (Policy.HasObservation && Mover.Status == Perera.SoundHunter.MoveStatus.Arrived)
+                Mover.FacePoint(Policy.ObservedTarget);
+        }
         protected override void Decide(float now)
         {
-            if (SeesPlayer)
+            environment.BeginDecision(SeesPlayer, SightRange, FieldOfView);
+            var command = Policy.Step(now, transform.position, SeesPlayer, LastKnownPosition,
+                Mover.Status, environment, Post);
+            if (!Policy.HasObservation && !SeesPlayer) HasLastKnown = false;
+            var state = Policy.Phase == FlankPhase.Combat ? RoleState.Combat :
+                Policy.Phase == FlankPhase.Flanking ? RoleState.Flank :
+                Policy.Phase == FlankPhase.Searching ? RoleState.Search :
+                Policy.Phase == FlankPhase.Returning ? RoleState.Return : RoleState.Patrol;
+            SetState(state);
+            if (command.Action != FlankAction.Attack) Combat.CancelPendingAttack();
+            switch (command.Action)
             {
-                if (!attempted || (now - plannedAt >= 2 && Vector3.Distance(LastKnownPosition, plannedAgainst) > 4)) Plan(now);
-                if (planned)
-                {
-                    SetState(RoleState.Flank); Mover.RequestMove(FlankGoal, .6f);
-                    if (Mover.Status == MoveStatus.Arrived)
-                    { SetState(RoleState.Combat); Combat.TryAttack(Runtime.PlayerTransform); }
-                    else Combat.CancelPendingAttack();
-                }
-                else { Mover.Stop(); Combat.CancelPendingAttack(); }
-                return;
+                case FlankAction.Move:
+                case FlankAction.Return:
+                    if (command.NewGoal) Mover.Stop();
+                    Mover.RequestMove(command.Goal, .6f);
+                    break;
+                case FlankAction.Attack:
+                    Mover.FacePoint(Policy.ObservedTarget);
+                    if (SeesPlayer) Combat.TryAttack(Runtime.PlayerTransform);
+                    break;
+                case FlankAction.Scan:
+                    Mover.Stop(); Mover.Scan(); break;
+                default:
+                    Mover.Stop();
+                    if (SeesPlayer) Mover.FacePoint(Policy.ObservedTarget);
+                    break;
             }
-            Combat.CancelPendingAttack();
-            if (!HasLastKnown) { Mover.Stop(); SetState(RoleState.Patrol); return; }
-            if (now - LastSeenTime < 3) { if (planned) Mover.RequestMove(FlankGoal, .6f); return; }
-            if (State != RoleState.Search && State != RoleState.Return) { Mover.Stop(); searchUntil = now + 4; SetState(RoleState.Search); }
-            if (State == RoleState.Search) { Mover.Scan(); if (now < searchUntil) return; }
-            ReturnToPost(); if (State == RoleState.Patrol) { planned = attempted = false; }
-        }
-        private void Plan(float now)
-        {
-            attempted = true; plannedAt = now; plannedAgainst = LastKnownPosition; Plans++; planned = false;
-            Vector3 direct = LastKnownPosition - transform.position; direct.y = 0;
-            if (direct.sqrMagnitude < .01f) direct = transform.forward;
-            float best = float.PositiveInfinity;
-            foreach (float radius in new[] { 3f, 6f, 9f }) foreach (float angle in new[] { -60f, 60f, -90f, 90f, -120f, 120f })
+            if (tracedPlan != Plans)
             {
-                Vector3 offset = Quaternion.AngleAxis(angle, Vector3.up) * direct.normalized * radius;
-                if (!Reachable(LastKnownPosition + offset, out var candidate, out float length) || length > 30) continue;
-                Vector3 toGoal = candidate - transform.position; toGoal.y = 0;
-                float deviation = Vector3.Angle(direct, toGoal);
-                float candidateRadius = Vector3.Distance(new Vector3(candidate.x, 0, candidate.z), new Vector3(LastKnownPosition.x, 0, LastKnownPosition.z));
-                if (deviation < 50 || candidateRadius < 3 || candidateRadius > 9) continue;
-                if (length < best) { best = length; FlankGoal = candidate; FlankAngle = deviation; FlankRadius = candidateRadius; planned = true; }
+                tracedPlan = Plans;
+                GameplayDiagnostics.Trace($"FL IS plan={Plans} phase={Policy.Phase} goal={FlankGoal} {Policy.Selected?.Score.ToString()} reason={Policy.Reason}", this);
             }
-            if (planned) Mover.Stop();
-            GameplayDiagnostics.Trace($"FL plan={Plans} reachable={planned} goal={FlankGoal} angle={FlankAngle} radius={FlankRadius}", this);
         }
-        public override void ResetEnemyActions() { base.ResetEnemyActions(); planned = attempted = false; plannedAt = searchUntil = 0; Plans = 0; plannedAgainst = FlankGoal = default; }
+        void IEnemyActivitySink.SetEnemyActive(bool value)
+        { base.SetEnemyActive(value); if (!value) { Policy.Deactivate(); tracedPlan = 0; } }
+        void IEnemyActivitySink.ResetEnemyActions() => ResetEnemyActions();
+        public override void ResetEnemyActions()
+        { base.ResetEnemyActions(); Policy.Reset(); tracedPlan = 0; }
+        protected override void OnDisable()
+        { base.OnDisable(); Policy.Deactivate(); HasLastKnown = SeesPlayer = false; tracedPlan = 0; }
     }
 }
