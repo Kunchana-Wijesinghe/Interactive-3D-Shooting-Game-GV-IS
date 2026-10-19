@@ -5,9 +5,9 @@
 **Degree Programme:** BSc (Hons) in Information Technology Specialising in Software Engineering<br/>
 **Module:** SE3032 — Graphics and Visualization (GV)<br/>
 **Assigned Role:** Part 2: Systems Engineer (Player Interaction Physics, Collision Handling & Environment Mechanics)<br/>
-**Merged Baseline Branch:** `develop` (integrated via GV PR #9 commit `fd94efe` and PR #11 commit `4ac6a2f`)<br/>
-**Active Feature Branch:** `gv/IT24102587-fps-viewmodel-obstruction` (branch based on `develop` commit `4ac6a2f`)<br/>
-**Latest Synchronized Base Commit:** `4ac6a2f` (`Merge pull request #11 from Kunchana-Wijesinghe/gv/IT24102587-main-barricade-interaction`)<br/>
+**Merged Baseline Branch:** `develop` (integrated via GV PR #9 commit `fd94efe`, PR #11 commit `4ac6a2f`, and PR #12 commit `caa133e`)<br/>
+**Active Feature Branch:** `gv/IT24102587-fps-tactical-arms` (branch based on `develop` commit `caa133e`)<br/>
+**Latest Synchronized Base Commit:** `caa133e` (`Merge pull request #12 from Kunchana-Wijesinghe/gv/IT24102587-fps-viewmodel-obstruction`)<br/>
 **Target Unity Version:** Unity 6000.6.2f1 (URP / 3D, C# .NET Standard 2.1)<br/>
 **Repository:** `Interactive-3D-Shooting-Game-GV-IS` (Private)
 
@@ -757,3 +757,55 @@ obstruction.Initialize(view, player ? player.transform : null, equippedVisual.tr
 ```
 - Re-initializes automatically upon initial startup and whenever a weapon swap occurs at a weapon resource station.
 - Verified across 24 automated unit tests ([`FpsViewModelObstructionTests.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Editor/FacilityBreach/FpsViewModelObstructionTests.cs)) and live manual play mode sessions in `Prototype.unity`.
+
+---
+
+## 12. Post-Merge Supplementary Visual Enhancement: First-Person Tactical Arms Integration (`FpsArmsPrefabBuilder` & `FpsArmsTests`)
+
+> [!NOTE]
+> **Academic & Scope Disclosure**:
+> The first-person tactical arms integration is an isolated visual enhancement authored on feature branch `gv/IT24102587-fps-tactical-arms` (branched from `develop` at base commit `caa133e`). This feature builds upon the procedural obstruction controller (PR #12) by embedding realistic tactical-gloved hands and forearms onto the three equipped weapon viewmodels, with zero modifications to gameplay, player locomotion, shooting mechanics, or camera parameters.
+
+### 12.1 Problem Analysis: Viewmodel Visual Fidelity & Hand Placement
+In the merged baseline, equipped firearms (`Ammo1gun`, `Ammo2gun`, `Ammo3gun`) were displayed floating in first-person view without hands or forearms. While functionally complete, adding a realistic pair of tactical-gloved hands holding each firearm significantly enhances first-person immersion, tactical readability, and visual feedback during movement and obstruction retraction.
+
+### 12.2 Asset Attribution & Licensing
+- **Model Asset:** "First Person arms" by **DJMaesen** sourced from Sketchfab.
+- **License:** Creative Commons Attribution (CC BY 4.0).
+- **Attribution Document:** Formally documented in [`docs/individual/ATTRIBUTION_FPS_ARMS.md`](ATTRIBUTION_FPS_ARMS.md), including direct author links, license deeds, and modification manifests.
+- **Source Preservation:** The original downloaded model and textures (`C:\Users\Kunchana Wijesinghe\Downloads\first-person-arms`) remain untouched in external storage.
+
+### 12.3 PBR Material & Tactical Texture Derivation
+1. **Dark Tactical Glove Albedo**:
+   - The source albedo texture (`armColor.png`) featured light skin tones.
+   - For FacilityBreach's black-ops tactical aesthetic, a specialized albedo map (`armColor_TacticalGloves.png`) was authored, tinting exposed skin regions to dark matte charcoal tactical gloves (`#25282A` - `#303438`) while retaining full fabric weave, seams, and occlusion details on the sleeves.
+2. **Standard PBR Material**:
+   - Built [`FPSArms_Mat.mat`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Materials/FacilityBreach/Arms/FPSArms_Mat.mat) using Unity's Standard PBR Shader with normal map (`armnormal.png`), ambient occlusion (`armAO.png`), and smooth matte tactical finish.
+
+### 12.4 Viewmodel Integration, Kinematic Stance & Physical Sockets
+1. **Automated Prefab Assembly ([`FpsArmsPrefabBuilder.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Editor/FacilityBreach/FpsArmsPrefabBuilder.cs))**:
+   - The builder tool programmatically configures the base arms prefab (`FPSArms_ViewModel.prefab`) and embeds it as a child under all three weapon viewmodel prefabs (`Ammo1gun_ViewModel`, `Ammo2gun_ViewModel`, `Ammo3gun_ViewModel`).
+   - Ensures strictly zero `Collider` components and zero `Camera` components exist across the entire viewmodel hierarchy, eliminating any physics interference with character navigation, triggers, or door panels.
+2. **Kinematic Bladed Stance & Hand Sockets**:
+   - **Right Firing Hand**: Aligned directly with the firearm's `GripAttachment` socket. Wrists and fingers are wrapped firmly around the pistol grip, with the index finger resting in a trigger-ready pose along the receiver frame.
+   - **Left Support Hand**: Aligned with the forward `SupportHand` socket. Fingers are posed cupping the underside of the forward handguard.
+   - **Forearm Entry Angles**: Chest pitched slightly forward with a $22^\circ$ bladed rifle stance. Forearms enter cleanly from the lower screen borders without awkward distortion.
+3. **Approved Baseline Framing**:
+   - Configured via `ViewModelFramingOffset = new Vector3(0.010f, -0.050f, 0.000f)`.
+   - Positions the weapon comfortably in the lower-center-right viewport area ($X \in [0.57, 0.70]$), preserving wide open vision across the center and left of the screen.
+   - Maintains $> 0.10$ vertical viewport clearance below the tactical green crosshair at `(0.50, 0.50)`.
+   - Maintains $> 0.30\text{m}$ distance from the camera lens, well outside `view.nearClipPlane = 0.05m`.
+
+### 12.5 Procedural Obstruction Retraction Compatibility
+Because `FPSArms` is parented directly under the viewmodel root, [`FpsViewModelObstruction.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/FpsViewModelObstruction.cs) modulates both the firearm and arms simultaneously:
+- When approaching walls point-blank, the entire gun-and-arms assembly retracts smoothly backward and downward into a compressed low-ready stance.
+- Dynamic spherecast obstacle detection and distance tracking function identically with zero interference.
+
+### 12.6 Evidence Captures (Screenshots 26–28)
+Located in [`docs/individual/evidence/IT24102587 GV evidence/`](evidence/IT24102587%20GV%20evidence/):
+- [`26_GV_FPS_Tactical_Arms_Final.png`](evidence/IT24102587%20GV%20evidence/26_GV_FPS_Tactical_Arms_Final.png): User-approved tactical arms first-person framing with equipped Ammo1gun in standard holding pose; both hands naturally gripping sockets, crosshair clear.
+- [`27_GV_FPS_Tactical_Arms_Wall_Retraction.png`](evidence/IT24102587%20GV%20evidence/27_GV_FPS_Tactical_Arms_Wall_Retraction.png): Combined gun-and-arms assembly smoothly retracted into low-ready stance when pressed against solid facility wall.
+- [`28_GV_FPS_Tactical_Arms_Ammo3gun.png`](evidence/IT24102587%20GV%20evidence/28_GV_FPS_Tactical_Arms_Ammo3gun.png): Long-rifle Ammo3gun equipped with tactical arms, confirming proper handguard support and grip alignment across weapon variants.
+
+> [!NOTE]
+> **Static Visual Disclosure**: Screenshots 26–28 demonstrate the user-approved static weapon framing and holding pose in Unity Play Mode. They do not claim skeletal animation playback or continuous weapon-switch interpolation.

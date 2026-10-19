@@ -311,8 +311,81 @@ All six new visual captures reside in [`docs/individual/evidence/IT24102587 GV e
 
 ---
 
+### Feature Entry 5: Supplementary FPS Tactical-Gloved Arms Integration & Physical Socket Rigging
+- **Date:** 2026-10-20
+- **Feature Name:** Supplementary First-Person Tactical-Gloved Arms Integration & Physical Socket Rigging
+- **Working Feature Branch:** `gv/IT24102587-fps-tactical-arms` (branch based off `develop` commit `caa133e`)
+- **Files Created / Changed:**
+  - `Assets/Editor/FacilityBreach/FpsArmsPrefabBuilder.cs` (created automated builder script for materials, prefabs, and weapon embedding)
+  - `Assets/Editor/FacilityBreach/FpsArmsPrefabBuilder.cs.meta` (created asset metadata)
+  - `Assets/Editor/FacilityBreach/FpsArmsTests.cs` (created 80-check comprehensive test suite)
+  - `Assets/Editor/FacilityBreach/FpsArmsTests.cs.meta` (created asset metadata)
+  - `Assets/Materials/FacilityBreach/Arms/FPSArms_Mat.mat` (created Standard PBR material)
+  - `Assets/Materials/FacilityBreach/Arms/FPSArms_Mat.mat.meta` (created asset metadata)
+  - `Assets/Models/FacilityBreach/Arms/fpsarms.fbx` (imported Sketchfab arms mesh)
+  - `Assets/Models/FacilityBreach/Arms/fpsarms.fbx.meta` (created asset metadata)
+  - `Assets/Prefabs/FacilityBreach/Arms/FPSArms_ViewModel.prefab` (created base arms prefab)
+  - `Assets/Prefabs/FacilityBreach/Arms/FPSArms_ViewModel.prefab.meta` (created asset metadata)
+  - `Assets/Prefabs/FacilityBreach/Weapons/Ammo1gun_ViewModel.prefab` (modified: integrated socket-aligned FPSArms child)
+  - `Assets/Prefabs/FacilityBreach/Weapons/Ammo2gun_ViewModel.prefab` (modified: integrated socket-aligned FPSArms child)
+  - `Assets/Prefabs/FacilityBreach/Weapons/Ammo3gun_ViewModel.prefab` (modified: integrated socket-aligned FPSArms child)
+  - `Assets/Textures/FacilityBreach/Arms/` (imported PBR texture maps and authored tactical albedo)
+  - `docs/individual/ATTRIBUTION_FPS_ARMS.md` (created 3D asset CC BY 4.0 license documentation)
+  - `docs/individual/evidence/IT24102587 GV evidence/26_GV_FPS_Tactical_Arms_Final.png` (verified approved baseline capture)
+  - `docs/individual/evidence/IT24102587 GV evidence/27_GV_FPS_Tactical_Arms_Wall_Retraction.png` (verified low-ready retraction capture)
+  - `docs/individual/evidence/IT24102587 GV evidence/28_GV_FPS_Tactical_Arms_Ammo3gun.png` (verified Ammo3gun tactical arms capture)
+
+#### Architectural Scope & Distinction
+- **Post-Merge Enhancement**: Developed on branch `gv/IT24102587-fps-tactical-arms`. Embeds high-fidelity tactical-gloved hands and forearms into all three weapon viewmodels, physically aligned with `GripAttachment` and `SupportHand` sockets.
+- **Physics & Gameplay Invariance**: Strictly zero colliders and zero cameras across all viewmodels. Does not modify player locomotion, shooting ballistics, interaction triggering, or obstruction physics.
+
+#### Kinematics, PBR Texturing & Approved Framing
+- **Asset Attribution**: Model by DJMaesen licensed under CC BY 4.0, documented in [`docs/individual/ATTRIBUTION_FPS_ARMS.md`](ATTRIBUTION_FPS_ARMS.md).
+- **Tactical Glove Albedo**: Derived `armColor_TacticalGloves.png` from source albedo, replacing skin tones with dark tactical charcoal (`#25282A` - `#303438`) while preserving original fabric weaves and creases.
+- **Socket Alignment**: Right hand wraps the pistol grip at `GripAttachment` with index finger extended along the lower receiver. Left hand cups the forward handguard under `SupportHand`.
+- **Approved Framing Offset**: Configured via `ViewModelFramingOffset = (0.010f, -0.050f, 0.000f)` in `FpsArmsPrefabBuilder.cs`. Sits in the standard lower-center-right FPS envelope with $> 0.10$ vertical viewport clearance below the crosshair and $> 0.30\text{m}$ distance from camera near clip plane.
+- **Obstruction Retraction Compatibility**: Verified that procedural low-ready wall retraction (`FpsViewModelObstruction.cs`) smoothly lowers and retracts the combined weapon and arms assembly point-blank against walls.
+
+#### Manual Play Mode Verification (2026-10-20)
+- The user manually verified and approved the restored pre-experiment tactical arms appearance in Unity Play Mode:
+  - **Weapon Framing**: **APPROVED** — Standard FPS lower-center-right position; weapon scale and proportion look natural.
+  - **Grip & Hand Alignment**: **APPROVED** — Right hand securely holds pistol grip; left hand cups forward handguard.
+  - **Crosshair Clearance**: **APPROVED** — Crosshair is completely unobstructed.
+  - **Retraction Response**: **APPROVED** — Combined gun-and-arms assembly retracts naturally against walls.
+
+#### Automated Test Suite Verification (288 Total Checks)
+Executed in Unity 6000.6.2f1 headless batch mode with **ExitCode 0**:
+- **FPS Tactical Arms Suite** (`FpsArmsTests.cs`):
+  - **80 checks: 80 PASSED, 0 FAILED** (`scratch/experiment_regr_arms.log`).
+  - Validates texture existence, PBR material keywords, zero colliders/cameras, physical socket alignment across Ammo1gun, Ammo2gun, and Ammo3gun, finger curl joint rotations, and low-ready retraction response.
+- **Combined Facility Breach Regression Suite (7 Suites)**:
+  - `FpsArmsTests`: 80 PASSED, 0 FAILED
+  - `FpsViewModelObstructionTests`: 24 PASSED, 0 FAILED
+  - `FacilityInteractionDispatcherTests`: 43 PASSED, 0 FAILED
+  - `PatrolGuardAStarTests`: 37 PASSED, 0 FAILED
+  - `PatrolGuardSearchTests`: 22 PASSED, 0 FAILED
+  - `PatrolGuardReturnTests`: 36 PASSED, 0 FAILED
+  - `PatrolGuardObstacleTests`: 46 PASSED, 0 FAILED
+  - **Master Regression Total: 288/288 PASSED, 0 FAILED (100% Green)**.
+
+#### Evidence & Screenshots (Captures 26–28)
+Located in [`docs/individual/evidence/IT24102587 GV evidence/`](evidence/IT24102587%20GV%20evidence/):
+- [`26_GV_FPS_Tactical_Arms_Final.png`](evidence/IT24102587%20GV%20evidence/26_GV_FPS_Tactical_Arms_Final.png): User-approved tactical arms first-person framing with equipped Ammo1gun in standard holding pose; both hands naturally gripping sockets, crosshair clear (1187x653).
+- [`27_GV_FPS_Tactical_Arms_Wall_Retraction.png`](evidence/IT24102587%20GV%20evidence/27_GV_FPS_Tactical_Arms_Wall_Retraction.png): Combined gun-and-arms assembly smoothly retracted into low-ready stance when pressed against solid facility wall (1177x647).
+- [`28_GV_FPS_Tactical_Arms_Ammo3gun.png`](evidence/IT24102587%20GV%20evidence/28_GV_FPS_Tactical_Arms_Ammo3gun.png): Long-rifle Ammo3gun equipped with tactical arms, confirming proper handguard support and grip alignment across weapon variants (1183x649).
+
+> [!NOTE]
+> **Static Visual Disclosure**: Screenshots 26–28 demonstrate the user-approved static weapon framing and holding pose in Unity Play Mode. They do not claim skeletal animation playback or continuous weapon-switch interpolation.
+
+#### Git Status & Integrity
+- Feature work authored on branch `gv/IT24102587-fps-tactical-arms`.
+- Protected recovery directories (`Assets/_Recovery/`), package settings, `stash@{0}`, and test logs preserved untouched.
+- `git diff --check` passes with zero whitespace or line-ending warnings.
+
+---
+
 ## 3. Future Roadmap (GV Part 2)
 1. **AI Navigation Carving**: Attach `NavMeshObstacle` components with runtime carving to doors and movable barricades to dynamically reshape NavMesh pathways when objects are opened, closed, or maneuvered to block pathways. *(Completed: Integrated via `DynamicNavigationObstacles.cs` and verified by 141 Patrol Guard regression checks).*
 2. **Full Scene Integration**: Integrate tested interactive doors and movable barricades into `Prototype.unity` and main facility corridors with centralized arbitration. *(Completed: Centralized `FacilityInteractionDispatcher` deployed, 6 barricades configured in `Prototype.unity`, and verified via manual Play Mode testing; merged in PR #11).*
-3. **First-Person Viewmodel Obstruction Polish**: Prevent weapon model clipping through solid walls in close-quarters combat via procedural low-ready retraction. *(Completed: `FpsViewModelObstruction` implemented, verified across 24 automated checks and 6 visual captures on feature branch `gv/IT24102587-fps-viewmodel-obstruction`).*
-4. **First-Person Tactical Arms/Gloves**: In a future phase, evaluate tactical-gloved hands rigging for the equipped firearm viewmodel to further elevate first-person visual fidelity.
+3. **First-Person Viewmodel Obstruction Polish**: Prevent weapon model clipping through solid walls in close-quarters combat via procedural low-ready retraction. *(Completed: `FpsViewModelObstruction` implemented, verified across 24 automated checks and 6 visual captures on feature branch `gv/IT24102587-fps-viewmodel-obstruction`; merged in PR #12).*
+4. **First-Person Tactical Arms/Gloves**: Evaluate tactical-gloved hands rigging for the equipped firearm viewmodel to further elevate first-person visual fidelity. *(Completed: `FpsArmsPrefabBuilder` implemented, CC BY 4.0 model integrated across all 3 weapons, verified across 80 automated checks and screenshots 26–28 on branch `gv/IT24102587-fps-tactical-arms`).*

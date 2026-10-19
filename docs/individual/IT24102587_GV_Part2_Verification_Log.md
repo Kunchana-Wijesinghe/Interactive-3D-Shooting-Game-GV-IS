@@ -379,14 +379,16 @@ Individual PR contributions for Student ID `IT24102587` are cleanly merged and s
   - Merged into `develop` at commit: [`4ac6a2f`](https://github.com/Kunchana-Wijesinghe/Interactive-3D-Shooting-Game-GV-IS/commit/4ac6a2f8d8311b1a0f88debc3c00bdb4b84c6e3f)
 - **Active Post-Merge Feature Branch (FPS Viewmodel Obstruction)**:
   - Branch: `gv/IT24102587-fps-viewmodel-obstruction` (branch based on `develop` commit `4ac6a2f`)
+- **Active Post-Merge Feature Branch (FPS Tactical Arms)**:
+  - Branch: `gv/IT24102587-fps-tactical-arms` (branch based on `develop` commit `caa133e`)
 
 ### 7.2 Commit Ancestry Verification
 ```powershell
 git merge-base --is-ancestor 929b664 origin/develop  # GV Part 2 Tip (PR #9) -> True
 git merge-base --is-ancestor e0e319e origin/develop  # IS Patrol Tip (PR #8) -> True
 git merge-base --is-ancestor c9a0343 origin/develop  # GV Main-Scene Tip (PR #11) -> True
-git rev-parse develop                                # 4ac6a2f8d8311b1a0f88debc3c00bdb4b84c6e3f
-git rev-parse origin/develop                         # 4ac6a2f8d8311b1a0f88debc3c00bdb4b84c6e3f
+git rev-parse develop                                # caa133ee1b370c865ea80981ee9e63f99162127d
+git rev-parse origin/develop                         # caa133ee1b370c865ea80981ee9e63f99162127d
 ```
 
 All three feature branches are verified direct ancestors of `origin/develop`, and local `develop` is fast-forward synchronized with 0 ahead and 0 behind.
@@ -395,7 +397,7 @@ All three feature branches are verified direct ancestors of `origin/develop`, an
 
 ## 8. Evidence Screenshot Asset Inventory
 
-All twenty-five visual captures supporting the GV Part 2 verification reside in [`docs/individual/evidence/IT24102587 GV evidence/`](evidence/IT24102587%20GV%20evidence/) (7 historical test-arena captures, 12 production main-scene captures from PR #11, and 6 post-merge visual polish captures from feature branch `gv/IT24102587-fps-viewmodel-obstruction`):
+All twenty-eight visual captures supporting the GV Part 2 verification reside in [`docs/individual/evidence/IT24102587 GV evidence/`](evidence/IT24102587%20GV%20evidence/) (7 historical test-arena captures, 12 production main-scene captures from PR #11, 6 obstruction polish captures from PR #12, and 3 tactical arms captures from feature branch `gv/IT24102587-fps-tactical-arms`):
 
 | Relative Markdown Path | Visual Description & HUD Readout | Resolution / Size | Git Tracking Status |
 | :--- | :--- | :---: | :---: |
@@ -418,12 +420,15 @@ All twenty-five visual captures supporting the GV Part 2 verification reside in 
 | [`evidence/17_GV_MainScene_Device_Deactivating.png`](evidence/IT24102587%20GV%20evidence/17_GV_MainScene_Device_Deactivating.png) | Central terminal deactivation in progress; countdown progress bar `2.4/5 seconds` | 991x527 / 0.31 MB | Merged (`c9a0343`, PR #11) |
 | [`evidence/18_GV_MainScene_Device_Deactivated.png`](evidence/IT24102587%20GV%20evidence/18_GV_MainScene_Device_Deactivated.png) | Terminal deactivation complete; objective updates to `DEVICE DEACTIVATED — reach the exit` | 988x557 / 0.35 MB | Merged (`c9a0343`, PR #11) |
 | [`evidence/19_GV_MainScene_Mission_Complete.png`](evidence/IT24102587%20GV%20evidence/19_GV_MainScene_Mission_Complete.png) | Extraction reached; dialog displays `MISSION COMPLETE` ($77.3\text{s}$) with single-player notice | 1055x567 / 0.50 MB | Merged (`c9a0343`, PR #11) |
-| [`evidence/20_GV_FPS_Door_Interaction.png`](evidence/IT24102587%20GV%20evidence/20_GV_FPS_Door_Interaction.png) | Door interaction prompt `E: Open door` at close proximity; Ammo3gun visible without clipping | 1145x626 / 0.18 MB | Feature Branch |
-| [`evidence/21_GV_FPS_Weapon_Wall_Retracted.png`](evidence/IT24102587%20GV%20evidence/21_GV_FPS_Weapon_Wall_Retracted.png) | Ammo3gun retracted backward and lowered into tactical low-ready stance against wall | 1193x705 / 0.58 MB | Feature Branch |
-| [`evidence/22_GV_FPS_Weapon_Wall_Closeup.png`](evidence/IT24102587%20GV%20evidence/22_GV_FPS_Weapon_Wall_Closeup.png) | Extreme close-up low-ready stance; barrel safely tucked behind wall plane with zero mesh penetration | 1192x770 / 0.66 MB | Feature Branch |
-| [`evidence/23_GV_FPS_Weapon_Swap_Retraction.png`](evidence/IT24102587%20GV%20evidence/23_GV_FPS_Weapon_Swap_Retraction.png) | Weapon swap re-test at wall, confirming dynamic reach calibration and low-ready retraction for Ammo3gun | 1147x690 / 0.61 MB | Feature Branch |
-| [`evidence/24_GV_FPS_Weapon_Normal.png`](evidence/IT24102587%20GV%20evidence/24_GV_FPS_Weapon_Normal.png) | Player equipped with Ammo1gun in open corridor, showing viewmodel restored to normal hip-fire posture | 1186x700 / 0.56 MB | Feature Branch |
-| [`evidence/25_GV_FPS_Door_Prompt.png`](evidence/IT24102587%20GV%20evidence/25_GV_FPS_Door_Prompt.png) | Pause menu and gameplay background showing player facing red door with `E: Open door` prompt and Ammo3gun visible | 1170x641 / 0.17 MB | Feature Branch |
+| [`evidence/20_GV_FPS_Door_Interaction.png`](evidence/IT24102587%20GV%20evidence/20_GV_FPS_Door_Interaction.png) | Door interaction prompt `E: Open door` at close proximity; Ammo3gun visible without clipping | 1145x626 / 0.18 MB | Merged (`caa133e`, PR #12) |
+| [`evidence/21_GV_FPS_Weapon_Wall_Retracted.png`](evidence/IT24102587%20GV%20evidence/21_GV_FPS_Weapon_Wall_Retracted.png) | Ammo3gun retracted backward and lowered into tactical low-ready stance against wall | 1193x705 / 0.58 MB | Merged (`caa133e`, PR #12) |
+| [`evidence/22_GV_FPS_Weapon_Wall_Closeup.png`](evidence/IT24102587%20GV%20evidence/22_GV_FPS_Weapon_Wall_Closeup.png) | Extreme close-up low-ready stance; barrel safely tucked behind wall plane with zero mesh penetration | 1192x770 / 0.66 MB | Merged (`caa133e`, PR #12) |
+| [`evidence/23_GV_FPS_Weapon_Swap_Retraction.png`](evidence/IT24102587%20GV%20evidence/23_GV_FPS_Weapon_Swap_Retraction.png) | Weapon swap re-test at wall, confirming dynamic reach calibration and low-ready retraction for Ammo3gun | 1147x690 / 0.61 MB | Merged (`caa133e`, PR #12) |
+| [`evidence/24_GV_FPS_Weapon_Normal.png`](evidence/IT24102587%20GV%20evidence/24_GV_FPS_Weapon_Normal.png) | Player equipped with Ammo1gun in open corridor, showing viewmodel restored to normal hip-fire posture | 1186x700 / 0.56 MB | Merged (`caa133e`, PR #12) |
+| [`evidence/25_GV_FPS_Door_Prompt.png`](evidence/IT24102587%20GV%20evidence/25_GV_FPS_Door_Prompt.png) | Pause menu and gameplay background showing player facing red door with `E: Open door` prompt and Ammo3gun visible | 1170x641 / 0.17 MB | Merged (`caa133e`, PR #12) |
+| [`evidence/26_GV_FPS_Tactical_Arms_Final.png`](evidence/IT24102587%20GV%20evidence/26_GV_FPS_Tactical_Arms_Final.png) | User-approved tactical arms first-person framing with equipped Ammo1gun in standard holding pose; both hands naturally gripping sockets, crosshair clear | 1187x653 / 0.27 MB | Feature Branch (`gv/IT24102587-fps-tactical-arms`) |
+| [`evidence/27_GV_FPS_Tactical_Arms_Wall_Retraction.png`](evidence/IT24102587%20GV%20evidence/27_GV_FPS_Tactical_Arms_Wall_Retraction.png) | Combined gun-and-arms assembly smoothly retracted into low-ready stance when pressed against solid facility wall | 1177x647 / 0.44 MB | Feature Branch (`gv/IT24102587-fps-tactical-arms`) |
+| [`evidence/28_GV_FPS_Tactical_Arms_Ammo3gun.png`](evidence/IT24102587%20GV%20evidence/28_GV_FPS_Tactical_Arms_Ammo3gun.png) | Long-rifle Ammo3gun equipped with tactical arms, confirming proper handguard support and grip alignment across weapon variants | 1183x649 / 0.60 MB | Feature Branch (`gv/IT24102587-fps-tactical-arms`) |
 
 ---
 
@@ -436,9 +441,11 @@ All twenty-five visual captures supporting the GV Part 2 verification reside in 
 3. **Preservation of Untracked Workspace Assets**:<br/>
    Local recovery files (`Assets/_Recovery/`, `Assets/_Recovery.meta`), custom project settings (`ProjectSettings/PackageManagerSettings.asset`), the Git stash (`stash@{0}`), and local test result files (`interaction-tests-passed.txt`, `patrol-*-passed.txt`) were preserved intact and never staged, committed, or deleted.
 4. **Feature Branch Status & PR Submission**:<br/>
-   The centralized interaction dispatcher, main-scene barricade integration, and documentation updates were committed under [`8d7b3dc`](https://github.com/Kunchana-Wijesinghe/Interactive-3D-Shooting-Game-GV-IS/commit/8d7b3dcf3975a91086218004c57989c3fc477c69) and [`c9a0343`](https://github.com/Kunchana-Wijesinghe/Interactive-3D-Shooting-Game-GV-IS/commit/c9a03432240bf4d2bd224aa3f35af65606ba3e12) on branch `gv/IT24102587-main-barricade-interaction`, published to remote, and successfully merged into `develop` as Pull Request #11 at commit [`4ac6a2f`](https://github.com/Kunchana-Wijesinghe/Interactive-3D-Shooting-Game-GV-IS/commit/4ac6a2f8d8311b1a0f88debc3c00bdb4b84c6e3f).
-5. **Post-Merge Supplementary Scope Distinction**:<br/>
-   The six new captures (20–25) and procedural viewmodel obstruction component ([`FpsViewModelObstruction.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/FpsViewModelObstruction.cs)) belong to feature branch `gv/IT24102587-fps-viewmodel-obstruction`. They represent an optional visual polish feature developed after PR #11 merge and are not claimed as part of the original PR #11 deliverables. Static screenshots demonstrate instantaneous captured weapon poses and HUD text, not continuous interpolation motion, physical collision resistance, or hitscan bullet trajectory.
+   The centralized interaction dispatcher, main-scene barricade integration, and documentation updates were committed under [`8d7b3dc`](https://github.com/Kunchana-Wijesinghe/Interactive-3D-Shooting-Game-GV-IS/commit/8d7b3dcf3975a91086218004c57989c3fc477c69) and [`c9a0343`](https://github.com/Kunchana-Wijesinghe/Interactive-3D-Shooting-Game-GV-IS/commit/c9a03432240bf4d2bd224aa3f35af65606ba3e12) on branch `gv/IT24102587-main-barricade-interaction`, published to remote, and successfully merged into `develop` as Pull Request #11 at commit [`4ac6a2f`](https://github.com/Kunchana-Wijesinghe/Interactive-3D-Shooting-Game-GV-IS/commit/4ac6a2f8d8311b1a0f88debc3c00bdb4b84c6e3f). PR #12 merged the procedural viewmodel obstruction controller at commit [`caa133e`](https://github.com/Kunchana-Wijesinghe/Interactive-3D-Shooting-Game-GV-IS/commit/caa133ee1b370c865ea80981ee9e63f99162127d).
+5. **Post-Merge Obstruction Scope Distinction**:<br/>
+   Captures (20–25) and procedural viewmodel obstruction component ([`FpsViewModelObstruction.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/FpsViewModelObstruction.cs)) belong to feature branch `gv/IT24102587-fps-viewmodel-obstruction`. They represent an optional visual polish feature merged in PR #12. Static screenshots demonstrate instantaneous captured weapon poses and HUD text, not continuous interpolation motion, physical collision resistance, or hitscan bullet trajectory.
+6. **Post-Merge Tactical Arms Scope & Screenshot Disclosure**:<br/>
+   Captures 26–28 and the tactical arms builder/test suite ([`FpsArmsPrefabBuilder.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Editor/FacilityBreach/FpsArmsPrefabBuilder.cs), [`FpsArmsTests.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Editor/FacilityBreach/FpsArmsTests.cs)) belong to feature branch `gv/IT24102587-fps-tactical-arms`. They represent a supplementary visual enhancement adding tactical-gloved hands to weapon viewmodels without altering underlying gameplay, player movement, or combat ballistics. Static screenshots 26–28 demonstrate the user-approved static weapon framing and holding pose in Unity Play Mode; they do not claim continuous skeletal animation playback or weapon-switch interpolation.
 
 ---
 
@@ -448,9 +455,10 @@ The Graphics and Visualization (GV) — Part 2 Systems Engineer deliverables for
 - **8/8 Historical Gameplay Test Cases**: Evaluated and confirmed in Unity Play Mode on 2026-10-04 in isolated test arenas.
 - **14/14 Production Gameplay Test Cases**: Evaluated and confirmed in Unity Play Mode on 2026-10-18 in `Prototype.unity` (7 core interaction mechanics + 7 facility mission progression phases).
 - **5/5 Post-Merge Weapon Obstruction Manual Gameplay Test Cases**: Evaluated and confirmed in Unity Play Mode on 2026-10-19 in `Prototype.unity`.
-- **208/208 Automated Regression Checks**: Confirmed via Unity Edit Mode batch runs (24 viewmodel obstruction tests + 43 interaction arbitration tests + 141 patrol guard AI tests), 100% passing.
-- **25/25 Evidence Screenshots**: Tracked and verified on disk in `docs/individual/evidence/IT24102587 GV evidence/` (7 historical test arena captures + 12 production facility Play Mode captures + 6 post-merge visual polish captures).
-- **Zero C# Compilation Errors**: Confirmed via Unity 6000.6.2f1 headless batch mode on `develop` (`4ac6a2f`) and `gv/IT24102587-fps-viewmodel-obstruction`.
-- **Clean GitHub Integration**: PR #8 (IS), PR #9 (GV), and PR #11 (GV Main-Scene) are merged into `develop` (`4ac6a2f`), with post-merge visual polish verified on `gv/IT24102587-fps-viewmodel-obstruction`.
+- **4/4 Post-Merge Tactical Arms Manual Gameplay Test Cases**: Evaluated and confirmed in Unity Play Mode on 2026-10-20 in `Prototype.unity` (approved baseline framing, two-handed grip alignment, crosshair clearance, low-ready retraction response).
+- **288/288 Automated Regression Checks**: Confirmed via Unity Edit Mode batch runs (80 tactical arms tests + 24 viewmodel obstruction tests + 43 interaction arbitration tests + 141 patrol guard AI tests), 100% passing.
+- **28/28 Evidence Screenshots**: Tracked and verified on disk in `docs/individual/evidence/IT24102587 GV evidence/` (7 historical test arena captures + 12 production facility Play Mode captures + 6 obstruction captures + 3 tactical arms captures).
+- **Zero C# Compilation Errors**: Confirmed via Unity 6000.6.2f1 headless batch mode on `develop` (`caa133e`) and `gv/IT24102587-fps-tactical-arms`.
+- **Clean GitHub Integration**: PR #8 (IS), PR #9 (GV), PR #11 (GV Main-Scene), and PR #12 (GV FPS Obstruction) are merged into `develop` (`caa133e`), with post-merge tactical arms ready on `gv/IT24102587-fps-tactical-arms`.
 
 **Final Status: VERIFIED & READY FOR SUBMISSION**
