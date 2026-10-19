@@ -33,7 +33,7 @@ namespace FacilityBreach.AI.Roles
             if (!HasLastKnown) { Mover.Stop(); SetState(RoleState.Patrol); return; }
             if (now - LastSeenTime < 3) { if (planned) Mover.RequestMove(FlankGoal, .6f); return; }
             if (State != RoleState.Search && State != RoleState.Return) { Mover.Stop(); searchUntil = now + 4; SetState(RoleState.Search); }
-            if (State == RoleState.Search) { transform.Rotate(0, 9, 0); if (now < searchUntil) return; }
+            if (State == RoleState.Search) { Mover.Scan(); if (now < searchUntil) return; }
             ReturnToPost(); if (State == RoleState.Patrol) { planned = attempted = false; }
         }
         private void Plan(float now)
