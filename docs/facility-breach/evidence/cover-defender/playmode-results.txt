@@ -1,0 +1,32 @@
+Cover Defender Play Mode validation
+UTC: 2026-10-17T16:58:11Z
+Unity: 6000.6.2f1
+Gameplay assertions: 15 passed
+
+PASS: Machinery room upper-left wall has its blocking collider
+PASS: Machinery room wall meets the left doorway with no walk-through gap
+PASS: Machinery room retains all three active access-card blockers
+PASS: Prototype creates exactly four existing enemy agents
+PASS: CD-03 has one Cover Defender brain on its existing combat root
+PASS: CD detects the actual player and remembers the visible position
+PASS: CD selects safe cover reachable on the gameplay NavMesh
+PASS: selected cover blocks the threat's line of sight
+PASS: CD engages the visible player through the shared combat adapter
+PASS: CD re-evaluates utility when the player remains visible
+PASS: CD moves to its selected cover using the shared NavMesh mover
+PASS: CD searches its last known position without tracking the hidden player
+PASS: CD moves to a reachable peek point when searching from cover
+PASS: CD recovers after its configured lost-sight hold
+PASS: CD receives damage through the shared enemy-health adapter
+
+Console gate: FAIL: Console errors captured (1):
+ArgumentOutOfRangeException: Index was out of range. Must be non-negative and less than the size of the collection.
+Parameter name: index
+System.Collections.Generic.List`1[T].get_Item (System.Int32 index) (at <c5ae8a4eeb824526b5df2932bc2395e0>:0)
+UnityEditor.Search.SearchDatabase+<EnumerateAll>d__78.MoveNext () (at <bf5fa3d429194bf78ff614e5729559a6>:0)
+System.Linq.Enumerable.TryGetFirst[TSource] (System.Collections.Generic.IEnumerable`1[T] source, System.Boolean& found) (at <f1b392d8fe224ca2b1f9fab1000b77eb>:0)
+System.Linq.Enumerable.First[TSource] (System.Collections.Generic.IEnumerable`1[T] source) (at <f1b392d8fe224ca2b1f9fab1000b77eb>:0)
+UnityEditor.Search.SearchDatabase.GetDefaultSearchDatabase () (at <bf5fa3d429194bf78ff614e5729559a6>:0)
+UnityEditor.Search.SearchInit.IndexationOnStartup () (at <bf5fa3d429194bf78ff614e5729559a6>:0)
+UnityEditor.EditorApplication.Internal_CallDelayFunctions () (at <8cdd7d0792c04bfebb8b85be0af13f89>:0)
+UnityEngine.StackTraceUtility:ExtractStringFromExceptionInternal(Object, String&, String&)
