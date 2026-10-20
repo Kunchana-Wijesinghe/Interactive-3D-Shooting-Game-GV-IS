@@ -36,6 +36,11 @@ namespace FacilityBreach
         [SerializeField] private float maxRollVolume = 0.85f;
         [SerializeField] private float rollFadeSpeed = 4.0f;
 
+        [Header("Rolling Metallic Rattles (Metal Barrels)")]
+        [SerializeField] private float minRattleTravel = 0.15f;
+        [SerializeField] private float maxRattleTravel = 0.38f;
+        [SerializeField] private float minRattleCooldown = 0.045f;
+
         private Rigidbody body;
         private float lastImpactSoundTime = -10f;
         private float lastKickTime = -10f;
@@ -43,6 +48,12 @@ namespace FacilityBreach
         private float currentRollVolume = 0f;
         private float lastContactTime = -10f;
         private bool isContactActive;
+
+        private float rattleDistanceAccumulator = 0f;
+        private float nextRattleDistance = 0.28f;
+        private float lastRattleTime = -10f;
+        private int rattleVariantCounter = 0;
+        private int totalRattlesEmitted = 0;
 
         public Rigidbody Body => body != null ? body : (body = GetComponent<Rigidbody>());
         public PropMaterialType MaterialType
@@ -123,7 +134,7 @@ namespace FacilityBreach
             set => maxRollVolume = Mathf.Clamp01(value);
         }
 
-        public bool IsRollingAudioActive => currentRollVolume > 0.01f;
+        public bool IsRollingAudioActive => currentRollVolume > 0.01f || (Time.time - lastRattleTime < 0.20f);
         public float CurrentRollVolume => currentRollVolume;
         public AudioSource RollingAudioSource => rollingAudioSource;
         public bool IsContactActive
@@ -133,6 +144,16 @@ namespace FacilityBreach
         }
 
         public bool IsKickedRecently => (Time.time - lastKickTime) < 0.5f;
+
+        public int TotalRattlesEmitted => totalRattlesEmitted;
+        public float RattleDistanceAccumulator => rattleDistanceAccumulator;
+        public float LastRattleTime => lastRattleTime;
+        public void ResetRattleState()
+        {
+            rattleDistanceAccumulator = 0f;
+            lastRattleTime = -10f;
+            totalRattlesEmitted = 0;
+        }
 
         private void Awake()
         {
@@ -251,11 +272,35 @@ namespace FacilityBreach
                 // Speed normalization across active range (0.20 to maxRollSpeed 5.0m/s)
                 float speedNorm = Mathf.Clamp01((rollMetric - 0.20f) / Mathf.Max(0.1f, maxRollSpeed - 0.20f));
 
-                // Natural perceptual volume curve: quiet at slow speeds, rich at moderate speeds, punchy when kicked hard
-                targetVolume = Mathf.Lerp(0.08f, maxRollVolume, Mathf.Sqrt(speedNorm));
+                // 1. Soft mechanical friction bed (non-tonal, unobtrusive contact layer)
+                targetVolume = Mathf.Lerp(0.04f, 0.18f, Mathf.Sqrt(speedNorm));
+                targetPitch = Mathf.Lerp(0.85f, 1.15f, speedNorm);
 
-                // Dynamic speed-to-pitch response: deep low rumble (0.70x) up to fast rattling churn (1.35x)
-                targetPitch = Mathf.Lerp(0.70f, 1.35f, speedNorm);
+                // 2. Physical Rolling Metallic Rattle Tick Scheduler
+                float rollDistanceDelta = rollMetric * dt;
+                rattleDistanceAccumulator += rollDistanceDelta;
+
+                float now = Time.time;
+                if (rattleDistanceAccumulator >= nextRattleDistance && (now - lastRattleTime) >= minRattleCooldown)
+                {
+                    // Avoid stacking rattle immediately on top of a hard collision impact
+                    if (now - lastImpactSoundTime >= 0.08f)
+                    {
+                        EmitRollingRattle(speedNorm);
+                    }
+
+                    rattleDistanceAccumulator = 0f;
+
+                    // Schedule next rattle interval: sparse at low speeds, frequent at high speeds
+                    float baseTravel = Mathf.Lerp(maxRattleTravel, minRattleTravel, speedNorm);
+                    float jitter = 0.85f + 0.30f * Mathf.Abs(Mathf.Sin(rattleVariantCounter * 12.9898f));
+                    nextRattleDistance = baseTravel * jitter;
+                }
+            }
+            else
+            {
+                // Stopped or airborne: cancel pending rattles and fade out friction bed
+                rattleDistanceAccumulator = 0f;
             }
 
             // Asymmetric smoothing: responsive attack on kick acceleration, smooth organic decay on stop
@@ -281,6 +326,34 @@ namespace FacilityBreach
                 currentRollVolume = 0f;
                 rollingAudioSource.volume = 0f;
             }
+        }
+
+        /// <summary>
+        /// Emits a single short metallic rattle tap from the rolling barrel in 3D space.
+        /// Scales frequency, volume, and micro-pitch dynamically with rolling velocity.
+        /// </summary>
+        private void EmitRollingRattle(float speedNorm)
+        {
+            if (rollingAudioSource == null) return;
+
+            int variant = rattleVariantCounter % 3;
+            rattleVariantCounter++;
+            totalRattlesEmitted++;
+
+            AudioClip rattleClip = FacilityAudioSynthesizer.GetOrCreateRattleClip(variant);
+            if (rattleClip == null) return;
+
+            // Volume scaling: quiet ticks at slow roll (0.14 - 0.22), crisp rattles at fast roll (0.35 - 0.50)
+            // Always distinct from and softer than meaningful wall collisions (0.55 - 1.00)
+            float rattleVolume = Mathf.Lerp(0.14f, 0.50f, Mathf.Sqrt(speedNorm));
+
+            // Dynamic pitch: velocity modulation + micro-variation
+            float speedPitch = Mathf.Lerp(0.88f, 1.25f, speedNorm);
+            float microPitch = 0.96f + 0.08f * Mathf.Abs(Mathf.Sin(rattleVariantCounter * 78.233f));
+            rollingAudioSource.pitch = speedPitch * microPitch;
+
+            rollingAudioSource.PlayOneShot(rattleClip, rattleVolume);
+            lastRattleTime = Time.time;
         }
 
         private void OnDisable()
