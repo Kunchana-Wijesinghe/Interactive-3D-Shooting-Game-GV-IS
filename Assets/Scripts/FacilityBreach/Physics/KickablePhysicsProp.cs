@@ -29,15 +29,37 @@ namespace FacilityBreach
         [SerializeField] private float linearDamping = 0.50f;
         [SerializeField] private float angularDamping = 1.0f;
 
+        [Header("Rolling Audio (Metal Barrels)")]
+        [SerializeField] private float minRollSpeed = 0.35f;
+        [SerializeField] private float maxRollSpeed = 5.0f;
+        [SerializeField] private float maxRollVolume = 0.85f;
+        [SerializeField] private float rollFadeSpeed = 4.0f;
+
         private Rigidbody body;
         private float lastImpactSoundTime = -10f;
         private float lastKickTime = -10f;
+        private AudioSource rollingAudioSource;
+        private float currentRollVolume = 0f;
+        private float lastContactTime = -10f;
+        private bool isContactActive;
 
         public Rigidbody Body => body != null ? body : (body = GetComponent<Rigidbody>());
         public PropMaterialType MaterialType
         {
             get => materialType;
-            set => materialType = value;
+            set
+            {
+                materialType = value;
+                if (materialType == PropMaterialType.Metal)
+                {
+                    EnsureRollingAudioSource();
+                }
+                else if (rollingAudioSource != null && rollingAudioSource.isPlaying)
+                {
+                    rollingAudioSource.Stop();
+                    currentRollVolume = 0f;
+                }
+            }
         }
 
         public float MinImpactVelocity
@@ -82,12 +104,29 @@ namespace FacilityBreach
             }
         }
 
+        public float MinRollSpeed
+        {
+            get => minRollSpeed;
+            set => minRollSpeed = Mathf.Max(0.05f, value);
+        }
+
+        public float MaxRollVolume
+        {
+            get => maxRollVolume;
+            set => maxRollVolume = Mathf.Clamp01(value);
+        }
+
+        public bool IsRollingAudioActive => rollingAudioSource != null && rollingAudioSource.isPlaying && currentRollVolume > 0.01f;
+        public float CurrentRollVolume => currentRollVolume;
+        public AudioSource RollingAudioSource => rollingAudioSource;
+
         public bool IsKickedRecently => (Time.time - lastKickTime) < 0.5f;
 
         private void Awake()
         {
             body = GetComponent<Rigidbody>();
             ConfigurePhysics();
+            if (materialType == PropMaterialType.Metal) EnsureRollingAudioSource();
         }
 
         public void ConfigurePhysics()
@@ -127,8 +166,125 @@ namespace FacilityBreach
             return true;
         }
 
+        public void EnsureRollingAudioSource()
+        {
+            if (materialType != PropMaterialType.Metal) return;
+            if (rollingAudioSource != null) return;
+
+            rollingAudioSource = GetComponent<AudioSource>();
+            if (rollingAudioSource == null) rollingAudioSource = gameObject.AddComponent<AudioSource>();
+
+            rollingAudioSource.clip = FacilityAudioSynthesizer.GetOrCreateClip(FacilityAudioClipType.RollingMetal);
+            rollingAudioSource.loop = true;
+            rollingAudioSource.playOnAwake = false;
+            rollingAudioSource.spatialBlend = 1.0f; // Full 3D spatialization
+            rollingAudioSource.rolloffMode = AudioRolloffMode.Linear;
+            rollingAudioSource.minDistance = 1.0f;
+            rollingAudioSource.maxDistance = 25.0f;
+            rollingAudioSource.volume = 0f;
+        }
+
+        private void Update()
+        {
+            UpdateRollingAudio();
+        }
+
+        public void UpdateRollingAudio()
+        {
+            if (materialType != PropMaterialType.Metal)
+            {
+                if (rollingAudioSource != null && rollingAudioSource.isPlaying)
+                {
+                    rollingAudioSource.Stop();
+                }
+                return;
+            }
+
+            if (rollingAudioSource == null)
+            {
+                EnsureRollingAudioSource();
+                if (rollingAudioSource == null) return;
+            }
+
+            // Surface contact check: active collision stay, recent collision within 0.15s, or ground raycast
+            bool grounded = isContactActive || (Time.time - lastContactTime < 0.15f);
+            if (!grounded && Body != null)
+            {
+                grounded = Physics.Raycast(transform.position, Vector3.down, 0.85f, ~0, QueryTriggerInteraction.Ignore);
+            }
+
+            float linearSpeed = Body != null ? Body.linearVelocity.magnitude : 0f;
+            float angularSpeed = Body != null ? Body.angularVelocity.magnitude : 0f;
+            // Cylinders roll with linear speed or rotational motion
+            float rollMetric = Mathf.Max(linearSpeed, angularSpeed * 0.4f);
+
+            float targetVolume = 0f;
+            float targetPitch = 1.0f;
+
+            if (grounded && rollMetric > minRollSpeed)
+            {
+                float speedNorm = Mathf.Clamp01((rollMetric - minRollSpeed) / Mathf.Max(0.1f, maxRollSpeed - minRollSpeed));
+                targetVolume = Mathf.Lerp(0.25f, maxRollVolume, speedNorm);
+                targetPitch = Mathf.Lerp(0.85f, 1.25f, speedNorm);
+            }
+
+            float fadeDelta = rollFadeSpeed * Time.deltaTime;
+            currentRollVolume = Mathf.MoveTowards(currentRollVolume, targetVolume, fadeDelta);
+
+            if (currentRollVolume > 0.005f)
+            {
+                if (!rollingAudioSource.isPlaying)
+                {
+                    rollingAudioSource.Play();
+                }
+                rollingAudioSource.volume = currentRollVolume;
+                rollingAudioSource.pitch = targetPitch;
+            }
+            else
+            {
+                if (rollingAudioSource.isPlaying)
+                {
+                    rollingAudioSource.Stop();
+                }
+                currentRollVolume = 0f;
+                rollingAudioSource.volume = 0f;
+            }
+        }
+
+        private void OnDisable()
+        {
+            if (rollingAudioSource != null && rollingAudioSource.isPlaying)
+            {
+                rollingAudioSource.Stop();
+            }
+            currentRollVolume = 0f;
+            isContactActive = false;
+        }
+
+        private void OnDestroy()
+        {
+            if (rollingAudioSource != null)
+            {
+                rollingAudioSource.Stop();
+            }
+        }
+
+        private void OnCollisionStay(Collision collision)
+        {
+            lastContactTime = Time.time;
+            isContactActive = true;
+        }
+
+        private void OnCollisionExit(Collision collision)
+        {
+            isContactActive = false;
+        }
+
         private void OnCollisionEnter(Collision collision)
         {
+            lastContactTime = Time.time;
+            isContactActive = true;
+
             // Ignore sub-threshold cooldown to prevent audio spam on sliding / continuous contacts
             if (Time.time - lastImpactSoundTime < impactCooldown) return;
 
