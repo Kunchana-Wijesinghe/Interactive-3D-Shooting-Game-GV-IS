@@ -45,6 +45,8 @@ namespace FacilityBreach
         private ResourceStation target;
         private FpsBulletTracer bulletTracer;
         public FpsBulletTracer BulletTracer => bulletTracer;
+        private FpsMuzzleFlashV2 muzzleFlash;
+        public FpsMuzzleFlashV2 MuzzleFlash => muzzleFlash;
         private float reload, cadence;
         private bool waitForRelease = true, controls;
         private string feedback = "";
@@ -193,6 +195,9 @@ namespace FacilityBreach
             if (!bulletTracer) bulletTracer = gameObject.GetComponent<FpsBulletTracer>();
             if (!bulletTracer) bulletTracer = gameObject.AddComponent<FpsBulletTracer>();
             bulletTracer.NotifyWeaponChanged(muzzle);
+            if (!muzzleFlash) muzzleFlash = gameObject.GetComponent<FpsMuzzleFlashV2>();
+            if (!muzzleFlash) muzzleFlash = gameObject.AddComponent<FpsMuzzleFlashV2>();
+            muzzleFlash.NotifyWeaponChanged(muzzle);
         }
         private GameObject Box(string label, Vector3 position, Vector3 scale, Color color)
         {
@@ -345,6 +350,7 @@ namespace FacilityBreach
                 GameplayDiagnostics.Trace($"shot miss camera={view.transform.position} muzzle={muzzle.position} dir={direction.normalized}", this);
                 if (bulletTracer) bulletTracer.SpawnTracer(muzzle, aim, false);
             }
+            if (muzzleFlash) muzzleFlash.TriggerFlash(muzzle);
             SoundEventBus.Emit(player.transform.position, 40, SoundCategory.Gunshot, player.GetEntityId().GetHashCode());
             return true;
         }
