@@ -5,8 +5,9 @@ namespace FacilityBreach
 {
     /// <summary>
     /// GV Part 2: Facility Kickable Props Spawner & Configuration.
-    /// Deterministically places and configures seven kickable physics props:
-    /// 3 small wooden boxes, 2 medium crates, and 2 metal barrels.
+    /// Deterministically places and configures kickable physics props:
+    /// small wooden boxes, medium crates, and rolling metal barrels.
+    /// Barrels feature tuned capsule collision geometry and low angular damping to permit natural rolling.
     /// All objects are placed in safe alcoves clear of door envelopes and guard patrol routes.
     /// </summary>
     public static class FacilityKickablePropsSetup
@@ -17,6 +18,7 @@ namespace FacilityBreach
         {
             public string Name;
             public Vector3 Position;
+            public Quaternion Rotation;
             public Vector3 Scale;
             public PrimitiveType Primitive;
             public PropMaterialType MaterialType;
@@ -28,6 +30,7 @@ namespace FacilityBreach
             public PropDefinition(
                 string name,
                 Vector3 position,
+                Quaternion rotation,
                 Vector3 scale,
                 PrimitiveType primitive,
                 PropMaterialType materialType,
@@ -38,6 +41,7 @@ namespace FacilityBreach
             {
                 Name = name;
                 Position = position;
+                Rotation = rotation;
                 Scale = scale;
                 Primitive = primitive;
                 MaterialType = materialType;
@@ -45,6 +49,19 @@ namespace FacilityBreach
                 LinearDamping = linearDamping;
                 AngularDamping = angularDamping;
                 Tint = tint;
+            }
+
+            public PropDefinition(
+                string name,
+                Vector3 position,
+                Vector3 scale,
+                PrimitiveType primitive,
+                PropMaterialType materialType,
+                float mass,
+                float linearDamping,
+                float angularDamping,
+                Color tint) : this(name, position, Quaternion.identity, scale, primitive, materialType, mass, linearDamping, angularDamping, tint)
+            {
             }
         }
 
@@ -54,6 +71,7 @@ namespace FacilityBreach
             new PropDefinition(
                 "Box_Small_EntranceLobby_01",
                 new Vector3(-10.5f, 0.25f, -27.5f),
+                Quaternion.identity,
                 Vector3.one * 0.45f,
                 PrimitiveType.Cube,
                 PropMaterialType.Wood,
@@ -67,6 +85,7 @@ namespace FacilityBreach
             new PropDefinition(
                 "Crate_Medium_EntranceCorridor_01",
                 new Vector3(-5.5f, 0.35f, -18.0f),
+                Quaternion.identity,
                 Vector3.one * 0.65f,
                 PrimitiveType.Cube,
                 PropMaterialType.Wood,
@@ -76,23 +95,25 @@ namespace FacilityBreach
                 new Color(0.68f, 0.48f, 0.28f) // Darker crate wood
             ),
 
-            // 3. West Corridor Service Alcove (Metal Barrel)
+            // 3. West Corridor Service Alcove (Metal Barrel - Upright, Calibrated Rolling Physics)
             new PropDefinition(
                 "Barrel_Metal_WestCorridor_01",
-                new Vector3(-11.0f, 0.45f, -5.0f),
-                new Vector3(0.55f, 0.85f, 0.55f),
+                new Vector3(-11.0f, 0.47f, -5.0f),
+                Quaternion.identity,
+                new Vector3(0.60f, 0.45f, 0.60f),
                 PrimitiveType.Cylinder,
                 PropMaterialType.Metal,
                 7.5f,
-                0.8f,
-                1.2f,
-                new Color(0.32f, 0.38f, 0.44f) // Industrial slate blue/steel
+                0.50f,
+                0.25f, // Low angular damping allows smooth rolling
+                new Color(0.32f, 0.38f, 0.44f) // Industrial slate steel
             ),
 
             // 4. Central Junction Perimeter Safety Alcove (Small Wooden Box)
             new PropDefinition(
                 "Box_Small_CentralJunction_01",
                 new Vector3(3.2f, 0.25f, 10.5f),
+                Quaternion.identity,
                 Vector3.one * 0.45f,
                 PrimitiveType.Cube,
                 PropMaterialType.Wood,
@@ -102,16 +123,17 @@ namespace FacilityBreach
                 new Color(0.78f, 0.58f, 0.35f)
             ),
 
-            // 5. Toxic Waste Area Outer Curb (Metal Barrel)
+            // 5. Toxic Waste Area Outer Curb (Metal Barrel - Resting Horizontally on Side, Immediate Roll)
             new PropDefinition(
                 "Barrel_Metal_ToxicPerimeter_01",
-                new Vector3(1.8f, 0.45f, 18.2f),
-                new Vector3(0.55f, 0.85f, 0.55f),
+                new Vector3(1.8f, 0.32f, 18.2f),
+                Quaternion.Euler(0f, 35f, 90f),
+                new Vector3(0.60f, 0.45f, 0.60f),
                 PrimitiveType.Cylinder,
                 PropMaterialType.Metal,
                 8.0f,
-                0.8f,
-                1.2f,
+                0.45f,
+                0.20f, // Low rolling resistance along curved surface
                 new Color(0.40f, 0.44f, 0.36f) // Olive drab containment barrel
             ),
 
@@ -119,6 +141,7 @@ namespace FacilityBreach
             new PropDefinition(
                 "Box_Small_Room2Storage_01",
                 new Vector3(-2.5f, 0.25f, 6.5f),
+                Quaternion.identity,
                 Vector3.one * 0.45f,
                 PrimitiveType.Cube,
                 PropMaterialType.Wood,
@@ -132,6 +155,7 @@ namespace FacilityBreach
             new PropDefinition(
                 "Crate_Medium_Room3Workshop_01",
                 new Vector3(16.5f, 0.35f, 21.0f),
+                Quaternion.identity,
                 Vector3.one * 0.65f,
                 PrimitiveType.Cube,
                 PropMaterialType.Wood,
@@ -143,7 +167,7 @@ namespace FacilityBreach
         };
 
         /// <summary>
-        /// Ensures all 7 props are instantiated once under a dedicated root.
+        /// Ensures all authored props are instantiated once under a dedicated root.
         /// Prevents duplicate spawning across reloads or repeated calls.
         /// </summary>
         public static List<KickablePhysicsProp> EnsurePropsSpawned(Transform parentTransform = null)
@@ -196,8 +220,8 @@ namespace FacilityBreach
                 propGo.name = def.Name;
                 propGo.transform.SetParent(root.transform, false);
                 propGo.transform.position = def.Position;
+                propGo.transform.rotation = def.Rotation;
                 propGo.transform.localScale = def.Scale;
-                propGo.transform.rotation = Quaternion.identity;
 
                 // Renderer & Material
                 var renderer = propGo.GetComponent<Renderer>();
@@ -217,7 +241,7 @@ namespace FacilityBreach
                         var capsule = propGo.AddComponent<CapsuleCollider>();
                         capsule.radius = 0.5f;
                         capsule.height = 2.0f;
-                        capsule.direction = 1; // Y axis
+                        capsule.direction = 1; // Y axis in local space
                     }
                 }
 
@@ -228,11 +252,14 @@ namespace FacilityBreach
                 rb.linearDamping = def.LinearDamping;
                 rb.angularDamping = def.AngularDamping;
                 rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
+                rb.maxAngularVelocity = 30.0f;
 
                 // Kickable component
                 var kickable = propGo.AddComponent<KickablePhysicsProp>();
                 kickable.MaterialType = def.MaterialType;
                 kickable.BaseMass = def.Mass;
+                kickable.LinearDamping = def.LinearDamping;
+                kickable.AngularDamping = def.AngularDamping;
                 kickable.ConfigurePhysics();
 
                 spawnedProps.Add(kickable);

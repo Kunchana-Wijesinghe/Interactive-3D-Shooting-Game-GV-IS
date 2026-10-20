@@ -20,7 +20,7 @@ namespace FacilityBreach
     {
         [Header("Material & Audio Profile")]
         [SerializeField] private PropMaterialType materialType = PropMaterialType.Wood;
-        [SerializeField] private float minImpactVelocity = 1.2f;
+        [SerializeField] private float minImpactVelocity = 1.0f;
         [SerializeField] private float impactCooldown = 0.15f;
         [SerializeField] private float maxNoiseRadius = 15.0f;
 
@@ -62,6 +62,26 @@ namespace FacilityBreach
             }
         }
 
+        public float LinearDamping
+        {
+            get => linearDamping;
+            set
+            {
+                linearDamping = Mathf.Max(0.0f, value);
+                if (Body != null) Body.linearDamping = linearDamping;
+            }
+        }
+
+        public float AngularDamping
+        {
+            get => angularDamping;
+            set
+            {
+                angularDamping = Mathf.Max(0.0f, value);
+                if (Body != null) Body.angularDamping = angularDamping;
+            }
+        }
+
         public bool IsKickedRecently => (Time.time - lastKickTime) < 0.5f;
 
         private void Awake()
@@ -79,11 +99,12 @@ namespace FacilityBreach
             body.linearDamping = linearDamping;
             body.angularDamping = angularDamping;
             body.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
-            body.maxAngularVelocity = 20.0f;
+            body.maxAngularVelocity = 30.0f;
         }
 
         /// <summary>
         /// Applies a directional kick impulse at the specified impact point.
+        /// Initiates natural forward rolling torque for cylindrical metal barrels.
         /// </summary>
         public bool ApplyKick(Vector3 impulse, Vector3 hitPoint)
         {
@@ -91,6 +112,18 @@ namespace FacilityBreach
 
             lastKickTime = Time.time;
             Body.AddForceAtPosition(impulse, hitPoint, ForceMode.Impulse);
+
+            // For metal cylindrical props (barrels), add rolling torque around horizontal axis perpendicular to impulse
+            if (materialType == PropMaterialType.Metal)
+            {
+                Vector3 horizontalFwd = Vector3.ProjectOnPlane(impulse, Vector3.up).normalized;
+                if (horizontalFwd.sqrMagnitude > 0.01f)
+                {
+                    Vector3 rollAxis = Vector3.Cross(Vector3.up, horizontalFwd).normalized;
+                    Body.AddTorque(rollAxis * (impulse.magnitude * 0.35f), ForceMode.Impulse);
+                }
+            }
+
             return true;
         }
 
