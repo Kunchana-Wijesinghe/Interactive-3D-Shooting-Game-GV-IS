@@ -10,6 +10,7 @@ using UnityEngine.AI;
 using FacilityBreach.AI.SoundHunter;
 using FacilityBreach.AI.Roles;
 using FacilityBreach.Audio;
+using FacilityBreach.Noise;
 
 namespace FacilityBreach
 {
@@ -364,6 +365,7 @@ namespace FacilityBreach
             if (muzzleFlash) muzzleFlash.TriggerFlash(muzzle);
             if (audioPlayer) audioPlayer.PlayGunshot(Resources.Equipped);
             else FacilityAudioPlayer.Instance.PlayGunshot(Resources.Equipped);
+            FacilityNoiseHub.Emit(player.transform.position, 35f, FacilityNoiseType.Gunshot, player.gameObject);
             SoundEventBus.Emit(player.transform.position, 40, SoundCategory.Gunshot, player.GetEntityId().GetHashCode());
             return true;
         }
