@@ -671,10 +671,19 @@ Executed in Unity 6000.6.2f1 headless batch mode with **ExitCode 0**:
      - Dedicated singleton player `FacilityAmbiencePlayer.cs`: 2D stereo (`spatialBlend = 0`), looping, smooth fade-in ($0.22$ target volume) and fade-out. Attached to `FacilityBreachRuntime`.
      - **STRICT INVARIANT: Pure player immersion audio. ZERO calls to `FacilityNoiseHub` or `SoundEventBus`. AI patrol guards and noise-detection systems have 0 awareness of ambience (0 noise events / 0 score impact).**
 
+7. **Resolution of Play Mode Audio Defects: Metallic Rolling Rattles & Audible Mid-Range Ambience:**
+   - *Problem 1 (Synthetic Tone in Rolling Audio):* Continuous sine waves in procedural rolling audio produced an electronic tone rather than mechanical rolling clatter. Physical drums chatter with discrete metallic impacts as seams and rims contact the floor.
+   - *Solution 1:* Synthesized short metallic rattle taps (`SynthesizeBarrelRollRattle(0..2)`) derived directly from approved metallic impact timbre (220Hz body, 520Hz shell, 880Hz rim ping, 1350Hz inharmonic, 0.05s decay, peak 0.62). Implemented physical distance-based rattle scheduler in `KickablePhysicsProp.cs`: grounded barrels accumulate roll distance ($d_{\text{accum}} += v_{\text{roll}} \cdot dt$), emitting short ticks when $d_{\text{accum}} \ge d_{\text{next}}$ (0.15 - 0.38m) and cooldown ($\ge 0.045\text{s}$) has elapsed. Volume scales with velocity (0.14 - 0.50), pitch modulates with speed (0.88 - 1.25x), while suppression within 0.08s of hard collision impacts prevents transient clutter. Continuous rolling sound provides a soft floor friction bed (`SynthesizeRollingMetal()`, peak 0.50, zero electronic sine tones). Completely silent when stopped.
+   - *Problem 2 (Facility Industrial Ambience Inaudible in Play Mode):* Procedural ambience was completely inaudible on laptop speakers throughout the game.
+   - *Root Cause Diagnosis:* Two compounding root causes:
+     1. Sub-bass spectrum cutoff: Synthesis relied almost exclusively on 54Hz, 60Hz, 82Hz tones, heavily low-passed noise, and peak normalization of only 0.40, which combined with 0.22 player volume gave peak amplitude of only 0.088. Laptop speakers physically cut off below 150-200Hz, making it physically inaudible.
+     2. Component contention: `FacilityAmbiencePlayer.InitializeAudioSource()` called `GetComponent<AudioSource>()` on `FB_Gameplay`, hijacking `FacilityAudioPlayer.player2dSource`, with low priority 180 and without explicit runtime startup trigger.
+   - *Solution 2:* Shifted ambience synthesis spectrum to rich, audible mid-frequencies (180 - 950Hz ventilation duct air wash, 180/270/360Hz industrial drones, 120/240/480Hz transformer harmonics, 330Hz structural creak), normalized peak to 0.82, set target volume to 0.38, created dedicated isolated child `[FacilityAmbienceAudioSource]` with priority 64, and added explicit `ambiencePlayer.Play()` in runtime startup. STRICT ZERO AI NOISE EVENT EMISSION PRESERVED.
+
 #### Verification Summary
 - Baseline automated regression checks: 374/374 PASSED across 10 baseline suites.
-- Kickable physics & audio automated checks: 407/407 PASSED across 26 comprehensive test methods in KickablePhysicsAudioTests.cs (covering organic rolling textures, dynamic speed curves, metallic collision transients, facility ambience synthesis, player lifecycle, and zero AI noise emission invariant).
-- Cumulative project test total: 781/781 checks PASSED (100% Green across all 11 suites, ExitCode 0).
+- Kickable physics & audio automated checks: 432/432 PASSED across 27 comprehensive test methods in KickablePhysicsAudioTests.cs (covering clank-based rolling rattles, speed-driven tick scheduling, organic mechanical friction, audible mid-range facility ambience, dedicated child AudioSource, priority 64, and zero AI noise emission invariant).
+- Cumulative project test total: 806/806 checks PASSED (100% Green across all 11 suites, ExitCode 0).
 - Total active kickable props: 40 props (13 authored + 27 converted scene props).
 - Visual evidence screenshots: 28 high-resolution captures preserved unchanged.
 - Unity Editor closed during development; consolidated headless batch run executed with ExitCode 0.
