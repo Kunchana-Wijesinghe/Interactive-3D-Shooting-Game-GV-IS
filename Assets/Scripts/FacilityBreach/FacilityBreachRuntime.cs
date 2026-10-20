@@ -53,6 +53,8 @@ namespace FacilityBreach
         public FpsImpactSparks ImpactSparks => impactSparks;
         private FacilityAudioPlayer audioPlayer;
         public FacilityAudioPlayer AudioPlayer => audioPlayer;
+        private FpsKickController kickController;
+        public FpsKickController KickController => kickController;
         private float reload, cadence;
         private bool waitForRelease = true, controls;
         private string feedback = "";
@@ -81,6 +83,7 @@ namespace FacilityBreach
             var body = root.AddComponent<CharacterController>(); body.height = 1.8f; body.radius = .3f; body.center = Vector3.up * .9f;
             player = root.AddComponent<TemporaryPlayerAdapter>(); player.View = view;
             root.AddComponent<PlayerDamageAdapter>().Runtime = this;
+            kickController = root.AddComponent<FpsKickController>(); kickController.Initialize(this, view);
             view.transform.SetParent(root.transform); view.transform.localPosition = Vector3.up * 1.6f; view.transform.localRotation = Quaternion.identity;
             var muzzleObject = new GameObject("FB_Muzzle_VisualPending"); muzzleObject.transform.SetParent(view.transform);
             muzzleObject.transform.localPosition = new Vector3(.2f, -.15f, .45f); muzzle = muzzleObject.transform;
@@ -409,6 +412,7 @@ namespace FacilityBreach
             GUI.Box(new Rect(15, 15, 355, 130), $"FACILITY BREACH\nHP {Resources.Health}/100\nAmmo{Resources.Equipped + 1}gun   {Resources.Magazine}/{Resources.Reserve}\n{(reload > 0 ? "RELOADING" : "")}\nCARD: {(Run.HasCard ? "ACQUIRED" : "MISSING")}");
             string objective = Run.State == MissionState.Escape ? "DEVICE DEACTIVATED — reach the exit" : Run.State == MissionState.Deactivating ? $"Deactivating: {5 - Run.ShutdownRemaining:F1}/5 seconds" : !Run.HasCard ? "Find the access card near toxic waste" : player.transform.position.x > 10 && player.transform.position.z > 12 && player.transform.position.z < 24 ? "Connect the card to deactivate the device" : "Use the card to enter Machinery";
             string prompt = feedbackTime > 0 ? feedback : (dispatcher != null ? dispatcher.GetContextualPrompt(target) : target ? target.Prompt : "");
+            if (string.IsNullOrEmpty(prompt) && kickController != null && kickController.HasKickableTarget(out var propName)) prompt = "F: Kick " + propName;
             GUI.Box(new Rect(15, Screen.height - 65, 570, 50), objective + "\n" + prompt);
             if (Run.State == MissionState.Deactivating)
             {
