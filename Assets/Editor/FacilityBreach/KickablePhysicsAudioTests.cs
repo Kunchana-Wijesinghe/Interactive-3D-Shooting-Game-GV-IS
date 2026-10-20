@@ -45,6 +45,7 @@ namespace FacilityBreach.Editor
             RunTest("AudioGunshotProfiles_DistinctSampleData", Test_AudioGunshotProfiles_DistinctSampleData);
             RunTest("KickThudAudio_PeakNormalizationAndFrequency", Test_KickThudAudio_PeakNormalizationAndFrequency);
             RunTest("RollingMetalAudio_SeamlessLoopAndFrequencyRange", Test_RollingMetalAudio_SeamlessLoopAndFrequencyRange);
+            RunTest("BarrelRollingRattle_SynthesisAndTickScheduling", Test_BarrelRollingRattle_SynthesisAndTickScheduling);
             RunTest("FacilityAmbienceAudio_LoopContinuityAndSafePeak", Test_FacilityAmbienceAudio_LoopContinuityAndSafePeak);
             RunTest("ProjectileLaunchAndImpactAudio_DistinctWaveformsAndPeakNormalization", Test_ProjectileLaunchAndImpactAudio_DistinctWaveformsAndPeakNormalization);
             RunTest("AudioPlayer_PoolCapacityAndSourceBounds", Test_AudioPlayer_PoolCapacityAndSourceBounds);
@@ -137,7 +138,7 @@ namespace FacilityBreach.Editor
         private static void Test_AudioClipGeneration_AllTypes_FiniteSamplesAndNonZero()
         {
             var types = (FacilityAudioClipType[])Enum.GetValues(typeof(FacilityAudioClipType));
-            Assert(types.Length == 10, "FacilityAudioClipType defines exactly 10 audio profiles (including FacilityAmbience)", $"Found {types.Length}");
+            Assert(types.Length == 11, "FacilityAudioClipType defines exactly 11 audio profiles (including FacilityAmbience and BarrelRollRattle)", $"Found {types.Length}");
 
             foreach (var type in types)
             {
@@ -869,7 +870,7 @@ namespace FacilityBreach.Editor
             }
 
             Assert(!hasInvalid, "Facility ambience contains zero NaN or Infinity samples");
-            Assert(peak >= 0.35f && peak <= 0.45f, "Facility ambience peak is normalized in [0.35, 0.45] for subtle background presence", $"Peak={peak:F4}");
+            Assert(peak >= 0.75f && peak <= 0.88f, "Facility ambience peak is normalized in [0.75, 0.88] for audible presence on laptop speakers and headphones", $"Peak={peak:F4}");
         }
 
         private static void Test_FacilityAmbiencePlayer_LifecycleAndSingleInstance()
@@ -884,7 +885,9 @@ namespace FacilityBreach.Editor
                 Assert(player.AudioSource.spatialBlend == 0f, "FacilityAmbiencePlayer AudioSource is 2D stereo (spatialBlend == 0)");
                 Assert(player.AudioSource.loop, "FacilityAmbiencePlayer AudioSource is configured to loop");
                 Assert(player.AudioSource.clip != null, "FacilityAmbiencePlayer is assigned the FacilityAmbience clip");
-                Assert(player.TargetVolume >= 0.20f && player.TargetVolume <= 0.25f, "Ambience target volume is calibrated around 0.22", $"Vol={player.TargetVolume:F2}");
+                Assert(player.AudioSource.priority == 64, "FacilityAmbiencePlayer AudioSource has high priority 64", $"Priority={player.AudioSource.priority}");
+                Assert(player.AudioSource.transform.parent == go.transform, "FacilityAmbiencePlayer AudioSource is on dedicated child GameObject");
+                Assert(player.TargetVolume >= 0.35f && player.TargetVolume <= 0.42f, "Ambience target volume is calibrated around 0.38 for audible presence", $"Vol={player.TargetVolume:F2}");
 
                 // Test playback trigger
                 player.Play();
@@ -1001,6 +1004,86 @@ namespace FacilityBreach.Editor
                 Assert(impactVolScale > rollTargetVol,
                     $"At speed {speed:F1}m/s, impact transient volume ({impactVolScale:F2}) decisively exceeds rolling bed volume ({rollTargetVol:F2})",
                     $"Diff={impactVolScale - rollTargetVol:F2}");
+            }
+        }
+
+        private static void Test_BarrelRollingRattle_SynthesisAndTickScheduling()
+        {
+            // 1. Synthesis verification for the 3 metallic rattle variants
+            for (int variant = 0; variant < 3; variant++)
+            {
+                AudioClip rattleClip = FacilityAudioSynthesizer.GetOrCreateRattleClip(variant);
+                Assert(rattleClip != null, $"Synthesizer generates non-null rattle clip for variant {variant}");
+                Assert(Mathf.Abs(rattleClip.length - 0.05f) < 0.005f, $"Rattle clip {variant} has short 50ms transient duration", $"Length={rattleClip.length:F3}s");
+                Assert(rattleClip.channels == 1, $"Rattle clip {variant} is mono");
+                Assert(rattleClip.frequency == 44100, $"Rattle clip {variant} has 44.1kHz sample rate");
+
+                float[] samples = new float[rattleClip.samples];
+                rattleClip.GetData(samples, 0);
+
+                float peak = 0f;
+                bool hasInvalid = false;
+                for (int i = 0; i < samples.Length; i++)
+                {
+                    if (float.IsNaN(samples[i]) || float.IsInfinity(samples[i])) hasInvalid = true;
+                    float abs = Mathf.Abs(samples[i]);
+                    if (abs > peak) peak = abs;
+                }
+
+                Assert(!hasInvalid, $"Rattle clip {variant} contains zero NaN or Infinity samples");
+                Assert(peak >= 0.55f && peak <= 0.70f, $"Rattle clip {variant} peak is normalized in [0.55, 0.70]", $"Peak={peak:F3}");
+            }
+
+            // 2. Physical rattle emission & scheduling verification on metal barrel
+            var barrelGo = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            var boxGo = GameObject.CreatePrimitive(PrimitiveType.Cube);
+
+            try
+            {
+                var barrelProp = barrelGo.AddComponent<KickablePhysicsProp>();
+                barrelProp.MaterialType = PropMaterialType.Metal;
+                barrelProp.EnsureRollingAudioSource();
+
+                // Stationary barrel emits zero rattles
+                barrelProp.IsContactActive = true;
+                barrelProp.Body.linearVelocity = Vector3.zero;
+                barrelProp.ResetRattleState();
+                for (int i = 0; i < 20; i++) barrelProp.UpdateRollingAudio(0.02f);
+                Assert(barrelProp.TotalRattlesEmitted == 0, "Stationary barrel emits zero metallic rolling rattles");
+
+                // Slow roll (0.40 m/s) emits discrete rattles
+                barrelProp.Body.linearVelocity = new Vector3(0.40f, 0f, 0f);
+                barrelProp.ResetRattleState();
+                for (int i = 0; i < 60; i++) barrelProp.UpdateRollingAudio(0.02f);
+                int slowRattles = barrelProp.TotalRattlesEmitted;
+                Assert(slowRattles >= 1, "Slow rolling barrel emits discrete metallic rattle ticks", $"SlowRattles={slowRattles}");
+
+                // Fast roll (4.0 m/s) emits significantly more rattles
+                barrelProp.Body.linearVelocity = new Vector3(4.0f, 0f, 0f);
+                barrelProp.ResetRattleState();
+                for (int i = 0; i < 60; i++) barrelProp.UpdateRollingAudio(0.02f);
+                int fastRattles = barrelProp.TotalRattlesEmitted;
+                Assert(fastRattles >= slowRattles * 2, "Fast rolling barrel emits significantly more frequent rattles (> 2x)", $"Fast={fastRattles}, Slow={slowRattles}");
+
+                // Airborne barrel (contact inactive) emits zero rattles
+                barrelProp.IsContactActive = false;
+                barrelProp.ResetRattleState();
+                for (int i = 0; i < 30; i++) barrelProp.UpdateRollingAudio(0.02f);
+                Assert(barrelProp.TotalRattlesEmitted == 0, "Airborne barrel with no contact emits zero rattles");
+
+                // Wooden box prop never emits rattles
+                var boxProp = boxGo.AddComponent<KickablePhysicsProp>();
+                boxProp.MaterialType = PropMaterialType.Wood;
+                boxProp.IsContactActive = true;
+                boxProp.Body.linearVelocity = new Vector3(4.0f, 0f, 0f);
+                boxProp.ResetRattleState();
+                for (int i = 0; i < 30; i++) boxProp.UpdateRollingAudio(0.02f);
+                Assert(boxProp.TotalRattlesEmitted == 0, "Wooden prop never emits metallic rolling rattles");
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(barrelGo);
+                UnityEngine.Object.DestroyImmediate(boxGo);
             }
         }
     }

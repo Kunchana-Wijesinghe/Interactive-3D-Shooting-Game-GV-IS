@@ -272,9 +272,9 @@ namespace FacilityBreach
                 // Speed normalization across active range (0.20 to maxRollSpeed 5.0m/s)
                 float speedNorm = Mathf.Clamp01((rollMetric - 0.20f) / Mathf.Max(0.1f, maxRollSpeed - 0.20f));
 
-                // 1. Soft mechanical friction bed (non-tonal, unobtrusive contact layer)
-                targetVolume = Mathf.Lerp(0.04f, 0.18f, Mathf.Sqrt(speedNorm));
-                targetPitch = Mathf.Lerp(0.85f, 1.15f, speedNorm);
+                // 1. Natural speed-driven friction bed volume and pitch
+                targetVolume = Mathf.Lerp(0.08f, maxRollVolume, Mathf.Sqrt(speedNorm));
+                targetPitch = Mathf.Lerp(0.70f, 1.35f, speedNorm);
 
                 // 2. Physical Rolling Metallic Rattle Tick Scheduler
                 float rollDistanceDelta = rollMetric * dt;
