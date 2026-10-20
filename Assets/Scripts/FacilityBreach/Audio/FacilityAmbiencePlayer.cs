@@ -35,11 +35,11 @@ namespace FacilityBreach.Audio
         [Header("Ambience Configuration")]
         [Tooltip("Target playback volume for the 2D industrial ambience background (subtle presence).")]
         [Range(0f, 1f)]
-        [SerializeField] private float targetVolume = 0.22f;
+        [SerializeField] private float targetVolume = 0.38f;
 
         [Tooltip("Fade speed (volume units per second). At 0.5f/s, fades from 0 to 0.22 in ~0.44s; default 0.22/2s ~ 0.11f/s.")]
         [Range(0.01f, 2f)]
-        [SerializeField] private float fadeSpeed = 0.15f;
+        [SerializeField] private float fadeSpeed = 0.50f;
 
         [Tooltip("Automatically synthesize and start playing on Start().")]
         [SerializeField] private bool autoPlayOnStart = true;
@@ -127,17 +127,29 @@ namespace FacilityBreach.Audio
         {
             if (audioSource != null) return;
 
-            audioSource = GetComponent<AudioSource>();
+            Transform child = transform.Find("[FacilityAmbienceAudioSource]");
+            GameObject childGo;
+            if (child == null)
+            {
+                childGo = new GameObject("[FacilityAmbienceAudioSource]");
+                childGo.transform.SetParent(transform, false);
+            }
+            else
+            {
+                childGo = child.gameObject;
+            }
+
+            audioSource = childGo.GetComponent<AudioSource>();
             if (audioSource == null)
             {
-                audioSource = gameObject.AddComponent<AudioSource>();
+                audioSource = childGo.AddComponent<AudioSource>();
             }
 
             audioSource.playOnAwake = false;
             audioSource.loop = true;
             audioSource.spatialBlend = 0f; // 2D stereo background
             audioSource.volume = 0f;       // Start at zero for smooth fade-in
-            audioSource.priority = 180;    // Lower priority than gunshots and impacts (default 128)
+            audioSource.priority = 64;     // High priority so continuous ambience is never culled by SFX
             audioSource.dopplerLevel = 0f;
             audioSource.bypassEffects = true;
             audioSource.bypassListenerEffects = true;
@@ -165,6 +177,7 @@ namespace FacilityBreach.Audio
             {
                 audioSource.volume = 0f;
                 audioSource.Play();
+                Debug.Log($"[FacilityAmbiencePlayer] Playing 2D ambience clip '{audioSource.clip.name}' (Target Vol: {targetVolume:F2}, Priority: {audioSource.priority})");
             }
 
             isFadingOut = false;

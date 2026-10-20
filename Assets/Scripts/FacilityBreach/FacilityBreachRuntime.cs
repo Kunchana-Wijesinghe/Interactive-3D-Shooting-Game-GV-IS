@@ -95,6 +95,7 @@ namespace FacilityBreach
             if (!audioPlayer) audioPlayer = gameObject.AddComponent<FacilityAudioPlayer>();
             if (!ambiencePlayer) ambiencePlayer = GetComponent<FacilityAmbiencePlayer>();
             if (!ambiencePlayer) ambiencePlayer = gameObject.AddComponent<FacilityAmbiencePlayer>();
+            ambiencePlayer.Play();
             dispatcher = gameObject.AddComponent<FacilityInteractionDispatcher>();
             dispatcher.Initialize(this, view, player.transform);
             foreach (var door in FindObjectsByType<InteractiveDoor>(FindObjectsSortMode.None))

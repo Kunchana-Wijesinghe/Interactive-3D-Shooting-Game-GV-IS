@@ -470,9 +470,10 @@ namespace FacilityBreach.Audio
         }
 
         /// <summary>
-        /// Facility Environmental Ambience: Subtle sci-fi industrial background atmosphere (2.0s seamless loop).
-        /// Combines low HVAC ventilation airflow (54Hz, 82Hz), distant machinery drone (120Hz, 180Hz),
-        /// gentle 60Hz electrical hum, and a soft structural creak swell, peak normalized to 0.40 for quiet background presence.
+        /// Facility Environmental Ambience: Audible industrial sci-fi background atmosphere (2.0s seamless loop).
+        /// Combines audible ventilation duct airflow (220Hz - 750Hz), mid-range industrial machinery drone (180Hz, 270Hz, 360Hz),
+        /// electrical transformer hum harmonics (120Hz, 240Hz, 480Hz), and a subtle structural metallic creak swell around 1.0s.
+        /// Peak normalized to 0.82 for clear, comfortable audibility on laptop speakers and headphones.
         /// STRICT INVARIANT: Pure audio loop. Contains zero gameplay events, alerts, or AI interactions.
         /// </summary>
         private static AudioClip SynthesizeFacilityAmbience()
@@ -482,44 +483,48 @@ namespace FacilityBreach.Audio
             float[] samples = new float[totalSamples];
             var rng = new System.Random(4040);
 
-            // Two-pole low-pass filter for smooth HVAC airflow rumble
+            // Band-pass filtered airflow noise for industrial ventilation duct air wash (audible 220Hz - 750Hz)
             float[] airflowNoise = new float[totalSamples];
-            float flt1 = 0f;
-            float flt2 = 0f;
+            float lp1 = 0f, lp2 = 0f;
+            float prevLp = 0f;
+            float hp1 = 0f;
+            const float lpCoeff = 0.10f; // lowpass ~ 700Hz
+            const float hpCoeff = 0.97f; // highpass ~ 210Hz
+
             for (int i = 0; i < totalSamples; i++)
             {
                 float raw = ((float)rng.NextDouble() * 2f - 1f);
-                flt1 += 0.04f * (raw - flt1);
-                flt2 += 0.03f * (flt1 - flt2);
-                airflowNoise[i] = flt2 * 6.0f;
+                lp1 += lpCoeff * (raw - lp1);
+                lp2 += lpCoeff * (lp1 - lp2);
+                hp1 = hpCoeff * (hp1 + lp2 - prevLp);
+                prevLp = lp2;
+                airflowNoise[i] = hp1 * 3.5f;
             }
 
             for (int i = 0; i < totalSamples; i++)
             {
                 float t = (float)i / SampleRate;
 
-                // 1. HVAC airflow breathing oscillation (0.5Hz modulation)
-                float airBreath = 0.80f + 0.20f * Mathf.Sin(2f * Mathf.PI * 0.5f * t);
-                float airflow = airflowNoise[i] * airBreath * 0.22f;
+                // 1. Ventilation air wash breathing oscillation (0.5Hz modulation)
+                float airBreath = 0.82f + 0.18f * Mathf.Sin(2f * Mathf.PI * 0.5f * t);
+                float airflow = airflowNoise[i] * airBreath * 0.28f;
 
-                // 2. Sub-bass ventilation resonance (exact integer cycles over 2.0s: 54Hz, 82Hz)
-                float vent1 = Mathf.Sin(2f * Mathf.PI * 54f * t) * 0.25f;
-                float vent2 = Mathf.Sin(2f * Mathf.PI * 82f * t) * 0.16f;
-
-                // 3. Distant machinery drone (exact integer cycles: 120Hz, 180Hz with 1.0Hz beating)
+                // 2. Industrial machinery drone (exact integer cycles: 180Hz, 270Hz, 360Hz with 1.0Hz slow beating)
                 float droneBeating = 0.85f + 0.15f * Mathf.Sin(2f * Mathf.PI * 1.0f * t);
-                float drone120 = Mathf.Sin(2f * Mathf.PI * 120f * t) * 0.14f * droneBeating;
-                float drone180 = Mathf.Sin(2f * Mathf.PI * 180f * t) * 0.09f;
+                float drone180 = Mathf.Sin(2f * Mathf.PI * 180f * t) * 0.22f * droneBeating;
+                float drone270 = Mathf.Sin(2f * Mathf.PI * 270f * t) * 0.14f;
+                float drone360 = Mathf.Sin(2f * Mathf.PI * 360f * t) * 0.08f;
 
-                // 4. Subtle 60Hz electrical hum with 240Hz gentle harmonic
-                float mainsHum = Mathf.Sin(2f * Mathf.PI * 60f * t) * 0.10f;
-                float transformerBuzz = Mathf.Sin(2f * Mathf.PI * 240f * t) * 0.03f;
+                // 3. Electrical transformer hum & harmonics (120Hz fundamental, 240Hz, 480Hz)
+                float hum120 = Mathf.Sin(2f * Mathf.PI * 120f * t) * 0.18f;
+                float hum240 = Mathf.Sin(2f * Mathf.PI * 240f * t) * 0.12f;
+                float hum480 = Mathf.Sin(2f * Mathf.PI * 480f * t) * 0.05f;
 
-                // 5. Gentle structural metallic creak swell around 1.0s (gaussian envelope, smooth and non-alarming)
-                float creakEnv = Mathf.Exp(-16f * Mathf.Pow(t - 1.0f, 2f)) * 0.10f;
-                float creakTone = Mathf.Sin(2f * Mathf.PI * 260f * t) * creakEnv;
+                // 4. Structural metallic creak / resonance swell around 1.0s (gaussian envelope, centered at 330Hz)
+                float creakEnv = Mathf.Exp(-18f * Mathf.Pow(t - 1.0f, 2f)) * 0.12f;
+                float creakTone = Mathf.Sin(2f * Mathf.PI * 330f * t) * creakEnv;
 
-                samples[i] = airflow + vent1 + vent2 + drone120 + drone180 + mainsHum + transformerBuzz + creakTone;
+                samples[i] = airflow + drone180 + drone270 + drone360 + hum120 + hum240 + hum480 + creakTone;
             }
 
             // Smoothly bridge the last 5ms to match sample 0 for seamless click-free looping
@@ -533,7 +538,7 @@ namespace FacilityBreach.Audio
                 samples[idx] = Mathf.Lerp(samples[idx], targetSample, smooth);
             }
 
-            NormalizeSamples(samples, 0.40f);
+            NormalizeSamples(samples, 0.82f);
             AudioClip clip = AudioClip.Create("Procedural_Facility_Ambience", totalSamples, 1, SampleRate, false);
             clip.SetData(samples, 0);
             return clip;
