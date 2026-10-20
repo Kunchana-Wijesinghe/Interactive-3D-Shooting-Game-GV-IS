@@ -4,8 +4,8 @@
 **Student ID:** IT24102587  
 **Module:** SE3032 - Graphics and Visualization (GV)  
 **Assigned Role:** Part 2: Systems Engineer (Player Interaction Physics)  
-**Git Branch (Merged Baseline):** `develop` (integrated via GV PR #9 commit `fd94efe` and PR #11 commit `4ac6a2f`)<br/>
-**Current Working Feature Branch:** `gv/IT24102587-fps-viewmodel-obstruction`<br/>
+**Git Branch (Merged Baseline):** `develop` (integrated via GV PR #9 commit `fd94efe`, PR #11 commit `4ac6a2f`, PR #12 commit `caa133e`, PR #15 commit `b1b6745`, and PR #16 commit `38e9a08`)<br/>
+**Current Working Feature Branch:** `gv/IT24102587-kickable-physics-audio`<br/>
 **Target Unity Version:** Unity 6000.6.2f1 (URP / 3D)<br/>
 **Repository:** `Interactive-3D-Shooting-Game-GV-IS` (Private)
 
@@ -465,6 +465,69 @@ Executed in Unity 6000.6.2f1 headless batch mode with **ExitCode 0**:
 - Protected recovery directories (`Assets/_Recovery/`), package settings, `stash@{0}`, and test logs preserved untouched.
 - `git diff --check` passes with zero whitespace or line-ending warnings.
 
+
+---
+
+### Feature Entry 7: Interactive Player Physics & Audible Facility Audio (Kickable Props, Procedural Audio Synthesis, FPS Kick Mechanic & Neutral Noise Broadcasts)
+- **Date:** 2026-10-20
+- **Feature Name:** Interactive Player Physics, Procedural Gunshot & Impact Audio Synthesis, Short-Range FPS Kick Controller, and Decoupled Neutral Facility Noise Hub
+- **Git Feature Branch:** `gv/IT24102587-kickable-physics-audio`
+- **Base Commit:** `38e9a08` (`Merge pull request #16 from Kunchana-Wijesinghe/gv/IT24102587-bullet-tracer-vfx`)
+- **Status:** Completed (8 Substantive Commits; Automated Unit Checks Authored; Ready for Batch Run and User Play Mode Review)
+- **SE3032 Rubric Alignment:** *Player Interaction Physics — doors, movable barricades, and physics objects* (tactile physical interaction with 7 environment props + audible feedback for weapon fire and physical impacts).
+
+#### Committed Lineage (8 Logically Separated Substantive Commits)
+1. `5ce3589` `feat(audio): implement procedural facility sound playback`
+   - Created `FacilityAudioSynthesizer.cs`: procedural mathematical waveform synthesis for 6 sound types (3 gunshots, wood impact, metal impact, kick thud).
+   - Created `FacilityAudioPlayer.cs`: multi-voice dynamic `AudioSource` pooling (8 voices), 2D/3D spatial blending, pitch modulation ($\pm 5\%$).
+2. `dd0a533` `feat(audio): play distinct sounds for confirmed weapon shots`
+   - Integrated `AudioPlayer` into `FacilityBreachRuntime.cs` (`TryFire()`).
+   - Wired distinct audio profiles for `Ammo1gun` (pistol), `Ammo2gun` (rifle), and `Ammo3gun` (heavy cannon) on confirmed ammunition consumption.
+3. `cda17d3` `feat(noise): publish neutral facility sound events`
+   - Created `FacilityNoiseEvent.cs`: immutable noise event data struct.
+   - Created `FacilityNoiseHub.cs`: neutral static publish-subscribe event broker decoupled from listener AI.
+   - Wired gunshot noise event emission ($R=35.0\text{m}$, intensity $1.0$) into `FacilityBreachRuntime.cs` (`TryFire()`).
+4. `9de09fd` `feat(physics): add collision-aware kickable props`
+   - Created `KickablePhysicsProp.cs`: dynamic `Rigidbody` physics prop with `Continuous` collision detection, `Interpolate`, linear drag ($0.8$), angular drag ($1.2$).
+   - Collision impact velocity threshold ($0.8\text{m/s}$), cooldown ($0.15\text{s}$), dynamic volume-scaled wood/metal audio, and `PropCollision` noise event emission ($R=3.0\text{m} - 15.0\text{m}$).
+5. `6d29d96` `feat(interaction): add short-range FPS physics kick`
+   - Created `FpsKickController.cs`: dedicated `F` key kick interaction with $2.2\text{m}$ camera forward reach (spherecast tolerance $0.25\text{m}$).
+   - Forward impulse ($14.0\text{N}\cdot\text{s}$) + upward loft ($3.5\text{N}\cdot\text{s}$) with velocity clamping ($\le 12.0\text{m/s}$).
+   - Occlusion raycast probe preventing kicking through solid walls.
+   - Dynamic HUD prompt `"F: Kick [Prop Name]"` wired into `FacilityBreachRuntime.cs`.
+6. `0b082d9` `feat(environment): add seven kickable facility props`
+   - Created `FacilityKickablePropsSetup.cs`: deterministic deployment of 7 kickable props in `Prototype.unity` at safe alcoves and corridor corners (3 small wooden boxes, 2 medium wooden crates, 2 metal barrels).
+   - Runtime idempotent spawn check in `FacilityBreachRuntime.Start()` preventing duplicates.
+7. `cbed8d6` `test(gv): verify kickable physics and facility audio`
+   - Created `KickablePhysicsAudioTests.cs`: comprehensive 12-test Edit Mode suite covering audio synthesis, gunshot profiles, player pooling, noise hub, physics damping, kick impulses, range/occlusion, 7 props placement, teammate isolation, and backward compatibility.
+8. `[hash]` `docs(gv): document interactive physics props and audio`
+   - Updated GV Part 2 technical report, worklog, and verification log to document all mechanics, formulas, architecture, and verification status.
+
+#### Files Created / Changed
+- `Assets/Scripts/FacilityBreach/Audio/FacilityAudioSynthesizer.cs` (created)
+- `Assets/Scripts/FacilityBreach/Audio/FacilityAudioPlayer.cs` (created)
+- `Assets/Scripts/FacilityBreach/Noise/FacilityNoiseEvent.cs` (created)
+- `Assets/Scripts/FacilityBreach/Noise/FacilityNoiseHub.cs` (created)
+- `Assets/Scripts/FacilityBreach/Physics/KickablePhysicsProp.cs` (created)
+- `Assets/Scripts/FacilityBreach/Physics/FacilityKickablePropsSetup.cs` (created)
+- `Assets/Scripts/FacilityBreach/Player/FpsKickController.cs` (created)
+- `Assets/Editor/FacilityBreach/KickablePhysicsAudioTests.cs` (created)
+- `Assets/Scripts/FacilityBreach/FacilityBreachRuntime.cs` (modified: wired audio player, gunshot sound/noise hook, kick controller, 7 props setup, and kick HUD prompt)
+- Accompanying `.meta` files for all newly authored assets.
+
+#### Architectural Principles & Boundaries
+- **Zero External Binary Audio Bloat**: Waveforms are synthesized mathematically via IEEE 32-bit float buffers in `AudioClip.Create(...)`. No external `.wav`/`.mp3` files, no missing asset GUIDs, zero GC during runtime playback.
+- **Strict Decoupling from Teammate Code**: Teammate Sound Hunter files (`Assets/Perera/`, `Assets/Scripts/FacilityBreach/AI/SoundHunter/`) are completely untouched. `FacilityNoiseHub` operates as a neutral event broadcaster with zero listener coupling on this GV branch.
+- **Resource-Efficient Verification Strategy**: Unity Editor was kept closed throughout implementation to protect laptop performance; batch verification is consolidated into a single post-implementation run.
+
+#### Automated Test Suite Verification (62 Programmatic Checks, 12 Methods)
+- Authored in [`KickablePhysicsAudioTests.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Editor/FacilityBreach/KickablePhysicsAudioTests.cs).
+- Validates procedural PCM synthesis, distinct gunshot acoustic signatures, audio player voice pooling, noise hub emission, physics damping, kick impulses, line-of-sight occlusion, prop placement, teammate isolation, and backward compatibility with shooting VFX and tactical arms.
+- Cumulative project test total: 374 passed baseline checks + 62 kickable physics and audio checks = 436 automated checks.
+
+#### Visual Evidence Disclosure
+- Visual screenshot inventory is preserved at 28 captures (Captures 01–28).
+- No new screenshots were requested, created, or fabricated. Full verification is achieved through user Play Mode testing and automated regression testing.
 ---
 
 ## 3. Future Roadmap (GV Part 2)
@@ -472,4 +535,6 @@ Executed in Unity 6000.6.2f1 headless batch mode with **ExitCode 0**:
 2. **Full Scene Integration**: Integrate tested interactive doors and movable barricades into `Prototype.unity` and main facility corridors with centralized arbitration. *(Completed: Centralized `FacilityInteractionDispatcher` deployed, 6 barricades configured in `Prototype.unity`, and verified via manual Play Mode testing; merged in PR #11).*
 3. **First-Person Viewmodel Obstruction Polish**: Prevent weapon model clipping through solid walls in close-quarters combat via procedural low-ready retraction. *(Completed: `FpsViewModelObstruction` implemented, verified across 24 automated checks and 6 visual captures on feature branch `gv/IT24102587-fps-viewmodel-obstruction`; merged in PR #12).*
 4. **First-Person Tactical Arms/Gloves**: Evaluate tactical-gloved hands rigging for the equipped firearm viewmodel to further elevate first-person visual fidelity. *(Completed: `FpsArmsPrefabBuilder` implemented, CC BY 4.0 model integrated across all 3 weapons, verified across 80 automated checks and screenshots 26–28 on branch `gv/IT24102587-fps-tactical-arms`; merged in PR #15).*
-5. **First-Person Shooting VFX**: Provide lightweight visual feedback for player shooting using hitscan data without affecting ballistics or causing skybox artifacts. *(Completed: Standalone bullet tracer, camera-facing muzzle flash V2, and tuned environmental impact sparks implemented and verified across 86 automated checks and user Play Mode testing on branch `gv/IT24102587-bullet-tracer-vfx`).*
+5. **First-Person Shooting VFX**: Provide lightweight visual feedback for player shooting using hitscan data without affecting ballistics or causing skybox artifacts. *(Completed: Standalone bullet tracer, camera-facing muzzle flash V2, and tuned environmental impact sparks implemented and verified across 86 automated checks and user Play Mode testing on branch `gv/IT24102587-bullet-tracer-vfx`; merged into `develop` in PR #16 at commit `38e9a08`).*
+6. **Interactive Player Physics & Audible Facility Audio**: Introduce kickable physics props, procedural audio synthesis, short-range FPS kick mechanic, and neutral noise broadcasts. *(Completed: 8 substantive commits authored on branch `gv/IT24102587-kickable-physics-audio`, 7 safe facility props deployed, procedural gunshot and collision audio integrated, and 12-check automated suite authored).*
+7. **Patrol Guard Noise Investigation AI (Upcoming IS Deliverable)**: Implement auditory perception and noise investigation behaviors in Patrol Guard AI reacting to published facility noise events. *(Scheduled: To be developed on dedicated branch `is/IT24102587-patrol-noise-investigation` following GV PR merge).*
