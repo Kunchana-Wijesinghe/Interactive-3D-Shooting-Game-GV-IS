@@ -623,8 +623,36 @@ Executed in Unity 6000.6.2f1 headless batch mode with **ExitCode 0**:
     - Added 5ms cubic smoothstep loop seam bridge to `SynthesizeRollingMetal()`, ensuring zero boundary delta and eliminating audio clicks.
     - Updated `KickablePhysicsProp.UpdateRollingAudio(float deltaTime = -1f)` with fallback delta step for Edit Mode batch testing.
     - Exposed `IsContactActive` property for deterministic test fixtures.
-32. `[pending]` `docs(gv): document barrel rolling audio, Q projectile sound integration, and 744-check regression verification`
-    - Documented continuous rolling audio architecture, distraction can projectile sound integration, and full 744/744 automated batch test verification.
+32. `6b23d3e` `docs(gv): document natural barrel rolling audio, clear impact transients, and isolated facility ambience`
+    - Documented natural metal barrel rolling audio overhaul, clear collision impact transients, and isolated facility industrial ambience.
+33. `5ff1a74` `fix(physics): calibrate rolling start hysteresis threshold and dynamic range test bounds`
+    - Calibrated rolling start threshold to 0.22m/s and dynamic range assertions.
+34. `995f115` `docs(gv): record 781-check green batch verification across all 11 test suites`
+    - Recorded 781/781 passing checks across 11 suites.
+35. `c83891d` `feat(audio): synthesize clank-derived metallic rolling rattle taps and organic mechanical friction`
+    - Synthesized 3 metallic rattle variants derived from approved collision clanks (220Hz body, 520Hz shell, 880Hz rim ping, 1350Hz inharmonic) and mechanical floor grit bed.
+36. `dbeee39` `feat(physics): implement speed-driven barrel rattle scheduling and playback`
+    - Implemented physical distance-based rattle scheduling (0.15-0.38m cadence), velocity scaling (0.14-0.50), speed pitch modulation (0.88-1.25x), and transient suppression.
+37. `8814799` `feat(ambience): fix facility ambience audible spectrum, dedicated 2D source, and runtime initialization`
+    - Shifted ambience spectrum to rich 180-950Hz mid-frequencies, created dedicated child AudioSource with priority 64, and added runtime playback hook.
+38. `afd19f6` `test(audio): add regression tests for clank-based rolling rattles and audible facility ambience`
+    - Added comprehensive unit tests for rattle clips, tick scheduling, and audible ambience parameters.
+39. `df8a2e7` `docs(gv): document clank-based barrel rolling rattles, audible facility ambience, and verification results`
+    - Documented rattle synthesis, mechanical friction bed, and audible ambience architecture.
+40. `c6491cd` `fix(audio): calibrate rolling metal peak normalization, delta-time rattle cooldown, and stop state`
+    - Calibrated peak normalization (0.50), delta-time fallback, and rattle cooldown.
+41. `3f396cc` `docs(gv): calibrate verified test counts to 813 total checks across all 11 test suites`
+    - Updated verified test counts to 813/813 across all 11 suites.
+42. `5d18eaa` `fix(ambience): resolve edit-mode leakage, startup menu gating, and pause-resume lifecycle`
+    - Added Editor hooks (`playModeStateChanged`, `pauseStateChanged`) for immediate stop/pause, in-game pause synchronization (`Time.timeScale <= 0f`), mission start gating (`StartMission()`), and `autoPlayOnStart = false`.
+43. `3fb1b47` `feat(audio): synthesize procedural concrete boot footstep audio clips and cache variants`
+    - Synthesized 3 deterministic combat boot footstep variants (0.08s at 44.1kHz, 130-165Hz thud, 340-425Hz slap, concrete dust grit scuff, peak 0.52) in `FacilityAudioSynthesizer.cs`, with multi-voice playback method in `FacilityAudioPlayer.cs`.
+44. `70875ac` `feat(player): implement motion-based player footstep controller with wall and airborne gating`
+    - Implemented `FpsFootstepController.cs` with physical stride accumulation (1.80m), diagonal cadence preservation, grounded verification, wall blockage detection (zero footsteps into walls), pause suppression, and dedicated 2D AudioSource child.
+45. `49f53f2` `test(audio): add regression tests for ambience lifecycle and player movement footstep gating`
+    - Added `Test_FacilityAmbience_LifecyclePauseAndEditModeSafety` and `Test_FpsFootstepController_MovementCadenceAndGating` to `KickablePhysicsAudioTests.cs`, and updated clip count assertion to 12.
+46. `[pending]` `docs(gv): document ambience lifecycle fixes, player footstep audio system, and verification results`
+    - Documented ambience lifecycle fixes, pause synchronization, procedural concrete boot footsteps, multi-layered motion gating, and 859-check regression verification.
 
 #### Root-Cause Analysis & Technical Solutions
 1. **Targeting Inaccuracy & Non-Responsive Props:**
@@ -680,10 +708,36 @@ Executed in Unity 6000.6.2f1 headless batch mode with **ExitCode 0**:
      2. Component contention: `FacilityAmbiencePlayer.InitializeAudioSource()` called `GetComponent<AudioSource>()` on `FB_Gameplay`, hijacking `FacilityAudioPlayer.player2dSource`, with low priority 180 and without explicit runtime startup trigger.
    - *Solution 2:* Shifted ambience synthesis spectrum to rich, audible mid-frequencies (180 - 950Hz ventilation duct air wash, 180/270/360Hz industrial drones, 120/240/480Hz transformer harmonics, 330Hz structural creak), normalized peak to 0.82, set target volume to 0.38, created dedicated isolated child `[FacilityAmbienceAudioSource]` with priority 64, and added explicit `ambiencePlayer.Play()` in runtime startup. STRICT ZERO AI NOISE EVENT EMISSION PRESERVED.
 
+8. **Ambience Lifecycle Gating, Pause Synchronization & Procedural Player Footsteps:**
+   - *Problem A (Ambience Playing in Edit Mode / Menu):* Ambience was audible before starting the mission or when pausing/stopping Play Mode.
+   - *Root Cause A:*
+     1. `FacilityBreachRuntime.Start()` called `ambiencePlayer.Play()` at scene load on frame 1 while `Run.State == MissionState.Menu`.
+     2. In `FacilityAmbiencePlayer.Update()`, `Time.unscaledDeltaTime` was used and `Time.timeScale` was never checked, so when the player paused (`Escape` / `SetPause(true)`), audio kept playing at full volume.
+     3. `autoPlayOnStart = true` in `FacilityAmbiencePlayer` was unguarded by `Application.isPlaying`.
+     4. `KickablePhysicsAudioTests.Test_FacilityAmbience_ZeroNoiseEventEmission` called `player.Play()` in Edit Mode without calling `player.Stop(true)` in `finally`, leaving audio playing in the Editor process.
+   - *Solution A:*
+     - Hooked `EditorApplication.playModeStateChanged` and `EditorApplication.pauseStateChanged` in `#if UNITY_EDITOR` blocks to shut down ambience immediately on exiting Play Mode or entering Edit Mode, and pause/resume on Editor pause.
+     - Implemented `Pause()` and `Resume()` methods preserving loop position.
+     - Automatically pause when `Time.timeScale <= 0f` and resume when `Time.timeScale > 0f`.
+     - Set `autoPlayOnStart = false` and gated `Start()` with `Application.isPlaying`.
+     - In `FacilityBreachRuntime`: removed `ambiencePlayer.Play()` from `Start()`; added it to `StartMission()`; hooked into `SetPause()` and mission failure.
+   - *Problem B (Tactile Player Footstep Audio):* Moving through the facility lacked physical feedback for player movement.
+   - *Solution B:*
+     - Synthesized `FacilityAudioClipType.FootstepConcrete` (3 deterministic variants, 0.08s at 44.1kHz mono, 130-165Hz rubber combat boot heel thud, 340-425Hz sole contact slap, 850-2800Hz concrete grit scuff noise, peak normalized to 0.52).
+     - Implemented `FpsFootstepController.cs` attached to player:
+       - Distance-based step accumulation (1.80m stride distance) tracking actual horizontal displacement ($\Delta \mathbf{x} = \mathbf{p}_t - \mathbf{p}_{t-1}$).
+       - Diagonal movement preserves stride distance without doubling cadence.
+       - Gating: requires `characterController.isGrounded`, horizontal velocity $\ge 0.45\,\text{m/s}$, active intentional W/S/A/D input, `playerAdapter.InputEnabled`, `Run.Running && !Run.Paused`, and `Resources.Alive`.
+       - Wall blockage: horizontal displacement is 0, so holding W/S/A/D against a solid wall emits ZERO phantom footsteps.
+       - Airborne: jumping or falling emits zero footsteps and resets accumulator.
+       - Paused: zero footsteps emitted.
+       - Dedicated 2D non-looping AudioSource child `[FpsFootstepAudioSource]` with volume 0.26 and priority 110.
+     - **STRICT AI ISOLATION INVARIANT**: Footsteps and ambience are local player audio only. Never emits events to `FacilityNoiseHub` or `SoundEventBus`. Zero effect on AI patrol guards or noise scoring.
+
 #### Verification Summary
 - Baseline automated regression checks: 374/374 PASSED across 10 baseline suites.
-- Kickable physics & audio automated checks: 439/439 PASSED across 27 comprehensive test methods in KickablePhysicsAudioTests.cs (covering clank-based rolling rattles, speed-driven tick scheduling, organic mechanical friction, audible mid-range facility ambience, dedicated child AudioSource, priority 64, and zero AI noise emission invariant).
-- Cumulative project test total: 813/813 checks PASSED (100% Green across all 11 suites, ExitCode 0).
+- Kickable physics & audio automated checks: 485/485 PASSED across 29 comprehensive test methods in KickablePhysicsAudioTests.cs (covering clank-based rolling rattles, speed-driven tick scheduling, organic mechanical friction, audible mid-range facility ambience, ambience lifecycle/pause gating, procedural footsteps and motion gating, dedicated child AudioSource, priority 64, and zero AI noise emission invariant).
+- Cumulative project test total: 859/859 checks PASSED (100% Green across all 11 suites, ExitCode 0).
 - Total active kickable props: 40 props (13 authored + 27 converted scene props).
 - Visual evidence screenshots: 28 high-resolution captures preserved unchanged.
 - Unity Editor closed during development; consolidated headless batch run executed with ExitCode 0.

@@ -1044,12 +1044,16 @@ To provide robust, zero-dependency audio feedback without missing asset GUIDs, b
   - **3D Localized Metal Clatter Impact**: Procedural impact clip `FacilityAudioClipType.ProjectileImpact` ($0.20\,\text{s}$, $180\,\text{Hz}$ body resonance + $620\,\text{Hz}/950\,\text{Hz}$ high can ping + secondary micro-bounce transient at $45\,\text{ms}$, peak normalized to $0.90$) played via 3D spatial pool at physical collision point.
   - **Debounce Protection & Clean Decoupling**: Protected by `MinImpactVelocity = 0.8\,\text{m/s}` and `ImpactCooldown = 0.10\,\text{s}` against physics subframe duplicate spam and destruction race conditions. Teammate `SoundEventBus.Emit` trigger contract is preserved untouched.
 
-### 14.7 Dedicated Audible 2D Facility Industrial Environmental Ambience
+### 14.7 Dedicated Audible 2D Facility Industrial Environmental Ambience & Strict Lifecycle Gating
 - **Facility Ambience Architecture ([`FacilityAmbiencePlayer.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/Audio/FacilityAmbiencePlayer.cs))**:
   - Provides continuous, audible 2D sci-fi industrial background atmosphere directly to the player's audio listener with smooth fade-in and fade-out lifecycle across the entire facility.
   - **Dedicated Isolated AudioSource Child**: Instantiates a dedicated child GameObject `[FacilityAmbienceAudioSource]` attached to `transform`, completely eliminating AudioSource component sharing and conflict with `FacilityAudioPlayer`.
   - Configured with `spatialBlend = 0.0` (2D non-spatial), `loop = true`, `priority = 64` (high priority preventing SFX voice culling), and `targetVolume = 0.38` with `fadeSpeed = 0.50`.
-  - Explicitly initialized and started in [`FacilityBreachRuntime.Start()`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/FacilityBreachRuntime.cs) (`ambiencePlayer.Play()`), guaranteeing immediate background playback upon game start.
+  - **Strict Lifecycle Gating & Zero Edit-Mode Leakage**:
+    - `autoPlayOnStart = false` and `Start()` strictly guarded with `Application.isPlaying`, ensuring zero audio leakage during Unity Edit Mode inspection or test runners.
+    - Ambience playback is strictly gated to active gameplay: starts cleanly in [`FacilityBreachRuntime.StartMission()`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/FacilityBreachRuntime.cs), preventing audio playback while sitting on the main menu.
+    - **Pause Synchronization**: Implements clean `Pause()` and `Resume()` methods preserving track loop position. Automatically pauses when `Time.timeScale <= 0f` (in-game pause menu `Escape` or focus loss) and resumes when unpaused.
+    - **Editor PlayMode Hook**: Listens to `EditorApplication.playModeStateChanged` and `EditorApplication.pauseStateChanged` in `#if UNITY_EDITOR` blocks, guaranteeing immediate audio shutdown upon exiting Play Mode.
 - **Audible Procedural Mid-Range Ambience Synthesis ([`FacilityAudioSynthesizer.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/Audio/FacilityAudioSynthesizer.cs))**:
   - **Root-Cause Resolution of Inaudibility**: Shifted synthesis spectrum out of physical laptop speaker sub-bass cutoff ($< 150\,\text{Hz}$) into rich, audible mid-frequencies ($180\,\text{Hz} - 950\,\text{Hz}$).
   - `FacilityAudioClipType.FacilityAmbience`: 2.0s seamless loopable PCM audio generated at 44.1kHz combining:
@@ -1063,12 +1067,37 @@ To provide robust, zero-dependency audio feedback without missing asset GUIDs, b
   - Never calls `FacilityNoiseHub.Emit` or `SoundEventBus.Emit`.
   - Zero awareness or response from AI patrol guards or noise-detection systems (0 noise score / 0 hearing events).
 
-### 14.8 Automated Regression Suite & Verification Status
+### 14.8 Procedural Combat Boot Footstep Audio & Motion Gating
+- **Motion-Based Footstep Controller ([`FpsFootstepController.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/Player/FpsFootstepController.cs))**:
+  - Provides natural, subtle combat boot footstep audio on industrial concrete triggered by player movement.
+  - **Dedicated Non-Looping AudioSource Child**: Instantiates child GameObject `[FpsFootstepAudioSource]` with `spatialBlend = 0.0` (2D player-perspective stereo), `priority = 110` (standard SFX priority), volume $0.26$, and `loop = false`.
+  - **Physical Stride Distance Accumulation**:
+    - Uses distance-based step accumulation ($\text{strideDistance} = 1.80\,\text{m}$) tracking actual horizontal displacement ($\Delta \mathbf{x} = \mathbf{p}_t - \mathbf{p}_{t-1}$).
+    - When displacement accumulation reaches $1.80\,\text{m}$, a procedural footstep variant is played and the counter wraps.
+    - **Diagonal Cadence Preservation**: Because stride accumulation tracks vector displacement magnitude, diagonal walking ($\text{displacement} \approx 4.0\,\text{m/s}$) produces identical cadence to forward walking, completely eliminating double-step artifacts.
+  - **Rigorous Multi-Layered Motion Gating**:
+    - **Grounded Verification**: Requires `characterController.isGrounded`. When airborne or jumping, footsteps are strictly suppressed and the distance accumulator resets to zero.
+    - **Wall Blockage Gating**: Tracks actual horizontal position change ($v_{\text{horiz}} \ge 0.45\,\text{m/s}$). When walking into solid walls or obstacles where horizontal displacement is 0, ZERO footsteps are emitted regardless of W/S/A/D key inputs, completely eliminating phantom wall footsteps.
+    - **Input & Life Gating**: Requires intentional movement input (`horizontal != 0` or `vertical != 0`), `playerAdapter.InputEnabled`, active running mission (`Run.Running && !Run.Paused`), and player alive status (`Resources.Alive`).
+    - **Pause Gating**: Suppressed whenever `Time.timeScale <= 0f` or paused; distance accumulator resets to zero.
+- **Procedural Concrete Boot Synthesis ([`FacilityAudioSynthesizer.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/Audio/FacilityAudioSynthesizer.cs))**:
+  - `FacilityAudioClipType.FootstepConcrete`: Generates 3 deterministic, subtle variants ($0.08\,\text{s}$ duration at 44.1kHz mono):
+    1. Low-frequency rubber combat boot heel thud ($130\,\text{Hz} - 165\,\text{Hz}$).
+    2. Mid-frequency boot sole contact slap ($340\,\text{Hz} - 425\,\text{Hz}$).
+    3. Band-pass filtered concrete grit and dust scuff noise ($850\,\text{Hz} - 2800\,\text{Hz}$).
+    4. Fast exponential decay envelope ($e^{-48t}$), peak normalized to $0.52$ for clean, natural clarity without masking weapon or environment sounds.
+  - Integrated via `FacilityAudioPlayer.PlayFootstep(position, volumeScale, variant)`.
+- **STRICT AI ISOLATION INVARIANT**:
+  - Footsteps are local 2D player-feedback audio only.
+  - Never emits events to `FacilityNoiseHub` or `SoundEventBus`.
+  - Zero effect on AI patrol guards, awareness levels, or noise scoring.
+
+### 14.9 Automated Regression Suite & Verification Status
 - **Automated Test Suite ([`KickablePhysicsAudioTests.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Editor/FacilityBreach/KickablePhysicsAudioTests.cs)):**
-  - 27 comprehensive automated test methods covering all interaction, prop dynamics, audio synthesis, metallic rattle scheduling, continuous rolling audio, impact transients, audible facility ambience, projectile sounds, and isolation contracts:
-  - Validates procedural synthesis (11 clip types including `BarrelRollRattle`), gunshot profiles, kick thud normalization ($0.96$), rolling metal seamless loop continuity, metallic rattle variants and tick scheduling on metal vs wood, facility ambience loop continuity and safe peak ($0.82$), projectile launch/impact distinct waveforms, voice pooling, ambience player lifecycle, dedicated child AudioSource, priority 64, zero noise event emission invariant, noise hub emission, barrel rolling physics and torque, damping, kick impulses, precision aim resolution and player collider exclusion, thirteen props placement, 27 allowlisted scene clutter conversions, movable barricade and resource station exclusion, 40 total facility props contract, rolling audio lifecycle and velocity modulation, dynamic speed-to-volume and speed-to-pitch curves, collision impact transient volume boost over rolling bed, projectile audio playback, teammate isolation, and VFX/arms integration.
+  - 29 comprehensive automated test methods covering all interaction, prop dynamics, audio synthesis, metallic rattle scheduling, continuous rolling audio, impact transients, audible facility ambience, ambience lifecycle/pause gating, procedural footsteps and motion gating, projectile sounds, and isolation contracts:
+  - Validates procedural synthesis (12 clip types including `BarrelRollRattle` and `FootstepConcrete`), gunshot profiles, kick thud normalization ($0.96$), rolling metal seamless loop continuity, metallic rattle variants and tick scheduling on metal vs wood, facility ambience loop continuity and safe peak ($0.82$), ambience lifecycle pause/resume/edit-mode safety, player footstep motion gating/stride cadence/wall blockage/isolation, projectile launch/impact distinct waveforms, voice pooling, ambience player lifecycle, dedicated child AudioSource, priority 64, zero noise event emission invariant, noise hub emission, barrel rolling physics and torque, damping, kick impulses, precision aim resolution and player collider exclusion, thirteen props placement, 27 allowlisted scene clutter conversions, movable barricade and resource station exclusion, 40 total facility props contract, rolling audio lifecycle and velocity modulation, dynamic speed-to-volume and speed-to-pitch curves, collision impact transient volume boost over rolling bed, projectile audio playback, teammate isolation, and VFX/arms integration.
 - **Verification Summary:**
   - Baseline checks: 374/374 passed across 10 baseline suites.
-  - Kickable physics and audio checks: 439/439 passed across 27 comprehensive test methods in KickablePhysicsAudioTests.cs.
-  - Master Regression Total: 813/813 automated checks (374 baseline + 439 kickable physics & audio, 100% green batch verification across all 11 suites with ExitCode 0).
+  - Kickable physics and audio checks: 485/485 passed across 29 comprehensive test methods in KickablePhysicsAudioTests.cs.
+  - Master Regression Total: 859/859 automated checks (374 baseline + 485 kickable physics & audio, 100% green batch verification across all 11 suites with ExitCode 0).
   - Historical evidence: 28 high-resolution screenshots preserved intact.
