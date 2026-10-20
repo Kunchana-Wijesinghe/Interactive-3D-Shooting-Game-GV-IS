@@ -432,8 +432,9 @@ namespace FacilityBreach.Audio
                 _ => 1.00f  // Neutral stride
             };
 
-            float fThud = 145f * pitchScale;
-            float fSlap = 380f * pitchScale;
+            // Audible low-mid frequencies calibrated for laptop speaker reproduction (190Hz - 650Hz)
+            float fThud = 210f * pitchScale; // Punchy low-mid rubber heel contact
+            float fSlap = 520f * pitchScale; // Crisp sole contact slap on concrete
 
             // Simple 1-pole lowpass filter for concrete grit noise
             float noiseFlt = 0f;
@@ -444,23 +445,23 @@ namespace FacilityBreach.Audio
                 float attack = Mathf.Clamp01(t / 0.003f); // 3ms smooth heel contact
 
                 // 1. Rubber heel thud (low-mid transient)
-                float heelEnv = Mathf.Exp(-48f * t);
-                float heel = Mathf.Sin(2f * Mathf.PI * fThud * t) * 0.45f * heelEnv;
+                float heelEnv = Mathf.Exp(-42f * t);
+                float heel = Mathf.Sin(2f * Mathf.PI * fThud * t) * 0.50f * heelEnv;
 
                 // 2. Sole acoustic contact slap
-                float slapEnv = Mathf.Exp(-38f * t);
-                float slap = Mathf.Sin(2f * Mathf.PI * fSlap * t) * 0.30f * slapEnv;
+                float slapEnv = Mathf.Exp(-35f * t);
+                float slap = Mathf.Sin(2f * Mathf.PI * fSlap * t) * 0.35f * slapEnv;
 
                 // 3. Concrete surface grit scuff (band-shaped noise)
                 float rawNoise = ((float)rng.NextDouble() * 2f - 1f);
-                noiseFlt += 0.20f * (rawNoise - noiseFlt);
-                float scuffEnv = Mathf.Exp(-32f * t) * (1f - Mathf.Exp(-50f * t));
-                float scuff = noiseFlt * scuffEnv * 0.40f;
+                noiseFlt += 0.25f * (rawNoise - noiseFlt);
+                float scuffEnv = Mathf.Exp(-28f * t) * (1f - Mathf.Exp(-50f * t));
+                float scuff = noiseFlt * scuffEnv * 0.45f;
 
                 samples[i] = attack * (heel + slap + scuff);
             }
 
-            NormalizeSamples(samples, 0.52f);
+            NormalizeSamples(samples, 0.72f);
             AudioClip clip = AudioClip.Create($"Procedural_Footstep_Concrete_{variant}", totalSamples, 1, SampleRate, false);
             clip.SetData(samples, 0);
             return clip;
