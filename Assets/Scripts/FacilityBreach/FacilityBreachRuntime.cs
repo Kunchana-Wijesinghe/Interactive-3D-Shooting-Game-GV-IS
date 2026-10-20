@@ -54,6 +54,8 @@ namespace FacilityBreach
         public FpsImpactSparks ImpactSparks => impactSparks;
         private FacilityAudioPlayer audioPlayer;
         public FacilityAudioPlayer AudioPlayer => audioPlayer;
+        private FacilityAmbiencePlayer ambiencePlayer;
+        public FacilityAmbiencePlayer AmbiencePlayer => ambiencePlayer;
         private FpsKickController kickController;
         public FpsKickController KickController => kickController;
         private float reload, cadence;
@@ -91,6 +93,8 @@ namespace FacilityBreach
             UpdateWeaponVisual();
             if (!audioPlayer) audioPlayer = GetComponent<FacilityAudioPlayer>();
             if (!audioPlayer) audioPlayer = gameObject.AddComponent<FacilityAudioPlayer>();
+            if (!ambiencePlayer) ambiencePlayer = GetComponent<FacilityAmbiencePlayer>();
+            if (!ambiencePlayer) ambiencePlayer = gameObject.AddComponent<FacilityAmbiencePlayer>();
             dispatcher = gameObject.AddComponent<FacilityInteractionDispatcher>();
             dispatcher.Initialize(this, view, player.transform);
             foreach (var door in FindObjectsByType<InteractiveDoor>(FindObjectsSortMode.None))
