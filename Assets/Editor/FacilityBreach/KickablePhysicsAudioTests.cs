@@ -47,6 +47,8 @@ namespace FacilityBreach.Editor
             RunTest("RollingMetalAudio_SeamlessLoopAndFrequencyRange", Test_RollingMetalAudio_SeamlessLoopAndFrequencyRange);
             RunTest("BarrelRollingRattle_SynthesisAndTickScheduling", Test_BarrelRollingRattle_SynthesisAndTickScheduling);
             RunTest("FacilityAmbienceAudio_LoopContinuityAndSafePeak", Test_FacilityAmbienceAudio_LoopContinuityAndSafePeak);
+            RunTest("FacilityAmbience_LifecyclePauseAndEditModeSafety", Test_FacilityAmbience_LifecyclePauseAndEditModeSafety);
+            RunTest("FpsFootstepController_MovementCadenceAndGating", Test_FpsFootstepController_MovementCadenceAndGating);
             RunTest("ProjectileLaunchAndImpactAudio_DistinctWaveformsAndPeakNormalization", Test_ProjectileLaunchAndImpactAudio_DistinctWaveformsAndPeakNormalization);
             RunTest("AudioPlayer_PoolCapacityAndSourceBounds", Test_AudioPlayer_PoolCapacityAndSourceBounds);
             RunTest("FacilityAmbiencePlayer_LifecycleAndSingleInstance", Test_FacilityAmbiencePlayer_LifecycleAndSingleInstance);
@@ -138,7 +140,7 @@ namespace FacilityBreach.Editor
         private static void Test_AudioClipGeneration_AllTypes_FiniteSamplesAndNonZero()
         {
             var types = (FacilityAudioClipType[])Enum.GetValues(typeof(FacilityAudioClipType));
-            Assert(types.Length == 11, "FacilityAudioClipType defines exactly 11 audio profiles (including FacilityAmbience and BarrelRollRattle)", $"Found {types.Length}");
+            Assert(types.Length == 12, "FacilityAudioClipType defines exactly 12 audio profiles (including FootstepConcrete)", $"Found {types.Length}");
 
             foreach (var type in types)
             {
@@ -936,6 +938,7 @@ namespace FacilityBreach.Editor
             {
                 FacilityNoiseHub.OnNoiseEmitted -= hubListener;
                 Perera.Core.SoundEventBus.Emitted -= soundBusListener;
+                if (player != null) player.Stop(true);
                 UnityEngine.Object.DestroyImmediate(go);
             }
         }
@@ -1084,6 +1087,170 @@ namespace FacilityBreach.Editor
             {
                 UnityEngine.Object.DestroyImmediate(barrelGo);
                 UnityEngine.Object.DestroyImmediate(boxGo);
+            }
+        }
+
+        private static void Test_FacilityAmbience_LifecyclePauseAndEditModeSafety()
+        {
+            var go = new GameObject("Test_Ambience_Lifecycle");
+            FacilityAmbiencePlayer player = null;
+            try
+            {
+                player = go.AddComponent<FacilityAmbiencePlayer>();
+                player.InitializeAudioSource();
+
+                Assert(player.AudioSource != null, "FacilityAmbiencePlayer has dedicated AudioSource");
+                Assert(player.AudioSource.priority == 64, "FacilityAmbiencePlayer AudioSource has priority 64");
+                Assert(!player.IsPaused, "FacilityAmbiencePlayer is initially unpaused");
+
+                // Test Play
+                player.Play();
+                Assert(player.ShouldBePlaying, "FacilityAmbiencePlayer.Play() sets ShouldBePlaying == true");
+                Assert(player.IsPlaying, "FacilityAmbiencePlayer.Play() initiates audio playback");
+
+                // Test Pause
+                player.Pause();
+                Assert(player.IsPaused, "FacilityAmbiencePlayer.Pause() marks IsPaused == true");
+
+                // Test Resume
+                player.Resume();
+                Assert(!player.IsPaused, "FacilityAmbiencePlayer.Resume() clears IsPaused");
+                Assert(player.IsPlaying, "FacilityAmbiencePlayer.Resume() restores audio playback");
+
+                // Test Stop
+                player.Stop(true);
+                Assert(!player.IsPlaying, "FacilityAmbiencePlayer.Stop(true) stops playback immediately");
+                Assert(!player.ShouldBePlaying, "FacilityAmbiencePlayer.Stop(true) clears ShouldBePlaying");
+            }
+            finally
+            {
+                if (player != null) player.Stop(true);
+                UnityEngine.Object.DestroyImmediate(go);
+            }
+        }
+
+        private static void Test_FpsFootstepController_MovementCadenceAndGating()
+        {
+            // 1. Procedural Footstep Audio Clips Verification
+            for (int variant = 0; variant < 3; variant++)
+            {
+                AudioClip clip = FacilityAudioSynthesizer.GetOrCreateFootstepClip(variant);
+                Assert(clip != null, $"Synthesizer generates non-null footstep clip for variant {variant}");
+                Assert(Mathf.Abs(clip.length - 0.08f) < 0.01f, $"Footstep clip {variant} duration is ~0.08s", $"Length={clip.length:F3}s");
+                Assert(clip.channels == 1, $"Footstep clip {variant} is mono");
+                Assert(clip.frequency == 44100, $"Footstep clip {variant} is 44.1kHz");
+
+                float[] data = new float[clip.samples];
+                clip.GetData(data, 0);
+
+                float peak = 0f;
+                bool hasNaN = false;
+                for (int i = 0; i < data.Length; i++)
+                {
+                    if (float.IsNaN(data[i]) || float.IsInfinity(data[i])) hasNaN = true;
+                    float abs = Mathf.Abs(data[i]);
+                    if (abs > peak) peak = abs;
+                }
+
+                Assert(!hasNaN, $"Footstep clip {variant} contains zero NaN or Infinity samples");
+                Assert(peak >= 0.45f && peak <= 0.60f, $"Footstep clip {variant} peak normalized around 0.52", $"Peak={peak:F3}");
+            }
+
+            // 2. Footstep Motion Gating and Cadence Verification
+            var playerGo = new GameObject("Test_Player_Footsteps");
+            try
+            {
+                var charCtrl = playerGo.AddComponent<CharacterController>();
+                var stepCtrl = playerGo.AddComponent<FpsFootstepController>();
+                stepCtrl.Initialize(null, charCtrl, null);
+
+                Assert(stepCtrl.FootstepAudioSource != null, "FpsFootstepController instantiates dedicated AudioSource");
+                Assert(stepCtrl.FootstepAudioSource.spatialBlend == 0f, "Footstep AudioSource is 2D stereo player perspective");
+                Assert(!stepCtrl.FootstepAudioSource.loop, "Footstep AudioSource is non-looping");
+                Assert(stepCtrl.StrideDistance >= 1.5f && stepCtrl.StrideDistance <= 2.2f, "Stride distance calibrated to human walking step (~1.8m)");
+
+                // Gating Check A: Stationary (zero displacement) -> 0 steps
+                stepCtrl.ResetStepState();
+                for (int i = 0; i < 30; i++)
+                {
+                    stepCtrl.SimulateStepUpdate(0.02f, Vector3.zero, grounded: true, hasInput: false);
+                }
+                Assert(stepCtrl.TotalStepsEmitted == 0, "Stationary player emits zero footsteps");
+
+                // Gating Check B: Movement key held against solid wall (displacement is 0) -> 0 steps
+                stepCtrl.ResetStepState();
+                for (int i = 0; i < 30; i++)
+                {
+                    stepCtrl.SimulateStepUpdate(0.02f, Vector3.zero, grounded: true, hasInput: true);
+                }
+                Assert(stepCtrl.TotalStepsEmitted == 0, "Movement key held while blocked by solid wall emits ZERO phantom footsteps");
+
+                // Gating Check C: Airborne player (!grounded) -> 0 steps and resets accumulator
+                stepCtrl.ResetStepState();
+                for (int i = 0; i < 30; i++)
+                {
+                    stepCtrl.SimulateStepUpdate(0.02f, new Vector3(0.08f, 0f, 0f), grounded: false, hasInput: true);
+                }
+                Assert(stepCtrl.TotalStepsEmitted == 0, "Airborne player emits zero footsteps");
+                Assert(stepCtrl.StepDistanceAccumulator == 0f, "Step distance accumulator resets to zero when airborne");
+
+                // Gating Check D: Gameplay paused -> 0 steps
+                stepCtrl.ResetStepState();
+                for (int i = 0; i < 30; i++)
+                {
+                    stepCtrl.SimulateStepUpdate(0.02f, new Vector3(0.08f, 0f, 0f), grounded: true, hasInput: true, paused: true);
+                }
+                Assert(stepCtrl.TotalStepsEmitted == 0, "Paused gameplay emits zero footsteps");
+
+                // Movement Check E: Normal forward walking at 4.0 m/s (0.08m per 0.02s step)
+                // Over 60 steps = 1.2s, total displacement = 4.8m. With stride 1.8m, emits 2 steps
+                stepCtrl.ResetStepState();
+                for (int i = 0; i < 60; i++)
+                {
+                    stepCtrl.SimulateStepUpdate(0.02f, new Vector3(0f, 0f, 0.08f), grounded: true, hasInput: true);
+                }
+                int forwardSteps = stepCtrl.TotalStepsEmitted;
+                Assert(forwardSteps >= 2 && forwardSteps <= 3, "Forward walking emits natural cadence matching physical stride", $"Steps={forwardSteps}");
+
+                // Movement Check F: Diagonal walking at same physical speed (4.0 m/s)
+                // Displacement = 0.08m along diagonal (0.0566m X + 0.0566m Z)
+                stepCtrl.ResetStepState();
+                Vector3 diagDisp = new Vector3(0.0566f, 0f, 0.0566f);
+                for (int i = 0; i < 60; i++)
+                {
+                    stepCtrl.SimulateStepUpdate(0.02f, diagDisp, grounded: true, hasInput: true);
+                }
+                int diagSteps = stepCtrl.TotalStepsEmitted;
+                Assert(diagSteps == forwardSteps, "Diagonal walking does NOT double cadence; produces identical step count", $"Diag={diagSteps}, Fwd={forwardSteps}");
+
+                // Invariant Check G: Zero AI hearing stimuli emitted
+                int noiseCount = 0;
+                int soundBusCount = 0;
+                Action<FacilityBreach.Noise.FacilityNoiseEvent> nListener = _ => noiseCount++;
+                Action<Perera.Core.SoundEvent> sListener = _ => soundBusCount++;
+                FacilityNoiseHub.OnNoiseEmitted += nListener;
+                Perera.Core.SoundEventBus.Emitted += sListener;
+
+                try
+                {
+                    stepCtrl.ResetStepState();
+                    for (int i = 0; i < 60; i++)
+                    {
+                        stepCtrl.SimulateStepUpdate(0.02f, new Vector3(0f, 0f, 0.08f), grounded: true, hasInput: true);
+                    }
+                    Assert(stepCtrl.TotalStepsEmitted >= 2, "Steps emitted during isolation test run");
+                    Assert(noiseCount == 0, "STRICT INVARIANT: Player footstep controller emits ZERO FacilityNoiseHub events");
+                    Assert(soundBusCount == 0, "STRICT INVARIANT: Player footstep controller emits ZERO SoundEventBus events to AI guards");
+                }
+                finally
+                {
+                    FacilityNoiseHub.OnNoiseEmitted -= nListener;
+                    Perera.Core.SoundEventBus.Emitted -= sListener;
+                }
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(playerGo);
             }
         }
     }
