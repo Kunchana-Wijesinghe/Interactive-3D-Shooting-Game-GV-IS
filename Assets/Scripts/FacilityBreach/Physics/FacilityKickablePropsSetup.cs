@@ -353,8 +353,8 @@ namespace FacilityBreach
         }
 
         /// <summary>
-        /// Explicit allowlist of existing scene clutter objects (8 barrels, 8 crates) verified safe for F-key kicking.
-        /// Movable barricades, doors, and structural walls are strictly excluded.
+        /// Explicit allowlist of existing scene clutter objects (8 barrels, 8 crates, 8 storage boxes, 3 detail crates) verified safe for F-key kicking.
+        /// Movable barricades, doors, structural walls, and resource/health stations are strictly excluded.
         /// </summary>
         public static readonly string[] SafeScenePropAllowlist = new string[]
         {
@@ -376,17 +376,33 @@ namespace FacilityBreach
             "Crate_Room2_Bottom",
             "Crate_Room2_Right",
             "Crate_Room3_Left",
-            "Crate_Room3_Top"
+            "Crate_Room3_Top",
+
+            // 8 Existing Storage Boxes (clutter boxes across entrance and corridors)
+            "Box_Entrance_01",
+            "Box_Room1_Top",
+            "Box_Room2_Bottom",
+            "Box_Room2_Top",
+            "Box_CenterRoute_01",
+            "Box_Room3_Bottom",
+            "Box_LowerRoute_01",
+            "Box_Exit_01",
+
+            // 3 Existing Room 1 Detail Crates
+            "Room1_Crate_A",
+            "Room1_Crate_B",
+            "Room1_Crate_C"
         };
 
         /// <summary>
-        /// Converts existing allowable scene crates and barrels into kickable physics props at runtime.
+        /// Converts existing allowable scene crates, boxes, and barrels into kickable physics props at runtime.
         /// Configures collision detection, mass, damping, and audio materials reversibly without editing scene assets.
         /// </summary>
         public static List<KickablePhysicsProp> ConvertExistingSceneProps()
         {
             var convertedProps = new List<KickablePhysicsProp>();
             GameObject barricadesRoot = GameObject.Find("Facility_Barricades");
+            GameObject detailsRoot = GameObject.Find("Facility_Details");
 
             for (int i = 0; i < SafeScenePropAllowlist.Length; i++)
             {
@@ -397,13 +413,42 @@ namespace FacilityBreach
                     var child = barricadesRoot.transform.Find(propName);
                     if (child != null) go = child.gameObject;
                 }
+                if (go == null && detailsRoot != null)
+                {
+                    var child = detailsRoot.transform.Find(propName);
+                    if (child != null) go = child.gameObject;
+                }
 
                 if (go == null) continue;
 
-                // Safety gate: never touch or convert movable barricades or doors
-                if (go.name.StartsWith("Barricade") || go.GetComponent<MovableBarricade>() != null)
+                // Safety gate: never touch or convert movable barricades, doors, or resource/health stations
+                if (go.name.StartsWith("Barricade") ||
+                    go.GetComponent<MovableBarricade>() != null ||
+                    go.GetComponent<FacilityBreach.Interactions.ResourceStation>() != null)
                 {
                     continue;
+                }
+
+                // If this is a detail crate with a sibling band, disable the band's collider and parent it to the crate
+                if (propName.StartsWith("Room1_Crate"))
+                {
+                    string bandName = propName + "_Band";
+                    GameObject band = GameObject.Find(bandName);
+                    if (band == null && detailsRoot != null)
+                    {
+                        var bandChild = detailsRoot.transform.Find(bandName);
+                        if (bandChild != null) band = bandChild.gameObject;
+                    }
+
+                    if (band != null)
+                    {
+                        var bandCollider = band.GetComponent<Collider>();
+                        if (bandCollider != null)
+                        {
+                            bandCollider.enabled = false;
+                        }
+                        band.transform.SetParent(go.transform, true);
+                    }
                 }
 
                 var kickable = go.GetComponent<KickablePhysicsProp>();
@@ -419,6 +464,9 @@ namespace FacilityBreach
                 }
 
                 bool isBarrel = propName.StartsWith("Barrel");
+                bool isStorageBox = propName.StartsWith("Box_");
+                bool isDetailCrate = propName.StartsWith("Room1_Crate");
+
                 if (isBarrel)
                 {
                     kickable.MaterialType = PropMaterialType.Metal;
@@ -429,6 +477,37 @@ namespace FacilityBreach
                     rb.mass = 7.0f;
                     rb.linearDamping = 0.40f;
                     rb.angularDamping = 0.20f;
+                    rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
+                    rb.maxAngularVelocity = 30.0f;
+                }
+                else if (isStorageBox)
+                {
+                    // Cardboard / light wood storage box (0.9x0.75x0.75m, easily kicked and slides nicely)
+                    kickable.MaterialType = PropMaterialType.Wood;
+                    kickable.BaseMass = 3.5f;
+                    kickable.LinearDamping = 0.48f;
+                    kickable.AngularDamping = 1.2f;
+
+                    rb.mass = 3.5f;
+                    rb.linearDamping = 0.48f;
+                    rb.angularDamping = 1.2f;
+                    rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
+                    rb.maxAngularVelocity = 30.0f;
+                }
+                else if (isDetailCrate)
+                {
+                    // Large Room 1 detail crate
+                    float crateMass = propName.EndsWith("_A") ? 6.5f : (propName.EndsWith("_B") ? 5.0f : 4.5f);
+                    float linearDamp = propName.EndsWith("_C") ? 0.60f : 0.65f;
+
+                    kickable.MaterialType = PropMaterialType.Wood;
+                    kickable.BaseMass = crateMass;
+                    kickable.LinearDamping = linearDamp;
+                    kickable.AngularDamping = 1.2f;
+
+                    rb.mass = crateMass;
+                    rb.linearDamping = linearDamp;
+                    rb.angularDamping = 1.2f;
                     rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
                     rb.maxAngularVelocity = 30.0f;
                 }
