@@ -5,7 +5,6 @@ using UnityEngine;
 using FacilityBreach;
 using FacilityBreach.Audio;
 using FacilityBreach.Noise;
-
 using FacilityBreach.Player;
 
 namespace FacilityBreach.Editor
@@ -14,11 +13,12 @@ namespace FacilityBreach.Editor
     /// Automated regression tests for GV Part 2 Player Interaction Physics and Audio:
     /// - Procedural audio synthesis and finite PCM sample generation (all 6 clip types).
     /// - Distinct gunshot audio profiles across Ammo1, Ammo2, and Ammo3.
+    /// - Kick thud audio peak normalization (0.96) and acoustic body punch.
     /// - FacilityAudioPlayer pooling bounds, 2D/3D spatial separation, and reuse.
     /// - Neutral facility noise event contract publication and decoupling.
-    /// - KickablePhysicsProp Rigidbody configuration, damping, and collision threshold.
-    /// - FpsKickController reach, directional loft impulse, and cooldown mechanics.
-    /// - Seven facility props configuration (3 boxes, 2 crates, 2 barrels) and duplicate prevention.
+    /// - KickablePhysicsProp Rigidbody configuration, damping, rolling torque, and collision threshold.
+    /// - FpsKickController reach, direct camera raycast aiming, player capsule exclusion, and occlusion.
+    /// - Thirteen facility props configuration (5 boxes, 3 crates, 5 barrels) and duplicate prevention.
     /// - Teammate Sound Hunter isolation invariant.
     /// - Existing Shooting VFX and tactical arms integration preservation.
     /// </summary>
@@ -43,13 +43,16 @@ namespace FacilityBreach.Editor
             RunTest("AudioClipGeneration_AllTypes_FiniteSamplesAndNonZero", Test_AudioClipGeneration_AllTypes_FiniteSamplesAndNonZero);
             RunTest("AudioClipCaching_ReturnsIdenticalInstance", Test_AudioClipCaching_ReturnsIdenticalInstance);
             RunTest("AudioGunshotProfiles_DistinctSampleData", Test_AudioGunshotProfiles_DistinctSampleData);
+            RunTest("KickThudAudio_PeakNormalizationAndFrequency", Test_KickThudAudio_PeakNormalizationAndFrequency);
             RunTest("AudioPlayer_PoolCapacityAndSourceBounds", Test_AudioPlayer_PoolCapacityAndSourceBounds);
             RunTest("NoiseHub_NeutralEventEmissionAndPayload", Test_NoiseHub_NeutralEventEmissionAndPayload);
             RunTest("KickablePhysicsProp_PhysicsConfigurationAndDamping", Test_KickablePhysicsProp_PhysicsConfigurationAndDamping);
+            RunTest("KickablePhysicsProp_BarrelRollingPhysicsAndTorque", Test_KickablePhysicsProp_BarrelRollingPhysicsAndTorque);
             RunTest("KickablePhysicsProp_KickImpulse_AppliedToRigidbody", Test_KickablePhysicsProp_KickImpulse_AppliedToRigidbody);
             RunTest("KickablePhysicsProp_CollisionAudioThresholdAndCooldown", Test_KickablePhysicsProp_CollisionAudioThresholdAndCooldown);
             RunTest("FpsKickController_RangeAndOcclusion", Test_FpsKickController_RangeAndOcclusion);
-            RunTest("SevenPropsPlacement_AllSevenPropsSpawned", Test_SevenPropsPlacement_AllSevenPropsSpawned);
+            RunTest("FpsKickController_PrecisionAimAndTargetResolution", Test_FpsKickController_PrecisionAimAndTargetResolution);
+            RunTest("ThirteenPropsPlacement_AllThirteenPropsSpawned", Test_ThirteenPropsPlacement_AllThirteenPropsSpawned);
             RunTest("TeammateSoundHunterIsolation_NoCoupling", Test_TeammateSoundHunterIsolation_NoCoupling);
             RunTest("ExistingVfxAndAudioIntegration_Preserved", Test_ExistingVfxAndAudioIntegration_Preserved);
 
@@ -70,6 +73,24 @@ namespace FacilityBreach.Editor
         public static void RunBatch()
         {
             RunAll();
+            EditorApplication.Exit(failedCount > 0 ? 1 : 0);
+        }
+
+        public static void RunAll11SuitesBatch()
+        {
+            Log("<color=yellow>=== RUNNING ALL 11 TEST SUITES (374 Baseline + Kickable Physics & Audio) ===</color>");
+            FpsArmsTests.RunAll();
+            FpsViewModelObstructionTests.RunAll();
+            FacilityInteractionDispatcherTests.RunAll();
+            PatrolGuardAStarTests.RunAll();
+            PatrolGuardSearchTests.RunAll();
+            PatrolGuardReturnTests.RunAll();
+            PatrolGuardObstacleTests.RunAll();
+            FpsBulletTracerTests.RunAll();
+            FpsMuzzleFlashV2Tests.RunAll();
+            FpsImpactSparksTests.RunAll();
+            KickablePhysicsAudioTests.RunAll();
+
             EditorApplication.Exit(failedCount > 0 ? 1 : 0);
         }
 
@@ -162,6 +183,28 @@ namespace FacilityBreach.Editor
             float diffSum = 0f;
             for (int i = 0; i < 100; i++) diffSum += Mathf.Abs(d1[i] - d2[i]);
             Assert(diffSum > 0.1f, "Ammo1 and Ammo2 have distinct waveform data", $"DiffSum={diffSum:F3}");
+        }
+
+        private static void Test_KickThudAudio_PeakNormalizationAndFrequency()
+        {
+            AudioClip clip = FacilityAudioSynthesizer.GetOrCreateClip(FacilityAudioClipType.KickThud);
+            Assert(clip != null, "Procedural kick thud clip is generated");
+            Assert(Mathf.Approximately(clip.length, 0.12f) || Mathf.Abs(clip.length - 0.12f) < 0.005f, "Kick thud duration is 0.12s for enhanced acoustic presence", $"Length={clip.length:F3}s");
+
+            float[] samples = new float[clip.samples];
+            clip.GetData(samples, 0);
+
+            float peak = 0f;
+            bool hasInvalid = false;
+            for (int i = 0; i < samples.Length; i++)
+            {
+                if (float.IsNaN(samples[i]) || float.IsInfinity(samples[i])) hasInvalid = true;
+                float abs = Mathf.Abs(samples[i]);
+                if (abs > peak) peak = abs;
+            }
+
+            Assert(!hasInvalid, "Kick thud audio has zero NaN or Infinity samples");
+            Assert(peak >= 0.94f && peak <= 0.98f, "Kick thud sample peak is normalized to 0.96 for punchy playback without clipping", $"Peak={peak:F4}");
         }
 
         private static void Test_AudioPlayer_PoolCapacityAndSourceBounds()
@@ -257,6 +300,36 @@ namespace FacilityBreach.Editor
             }
         }
 
+        private static void Test_KickablePhysicsProp_BarrelRollingPhysicsAndTorque()
+        {
+            var barrelGo = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            try
+            {
+                barrelGo.name = "Test_MetalBarrel";
+                var prop = barrelGo.AddComponent<KickablePhysicsProp>();
+                prop.MaterialType = PropMaterialType.Metal;
+                prop.BaseMass = 7.5f;
+                prop.LinearDamping = 0.50f;
+                prop.AngularDamping = 0.25f;
+                prop.ConfigurePhysics();
+
+                Assert(prop.MaterialType == PropMaterialType.Metal, "Prop material type is Metal");
+                Assert(Mathf.Approximately(prop.LinearDamping, 0.50f), "Linear damping is calibrated for rolling", $"Damping={prop.LinearDamping}");
+                Assert(Mathf.Approximately(prop.AngularDamping, 0.25f), "Angular damping is low (0.25) to permit natural rolling", $"Damping={prop.AngularDamping}");
+                Assert(prop.Body.maxAngularVelocity >= 30.0f, "Max angular velocity is expanded to >= 30 for smooth rolling", $"MaxAV={prop.Body.maxAngularVelocity}");
+
+                Vector3 forwardImpulse = new Vector3(0f, 0f, 12.0f);
+                bool kicked = prop.ApplyKick(forwardImpulse, barrelGo.transform.position);
+
+                Assert(kicked, "ApplyKick successfully applies impulse to barrel");
+                Assert(prop.IsKickedRecently, "Prop is flagged as kicked recently");
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(barrelGo);
+            }
+        }
+
         private static void Test_KickablePhysicsProp_KickImpulse_AppliedToRigidbody()
         {
             var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
@@ -320,7 +393,60 @@ namespace FacilityBreach.Editor
             }
         }
 
-        private static void Test_SevenPropsPlacement_AllSevenPropsSpawned()
+        private static void Test_FpsKickController_PrecisionAimAndTargetResolution()
+        {
+            var playerGo = new GameObject("Test_Player");
+            var camGo = new GameObject("Test_Camera");
+            var propGo = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            var obstacleGo = GameObject.CreatePrimitive(PrimitiveType.Cube);
+
+            try
+            {
+                playerGo.AddComponent<CharacterController>();
+                var kickCtrl = playerGo.AddComponent<FpsKickController>();
+                var cam = camGo.AddComponent<Camera>();
+
+                camGo.transform.SetParent(playerGo.transform, false);
+                camGo.transform.localPosition = new Vector3(0f, 1.6f, 0f);
+                camGo.transform.localRotation = Quaternion.identity;
+
+                playerGo.transform.position = Vector3.zero;
+                propGo.name = "Test_KickableBox";
+                var prop = propGo.AddComponent<KickablePhysicsProp>();
+                prop.ConfigurePhysics();
+
+                // 1. Direct alignment within reach (1.5m in front of camera)
+                propGo.transform.position = new Vector3(0f, 1.6f, 1.5f);
+                obstacleGo.transform.position = new Vector3(50f, 50f, 50f);
+
+                bool foundDirect = kickCtrl.FindKickTarget(cam, out var targetProp, out var hitPoint);
+                Assert(foundDirect, "Direct camera raycast resolves kickable prop within range");
+                Assert(targetProp == prop, "Resolved target matches authored kickable prop");
+                Assert(targetProp.gameObject != playerGo, "Player's own GameObject/CharacterController is never targeted");
+
+                // 2. Out of range (beyond KickReach 2.2m, e.g. 3.5m)
+                propGo.transform.position = new Vector3(0f, 1.6f, 3.5f);
+                bool foundOutOfRange = kickCtrl.FindKickTarget(cam, out _, out _);
+                Assert(!foundOutOfRange, "Kick target beyond KickReach is rejected");
+
+                // 3. Occlusion: prop is at 1.8m, but solid obstacle is at 0.9m
+                propGo.transform.position = new Vector3(0f, 1.6f, 1.8f);
+                obstacleGo.transform.position = new Vector3(0f, 1.6f, 0.9f);
+                obstacleGo.transform.localScale = new Vector3(2f, 2f, 0.2f);
+
+                bool foundBehindWall = kickCtrl.FindKickTarget(cam, out _, out _);
+                Assert(!foundBehindWall, "Kick target occluded behind solid wall obstacle is rejected");
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(propGo);
+                UnityEngine.Object.DestroyImmediate(obstacleGo);
+                UnityEngine.Object.DestroyImmediate(camGo);
+                UnityEngine.Object.DestroyImmediate(playerGo);
+            }
+        }
+
+        private static void Test_ThirteenPropsPlacement_AllThirteenPropsSpawned()
         {
             var rootParent = new GameObject("Test_RootParent");
             try
@@ -328,7 +454,7 @@ namespace FacilityBreach.Editor
                 var props = FacilityKickablePropsSetup.EnsurePropsSpawned(rootParent.transform);
 
                 Assert(props != null, "EnsurePropsSpawned returns non-null list");
-                Assert(props.Count == 7, "Exactly 7 kickable physics props are spawned", $"Count={props.Count}");
+                Assert(props.Count == 13, "Exactly 13 kickable physics props are spawned", $"Count={props.Count}");
 
                 int woodCount = 0;
                 int metalCount = 0;
@@ -351,18 +477,18 @@ namespace FacilityBreach.Editor
                     if (prop.name.StartsWith("Barrel_Metal")) barrelCount++;
                 }
 
-                Assert(boxCount == 3, "Exactly 3 small boxes spawned", $"BoxCount={boxCount}");
-                Assert(crateCount == 2, "Exactly 2 medium crates spawned", $"CrateCount={crateCount}");
-                Assert(barrelCount == 2, "Exactly 2 metal barrels spawned", $"BarrelCount={barrelCount}");
-                Assert(woodCount == 5, "Exactly 5 wooden props (3 boxes + 2 crates)", $"WoodCount={woodCount}");
-                Assert(metalCount == 2, "Exactly 2 metallic props (2 barrels)", $"MetalCount={metalCount}");
+                Assert(boxCount == 5, "Exactly 5 small boxes spawned", $"BoxCount={boxCount}");
+                Assert(crateCount == 3, "Exactly 3 medium crates spawned", $"CrateCount={crateCount}");
+                Assert(barrelCount == 5, "Exactly 5 metal barrels spawned", $"BarrelCount={barrelCount}");
+                Assert(woodCount == 8, "Exactly 8 wooden props (5 boxes + 3 crates)", $"WoodCount={woodCount}");
+                Assert(metalCount == 5, "Exactly 5 metallic props (5 barrels)", $"MetalCount={metalCount}");
 
                 // Test duplicate prevention
                 var duplicateCheck = FacilityKickablePropsSetup.EnsurePropsSpawned(rootParent.transform);
-                Assert(duplicateCheck.Count == 7, "Repeated call does not spawn duplicate props (retains 7)", $"Count={duplicateCheck.Count}");
+                Assert(duplicateCheck.Count == 13, "Repeated call does not spawn duplicate props (retains 13)", $"Count={duplicateCheck.Count}");
 
                 var allPropsInScene = UnityEngine.Object.FindObjectsByType<KickablePhysicsProp>(FindObjectsSortMode.None);
-                Assert(allPropsInScene.Length == 7, "Total props in scene remains strictly 7 (zero duplicate leaks)", $"Total={allPropsInScene.Length}");
+                Assert(allPropsInScene.Length == 13, "Total props in scene remains strictly 13 (zero duplicate leaks)", $"Total={allPropsInScene.Length}");
             }
             finally
             {
