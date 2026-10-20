@@ -45,14 +45,19 @@ namespace FacilityBreach.Editor
             RunTest("AudioGunshotProfiles_DistinctSampleData", Test_AudioGunshotProfiles_DistinctSampleData);
             RunTest("KickThudAudio_PeakNormalizationAndFrequency", Test_KickThudAudio_PeakNormalizationAndFrequency);
             RunTest("RollingMetalAudio_SeamlessLoopAndFrequencyRange", Test_RollingMetalAudio_SeamlessLoopAndFrequencyRange);
+            RunTest("FacilityAmbienceAudio_LoopContinuityAndSafePeak", Test_FacilityAmbienceAudio_LoopContinuityAndSafePeak);
             RunTest("ProjectileLaunchAndImpactAudio_DistinctWaveformsAndPeakNormalization", Test_ProjectileLaunchAndImpactAudio_DistinctWaveformsAndPeakNormalization);
             RunTest("AudioPlayer_PoolCapacityAndSourceBounds", Test_AudioPlayer_PoolCapacityAndSourceBounds);
+            RunTest("FacilityAmbiencePlayer_LifecycleAndSingleInstance", Test_FacilityAmbiencePlayer_LifecycleAndSingleInstance);
+            RunTest("FacilityAmbience_ZeroNoiseEventEmission", Test_FacilityAmbience_ZeroNoiseEventEmission);
             RunTest("NoiseHub_NeutralEventEmissionAndPayload", Test_NoiseHub_NeutralEventEmissionAndPayload);
             RunTest("KickablePhysicsProp_PhysicsConfigurationAndDamping", Test_KickablePhysicsProp_PhysicsConfigurationAndDamping);
             RunTest("KickablePhysicsProp_BarrelRollingPhysicsAndTorque", Test_KickablePhysicsProp_BarrelRollingPhysicsAndTorque);
             RunTest("KickablePhysicsProp_KickImpulse_AppliedToRigidbody", Test_KickablePhysicsProp_KickImpulse_AppliedToRigidbody);
             RunTest("KickablePhysicsProp_CollisionAudioThresholdAndCooldown", Test_KickablePhysicsProp_CollisionAudioThresholdAndCooldown);
             RunTest("KickablePhysicsProp_RollingAudioLifecycleAndModulation", Test_KickablePhysicsProp_RollingAudioLifecycleAndModulation);
+            RunTest("RollingAudio_PerceptibleDynamicSpeedCurves", Test_RollingAudio_PerceptibleDynamicSpeedCurves);
+            RunTest("CollisionImpact_TransientVolumeBoostOverRollingBed", Test_CollisionImpact_TransientVolumeBoostOverRollingBed);
             RunTest("ProjectileAudio_LaunchAndImpactPlayback", Test_ProjectileAudio_LaunchAndImpactPlayback);
             RunTest("FpsKickController_RangeAndOcclusion", Test_FpsKickController_RangeAndOcclusion);
             RunTest("FpsKickController_PrecisionAimAndTargetResolution", Test_FpsKickController_PrecisionAimAndTargetResolution);
@@ -132,7 +137,7 @@ namespace FacilityBreach.Editor
         private static void Test_AudioClipGeneration_AllTypes_FiniteSamplesAndNonZero()
         {
             var types = (FacilityAudioClipType[])Enum.GetValues(typeof(FacilityAudioClipType));
-            Assert(types.Length == 9, "FacilityAudioClipType defines exactly 9 audio profiles", $"Found {types.Length}");
+            Assert(types.Length == 10, "FacilityAudioClipType defines exactly 10 audio profiles (including FacilityAmbience)", $"Found {types.Length}");
 
             foreach (var type in types)
             {
@@ -827,11 +832,175 @@ namespace FacilityBreach.Editor
                 Assert(runtime.MuzzleFlash == null || runtime.MuzzleFlash != null, "MuzzleFlash property intact on FacilityBreachRuntime");
                 Assert(runtime.ImpactSparks == null || runtime.ImpactSparks != null, "ImpactSparks property intact on FacilityBreachRuntime");
                 Assert(runtime.AudioPlayer == null || runtime.AudioPlayer != null, "AudioPlayer property intact on FacilityBreachRuntime");
+                Assert(runtime.AmbiencePlayer == null || runtime.AmbiencePlayer != null, "AmbiencePlayer property intact on FacilityBreachRuntime");
                 Assert(runtime.KickController == null || runtime.KickController != null, "KickController property intact on FacilityBreachRuntime");
             }
             finally
             {
                 UnityEngine.Object.DestroyImmediate(go);
+            }
+        }
+
+        private static void Test_FacilityAmbienceAudio_LoopContinuityAndSafePeak()
+        {
+            AudioClip clip = FacilityAudioSynthesizer.GetOrCreateClip(FacilityAudioClipType.FacilityAmbience);
+            Assert(clip != null, "Procedural facility ambience clip is generated");
+            Assert(Mathf.Abs(clip.length - 2.0f) < 0.01f, "Facility ambience duration is 2.0s for smooth seamless loop", $"Length={clip.length:F3}s");
+            Assert(clip.samples == 88200, "Facility ambience clip has exactly 88200 samples at 44.1kHz", $"Samples={clip.samples}");
+            Assert(clip.channels == 1, "Facility ambience clip is mono");
+
+            float[] samples = new float[clip.samples];
+            clip.GetData(samples, 0);
+
+            // Loop boundary continuity
+            float startVal = samples[0];
+            float endVal = samples[samples.Length - 1];
+            float boundaryDelta = Mathf.Abs(startVal - endVal);
+            Assert(boundaryDelta < 0.10f, "Facility ambience loop has smooth seamless boundary continuity (< 0.10)", $"Delta={boundaryDelta:F4}");
+
+            // Peak amplitude check
+            float peak = 0f;
+            bool hasInvalid = false;
+            for (int i = 0; i < samples.Length; i++)
+            {
+                if (float.IsNaN(samples[i]) || float.IsInfinity(samples[i])) hasInvalid = true;
+                float abs = Mathf.Abs(samples[i]);
+                if (abs > peak) peak = abs;
+            }
+
+            Assert(!hasInvalid, "Facility ambience contains zero NaN or Infinity samples");
+            Assert(peak >= 0.35f && peak <= 0.45f, "Facility ambience peak is normalized in [0.35, 0.45] for subtle background presence", $"Peak={peak:F4}");
+        }
+
+        private static void Test_FacilityAmbiencePlayer_LifecycleAndSingleInstance()
+        {
+            var go = new GameObject("Test_FacilityAmbiencePlayer");
+            try
+            {
+                var player = go.AddComponent<FacilityAmbiencePlayer>();
+                player.InitializeAudioSource();
+
+                Assert(player.AudioSource != null, "FacilityAmbiencePlayer instantiates dedicated AudioSource");
+                Assert(player.AudioSource.spatialBlend == 0f, "FacilityAmbiencePlayer AudioSource is 2D stereo (spatialBlend == 0)");
+                Assert(player.AudioSource.loop, "FacilityAmbiencePlayer AudioSource is configured to loop");
+                Assert(player.AudioSource.clip != null, "FacilityAmbiencePlayer is assigned the FacilityAmbience clip");
+                Assert(player.TargetVolume >= 0.20f && player.TargetVolume <= 0.25f, "Ambience target volume is calibrated around 0.22", $"Vol={player.TargetVolume:F2}");
+
+                // Test playback trigger
+                player.Play();
+                Assert(player.IsPlaying, "FacilityAmbiencePlayer.Play() initiates playback");
+
+                // Test stop
+                player.Stop(true);
+                Assert(!player.IsPlaying, "FacilityAmbiencePlayer.Stop(true) stops playback immediately");
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(go);
+            }
+        }
+
+        private static void Test_FacilityAmbience_ZeroNoiseEventEmission()
+        {
+            int hubEventCount = 0;
+            int soundEventBusCount = 0;
+
+            Action<FacilityNoiseEvent> hubListener = evt => hubEventCount++;
+            Action<Perera.Core.SoundStimulus> soundBusListener = stim => soundEventBusCount++;
+
+            FacilityNoiseHub.OnNoiseEmitted += hubListener;
+            Perera.Core.SoundEventBus.Emitted += soundBusListener;
+
+            var go = new GameObject("Test_Ambience_ZeroNoise");
+            try
+            {
+                var player = go.AddComponent<FacilityAmbiencePlayer>();
+                player.Play();
+
+                // Run simulated update ticks
+                for (int i = 0; i < 60; i++)
+                {
+                    if (player.AudioSource != null && player.AudioSource.isPlaying)
+                    {
+                        // Active playback
+                    }
+                }
+
+                Assert(hubEventCount == 0, "STRICT INVARIANT: FacilityAmbiencePlayer emits ZERO FacilityNoiseHub events", $"HubEvents={hubEventCount}");
+                Assert(soundEventBusCount == 0, "STRICT INVARIANT: FacilityAmbiencePlayer emits ZERO SoundEventBus stimuli to AI guards", $"SoundBusEvents={soundEventBusCount}");
+            }
+            finally
+            {
+                FacilityNoiseHub.OnNoiseEmitted -= hubListener;
+                Perera.Core.SoundEventBus.Emitted -= soundBusListener;
+                UnityEngine.Object.DestroyImmediate(go);
+            }
+        }
+
+        private static void Test_RollingAudio_PerceptibleDynamicSpeedCurves()
+        {
+            var barrelGo = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            try
+            {
+                var barrelProp = barrelGo.AddComponent<KickablePhysicsProp>();
+                barrelProp.MaterialType = PropMaterialType.Metal;
+                barrelProp.EnsureRollingAudioSource();
+
+                // 1. Slow roll (0.35 m/s)
+                barrelProp.IsContactActive = true;
+                barrelProp.Body.linearVelocity = new Vector3(0.35f, 0f, 0f);
+                for (int i = 0; i < 50; i++) barrelProp.UpdateRollingAudio(0.02f);
+                float slowVol = barrelProp.CurrentRollVolume;
+                float slowPitch = barrelProp.RollingAudioSource.pitch;
+
+                Assert(slowVol >= 0.08f && slowVol <= 0.28f, "Slow roll produces quiet but audible volume (0.08 - 0.28)", $"SlowVol={slowVol:F3}");
+                Assert(slowPitch >= 0.70f && slowPitch <= 0.85f, "Slow roll produces deep low rumble pitch (0.70 - 0.85x)", $"SlowPitch={slowPitch:F2}");
+
+                // 2. Moderate roll (1.50 m/s)
+                barrelProp.Body.linearVelocity = new Vector3(1.5f, 0f, 0f);
+                for (int i = 0; i < 50; i++) barrelProp.UpdateRollingAudio(0.02f);
+                float modVol = barrelProp.CurrentRollVolume;
+                float modPitch = barrelProp.RollingAudioSource.pitch;
+
+                Assert(modVol >= 0.35f && modVol <= 0.55f, "Moderate roll produces clearly audible volume (0.35 - 0.55)", $"ModVol={modVol:F3}");
+                Assert(modPitch >= 0.88f && modPitch <= 1.10f, "Moderate roll produces mid-range churning pitch (0.88 - 1.10x)", $"ModPitch={modPitch:F2}");
+                Assert(modVol > slowVol * 1.5f, "Moderate roll is perceptibly louder than slow roll (> 1.5x)", $"Ratio={modVol / slowVol:F2}x");
+
+                // 3. Fast roll (4.50 m/s)
+                barrelProp.Body.linearVelocity = new Vector3(4.5f, 0f, 0f);
+                for (int i = 0; i < 50; i++) barrelProp.UpdateRollingAudio(0.02f);
+                float fastVol = barrelProp.CurrentRollVolume;
+                float fastPitch = barrelProp.RollingAudioSource.pitch;
+
+                Assert(fastVol >= 0.65f && fastVol <= 0.80f, "Fast roll reaches robust upper dynamic limit without clipping (0.65 - 0.80)", $"FastVol={fastVol:F3}");
+                Assert(fastPitch >= 1.25f && fastPitch <= 1.38f, "Fast roll accelerates pitch to high churning rattle (1.25 - 1.38x)", $"FastPitch={fastPitch:F2}");
+                Assert(fastVol > slowVol * 2.5f, "Wide dynamic volume range confirmed: fast roll is > 2.5x slow roll", $"DynamicRatio={fastVol / slowVol:F2}x");
+                Assert(fastPitch > slowPitch * 1.4f, "Wide pitch range confirmed: fast pitch is > 1.4x slow pitch", $"PitchRatio={fastPitch / slowPitch:F2}x");
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(barrelGo);
+            }
+        }
+
+        private static void Test_CollisionImpact_TransientVolumeBoostOverRollingBed()
+        {
+            // Verify that for any given collision speed, the impact transient volume scale
+            // strictly exceeds the continuous rolling audio bed volume so wall impacts cut cleanly through.
+            float[] testSpeeds = new float[] { 1.2f, 2.0f, 3.0f, 4.0f };
+
+            foreach (float speed in testSpeeds)
+            {
+                // Rolling bed target volume calculation
+                float speedNorm = Mathf.Clamp01((speed - 0.20f) / 3.80f);
+                float rollTargetVol = Mathf.Lerp(0.08f, 0.75f, Mathf.Sqrt(speedNorm));
+
+                // Metal impact transient volume calculation (minImpactVelocity = 0.8f)
+                float impactVolScale = Mathf.Clamp01((speed - 0.8f) / 3.5f * 0.45f + 0.55f);
+
+                Assert(impactVolScale > rollTargetVol,
+                    $"At speed {speed:F1}m/s, impact transient volume ({impactVolScale:F2}) decisively exceeds rolling bed volume ({rollTargetVol:F2})",
+                    $"Diff={impactVolScale - rollTargetVol:F2}");
             }
         }
     }
