@@ -9,6 +9,7 @@ using UnityEngine.SceneManagement;
 using UnityEngine.AI;
 using FacilityBreach.AI.SoundHunter;
 using FacilityBreach.AI.Roles;
+using FacilityBreach.Audio;
 
 namespace FacilityBreach
 {
@@ -49,6 +50,8 @@ namespace FacilityBreach
         public FpsMuzzleFlashV2 MuzzleFlash => muzzleFlash;
         private FpsImpactSparks impactSparks;
         public FpsImpactSparks ImpactSparks => impactSparks;
+        private FacilityAudioPlayer audioPlayer;
+        public FacilityAudioPlayer AudioPlayer => audioPlayer;
         private float reload, cadence;
         private bool waitForRelease = true, controls;
         private string feedback = "";
@@ -81,6 +84,8 @@ namespace FacilityBreach
             var muzzleObject = new GameObject("FB_Muzzle_VisualPending"); muzzleObject.transform.SetParent(view.transform);
             muzzleObject.transform.localPosition = new Vector3(.2f, -.15f, .45f); muzzle = muzzleObject.transform;
             UpdateWeaponVisual();
+            if (!audioPlayer) audioPlayer = GetComponent<FacilityAudioPlayer>();
+            if (!audioPlayer) audioPlayer = gameObject.AddComponent<FacilityAudioPlayer>();
             dispatcher = gameObject.AddComponent<FacilityInteractionDispatcher>();
             dispatcher.Initialize(this, view, player.transform);
             foreach (var door in FindObjectsByType<InteractiveDoor>(FindObjectsSortMode.None))
@@ -357,6 +362,8 @@ namespace FacilityBreach
                 if (bulletTracer) bulletTracer.SpawnTracer(muzzle, aim, false);
             }
             if (muzzleFlash) muzzleFlash.TriggerFlash(muzzle);
+            if (audioPlayer) audioPlayer.PlayGunshot(Resources.Equipped);
+            else FacilityAudioPlayer.Instance.PlayGunshot(Resources.Equipped);
             SoundEventBus.Emit(player.transform.position, 40, SoundCategory.Gunshot, player.GetEntityId().GetHashCode());
             return true;
         }
