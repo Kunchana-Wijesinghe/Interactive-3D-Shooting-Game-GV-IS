@@ -218,11 +218,12 @@ namespace FacilityBreach.Audio
         }
 
         /// <summary>
-        /// Kick Thud: Heavy, low-end muffled impact punch (0.10s).
+        /// Kick Thud: Heavy, punchy impact with enhanced acoustic body and transient slap (0.12s).
+        /// Tuned for clear audibility on laptop speakers while preserving low-end resonance.
         /// </summary>
         private static AudioClip SynthesizeKickThud()
         {
-            float duration = 0.10f;
+            float duration = 0.12f;
             int totalSamples = Mathf.CeilToInt(SampleRate * duration);
             float[] samples = new float[totalSamples];
             var rng = new System.Random(6886);
@@ -230,18 +231,29 @@ namespace FacilityBreach.Audio
             for (int i = 0; i < totalSamples; i++)
             {
                 float t = (float)i / SampleRate;
-                float envelope = Mathf.Exp(-38f * t);
-                float attack = Mathf.Clamp01(t / 0.002f);
+                float envelope = Mathf.Exp(-28f * t);
+                float attack = Mathf.Clamp01(t / 0.0018f);
 
-                // Heavy sub thump: 85Hz dropping quickly to 35Hz
-                float pitch = Mathf.Lerp(85f, 35f, Mathf.Clamp01(t / duration));
-                float subThump = Mathf.Sin(2f * Mathf.PI * pitch * t) * 0.65f;
-                float airBurst = ((float)rng.NextDouble() * 2f - 1f) * 0.35f;
+                // Punch sweep: 140Hz dropping to 55Hz for strong low-mid presence audible on laptop speakers
+                float punchPitch = Mathf.Lerp(140f, 55f, Mathf.Clamp01(t / duration));
+                float punchBody = Mathf.Sin(2f * Mathf.PI * punchPitch * t) * 0.55f;
 
-                samples[i] = attack * envelope * (subThump + airBurst);
+                // Sub bass weight: 70Hz dropping to 38Hz
+                float subPitch = Mathf.Lerp(70f, 38f, Mathf.Clamp01(t / duration));
+                float subWeight = Mathf.Sin(2f * Mathf.PI * subPitch * t) * 0.35f;
+
+                // Initial boot contact click/slap (fast-decaying mid harmonic + air burst)
+                float contactKnock = Mathf.Sin(2f * Mathf.PI * 220f * t) * Mathf.Exp(-65f * t) * 0.25f;
+                float airBurst = ((float)rng.NextDouble() * 2f - 1f) * 0.25f;
+
+                float combined = punchBody + subWeight + contactKnock + airBurst;
+                // Soft saturation curve for punchiness
+                combined = Mathf.Clamp(combined * 1.25f, -1.0f, 1.0f);
+
+                samples[i] = attack * envelope * combined;
             }
 
-            NormalizeSamples(samples, 0.88f);
+            NormalizeSamples(samples, 0.96f);
             AudioClip clip = AudioClip.Create("Procedural_Kick_Thud", totalSamples, 1, SampleRate, false);
             clip.SetData(samples, 0);
             return clip;
