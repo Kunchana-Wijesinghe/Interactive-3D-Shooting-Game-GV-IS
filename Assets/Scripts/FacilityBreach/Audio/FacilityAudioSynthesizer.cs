@@ -14,7 +14,8 @@ namespace FacilityBreach.Audio
         KickThud,
         RollingMetal,
         ProjectileLaunch,
-        ProjectileImpact
+        ProjectileImpact,
+        FacilityAmbience
     }
 
     /// <summary>
@@ -52,6 +53,7 @@ namespace FacilityBreach.Audio
                 FacilityAudioClipType.RollingMetal      => SynthesizeRollingMetal(),
                 FacilityAudioClipType.ProjectileLaunch  => SynthesizeProjectileLaunch(),
                 FacilityAudioClipType.ProjectileImpact  => SynthesizeProjectileImpact(),
+                FacilityAudioClipType.FacilityAmbience  => SynthesizeFacilityAmbience(),
                 _                                       => SynthesizeGunshotAmmo1()
             };
 
@@ -401,6 +403,76 @@ namespace FacilityBreach.Audio
 
             NormalizeSamples(samples, 0.90f);
             AudioClip clip = AudioClip.Create("Procedural_Projectile_Impact", totalSamples, 1, SampleRate, false);
+            clip.SetData(samples, 0);
+            return clip;
+        }
+
+        /// <summary>
+        /// Facility Environmental Ambience: Subtle sci-fi industrial background atmosphere (2.0s seamless loop).
+        /// Combines low HVAC ventilation airflow (54Hz, 82Hz), distant machinery drone (120Hz, 180Hz),
+        /// gentle 60Hz electrical hum, and a soft structural creak swell, peak normalized to 0.40 for quiet background presence.
+        /// STRICT INVARIANT: Pure audio loop. Contains zero gameplay events, alerts, or AI interactions.
+        /// </summary>
+        private static AudioClip SynthesizeFacilityAmbience()
+        {
+            float duration = 2.0f;
+            int totalSamples = Mathf.CeilToInt(SampleRate * duration);
+            float[] samples = new float[totalSamples];
+            var rng = new System.Random(4040);
+
+            // Two-pole low-pass filter for smooth HVAC airflow rumble
+            float[] airflowNoise = new float[totalSamples];
+            float flt1 = 0f;
+            float flt2 = 0f;
+            for (int i = 0; i < totalSamples; i++)
+            {
+                float raw = ((float)rng.NextDouble() * 2f - 1f);
+                flt1 += 0.04f * (raw - flt1);
+                flt2 += 0.03f * (flt1 - flt2);
+                airflowNoise[i] = flt2 * 6.0f;
+            }
+
+            for (int i = 0; i < totalSamples; i++)
+            {
+                float t = (float)i / SampleRate;
+
+                // 1. HVAC airflow breathing oscillation (0.5Hz modulation)
+                float airBreath = 0.80f + 0.20f * Mathf.Sin(2f * Mathf.PI * 0.5f * t);
+                float airflow = airflowNoise[i] * airBreath * 0.22f;
+
+                // 2. Sub-bass ventilation resonance (exact integer cycles over 2.0s: 54Hz, 82Hz)
+                float vent1 = Mathf.Sin(2f * Mathf.PI * 54f * t) * 0.25f;
+                float vent2 = Mathf.Sin(2f * Mathf.PI * 82f * t) * 0.16f;
+
+                // 3. Distant machinery drone (exact integer cycles: 120Hz, 180Hz with 1.0Hz beating)
+                float droneBeating = 0.85f + 0.15f * Mathf.Sin(2f * Mathf.PI * 1.0f * t);
+                float drone120 = Mathf.Sin(2f * Mathf.PI * 120f * t) * 0.14f * droneBeating;
+                float drone180 = Mathf.Sin(2f * Mathf.PI * 180f * t) * 0.09f;
+
+                // 4. Subtle 60Hz electrical hum with 240Hz gentle harmonic
+                float mainsHum = Mathf.Sin(2f * Mathf.PI * 60f * t) * 0.10f;
+                float transformerBuzz = Mathf.Sin(2f * Mathf.PI * 240f * t) * 0.03f;
+
+                // 5. Gentle structural metallic creak swell around 1.0s (gaussian envelope, smooth and non-alarming)
+                float creakEnv = Mathf.Exp(-16f * Mathf.Pow(t - 1.0f, 2f)) * 0.10f;
+                float creakTone = Mathf.Sin(2f * Mathf.PI * 260f * t) * creakEnv;
+
+                samples[i] = airflow + vent1 + vent2 + drone120 + drone180 + mainsHum + transformerBuzz + creakTone;
+            }
+
+            // Smoothly bridge the last 5ms to match sample 0 for seamless click-free looping
+            int seamSamples = Mathf.CeilToInt(SampleRate * 0.005f);
+            float targetSample = samples[0];
+            for (int k = 0; k < seamSamples; k++)
+            {
+                int idx = totalSamples - seamSamples + k;
+                float blend = (float)(k + 1) / seamSamples;
+                float smooth = blend * blend * (3f - 2f * blend);
+                samples[idx] = Mathf.Lerp(samples[idx], targetSample, smooth);
+            }
+
+            NormalizeSamples(samples, 0.40f);
+            AudioClip clip = AudioClip.Create("Procedural_Facility_Ambience", totalSamples, 1, SampleRate, false);
             clip.SetData(samples, 0);
             return clip;
         }
