@@ -917,9 +917,10 @@ namespace FacilityBreach.Editor
             Perera.Core.SoundEventBus.Emitted += soundBusListener;
 
             var go = new GameObject("Test_Ambience_ZeroNoise");
+            FacilityAmbiencePlayer player = null;
             try
             {
-                var player = go.AddComponent<FacilityAmbiencePlayer>();
+                player = go.AddComponent<FacilityAmbiencePlayer>();
                 player.Play();
 
                 // Run simulated update ticks
@@ -1227,7 +1228,7 @@ namespace FacilityBreach.Editor
                 int noiseCount = 0;
                 int soundBusCount = 0;
                 Action<FacilityBreach.Noise.FacilityNoiseEvent> nListener = _ => noiseCount++;
-                Action<Perera.Core.SoundEvent> sListener = _ => soundBusCount++;
+                Action<Perera.Core.SoundStimulus> sListener = _ => soundBusCount++;
                 FacilityNoiseHub.OnNoiseEmitted += nListener;
                 Perera.Core.SoundEventBus.Emitted += sListener;
 
