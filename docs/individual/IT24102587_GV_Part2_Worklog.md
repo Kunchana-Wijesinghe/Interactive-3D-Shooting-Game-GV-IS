@@ -682,8 +682,8 @@ Executed in Unity 6000.6.2f1 headless batch mode with **ExitCode 0**:
 
 #### Verification Summary
 - Baseline automated regression checks: 374/374 PASSED across 10 baseline suites.
-- Kickable physics & audio automated checks: 432/432 PASSED across 27 comprehensive test methods in KickablePhysicsAudioTests.cs (covering clank-based rolling rattles, speed-driven tick scheduling, organic mechanical friction, audible mid-range facility ambience, dedicated child AudioSource, priority 64, and zero AI noise emission invariant).
-- Cumulative project test total: 806/806 checks PASSED (100% Green across all 11 suites, ExitCode 0).
+- Kickable physics & audio automated checks: 439/439 PASSED across 27 comprehensive test methods in KickablePhysicsAudioTests.cs (covering clank-based rolling rattles, speed-driven tick scheduling, organic mechanical friction, audible mid-range facility ambience, dedicated child AudioSource, priority 64, and zero AI noise emission invariant).
+- Cumulative project test total: 813/813 checks PASSED (100% Green across all 11 suites, ExitCode 0).
 - Total active kickable props: 40 props (13 authored + 27 converted scene props).
 - Visual evidence screenshots: 28 high-resolution captures preserved unchanged.
 - Unity Editor closed during development; consolidated headless batch run executed with ExitCode 0.
