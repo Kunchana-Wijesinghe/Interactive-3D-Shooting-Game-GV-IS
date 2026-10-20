@@ -1,4 +1,7 @@
 using UnityEngine;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 namespace FacilityBreach.Audio
 {
@@ -32,21 +35,75 @@ namespace FacilityBreach.Audio
             }
         }
 
+#if UNITY_EDITOR
+        [InitializeOnLoadMethod]
+        private static void RegisterEditorLifecycle()
+        {
+            EditorApplication.playModeStateChanged -= OnPlayModeStateChanged;
+            EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
+            EditorApplication.pauseStateChanged -= OnEditorPauseStateChanged;
+            EditorApplication.pauseStateChanged += OnEditorPauseStateChanged;
+        }
+
+        private static void OnPlayModeStateChanged(PlayModeStateChange state)
+        {
+            if (state == PlayModeStateChange.ExitingPlayMode || state == PlayModeStateChange.EnteredEditMode)
+            {
+                StopAllAmbience();
+            }
+        }
+
+        private static void OnEditorPauseStateChanged(PauseState state)
+        {
+            if (instance != null)
+            {
+                if (state == PauseState.Paused)
+                {
+                    instance.Pause();
+                }
+                else if (state == PauseState.Unpaused && Application.isPlaying && instance.shouldBePlaying)
+                {
+                    instance.Resume();
+                }
+            }
+        }
+
+        public static void StopAllAmbience()
+        {
+            if (instance != null)
+            {
+                instance.Stop(true);
+            }
+
+            var allSources = FindObjectsByType<AudioSource>(FindObjectsSortMode.None);
+            foreach (var src in allSources)
+            {
+                if (src != null && src.clip != null && src.clip.name == "Procedural_Facility_Ambience")
+                {
+                    src.volume = 0f;
+                    src.Stop();
+                }
+            }
+        }
+#endif
+
         [Header("Ambience Configuration")]
         [Tooltip("Target playback volume for the 2D industrial ambience background (subtle presence).")]
         [Range(0f, 1f)]
         [SerializeField] private float targetVolume = 0.38f;
 
-        [Tooltip("Fade speed (volume units per second). At 0.5f/s, fades from 0 to 0.22 in ~0.44s; default 0.22/2s ~ 0.11f/s.")]
+        [Tooltip("Fade speed (volume units per second). At 0.5f/s, fades from 0 to target in < 1s.")]
         [Range(0.01f, 2f)]
         [SerializeField] private float fadeSpeed = 0.50f;
 
-        [Tooltip("Automatically synthesize and start playing on Start().")]
-        [SerializeField] private bool autoPlayOnStart = true;
+        [Tooltip("Automatically synthesize and start playing on Start() during active gameplay.")]
+        [SerializeField] private bool autoPlayOnStart = false;
 
         private AudioSource audioSource;
         private float desiredVolume;
         private bool isFadingOut;
+        private bool isPaused;
+        private bool shouldBePlaying;
 
         public AudioSource AudioSource => audioSource;
         public float TargetVolume
@@ -55,11 +112,13 @@ namespace FacilityBreach.Audio
             set
             {
                 targetVolume = Mathf.Clamp01(value);
-                if (!isFadingOut) desiredVolume = targetVolume;
+                if (!isFadingOut && !isPaused) desiredVolume = targetVolume;
             }
         }
         public float CurrentVolume => audioSource != null ? audioSource.volume : 0f;
         public bool IsPlaying => audioSource != null && audioSource.isPlaying;
+        public bool IsPaused => isPaused;
+        public bool ShouldBePlaying => shouldBePlaying;
 
         private void Awake()
         {
@@ -69,7 +128,10 @@ namespace FacilityBreach.Audio
             }
             else if (instance != this)
             {
-                Destroy(this);
+                if (Application.isPlaying)
+                    Destroy(gameObject);
+                else
+                    DestroyImmediate(gameObject);
                 return;
             }
 
@@ -78,7 +140,7 @@ namespace FacilityBreach.Audio
 
         private void Start()
         {
-            if (autoPlayOnStart)
+            if (autoPlayOnStart && Application.isPlaying)
             {
                 Play();
             }
@@ -87,6 +149,22 @@ namespace FacilityBreach.Audio
         private void Update()
         {
             if (audioSource == null) return;
+
+            // Runtime gameplay pause detection: automatically pause if Time.timeScale is frozen during gameplay
+            if (Application.isPlaying && shouldBePlaying)
+            {
+                if (Time.timeScale <= 0f && !isPaused && audioSource.isPlaying)
+                {
+                    Pause();
+                    return;
+                }
+                else if (Time.timeScale > 0f && isPaused && !isFadingOut)
+                {
+                    Resume();
+                }
+            }
+
+            if (isPaused) return;
 
             if (Mathf.Abs(audioSource.volume - desiredVolume) > 0.001f)
             {
@@ -105,6 +183,8 @@ namespace FacilityBreach.Audio
 
         private void OnDisable()
         {
+            shouldBePlaying = false;
+            isPaused = false;
             if (audioSource != null && audioSource.isPlaying)
             {
                 audioSource.volume = 0f;
@@ -114,6 +194,13 @@ namespace FacilityBreach.Audio
 
         private void OnDestroy()
         {
+            shouldBePlaying = false;
+            isPaused = false;
+            if (audioSource != null && audioSource.isPlaying)
+            {
+                audioSource.volume = 0f;
+                audioSource.Stop();
+            }
             if (instance == this)
             {
                 instance = null;
@@ -121,7 +208,8 @@ namespace FacilityBreach.Audio
         }
 
         /// <summary>
-        /// Initializes the dedicated 2D AudioSource for ambient looping.
+        /// Initializes the dedicated 2D AudioSource for ambient looping on a dedicated child GameObject.
+        /// Guarantees complete isolation from FacilityAudioPlayer or any other AudioSource on the parent.
         /// </summary>
         public void InitializeAudioSource()
         {
@@ -147,7 +235,7 @@ namespace FacilityBreach.Audio
 
             audioSource.playOnAwake = false;
             audioSource.loop = true;
-            audioSource.spatialBlend = 0f; // 2D stereo background
+            audioSource.spatialBlend = 0f; // 2D stereo background (heard identically everywhere in facility)
             audioSource.volume = 0f;       // Start at zero for smooth fade-in
             audioSource.priority = 64;     // High priority so continuous ambience is never culled by SFX
             audioSource.dopplerLevel = 0f;
@@ -173,15 +261,59 @@ namespace FacilityBreach.Audio
                 audioSource.clip = FacilityAudioSynthesizer.GetOrCreateClip(FacilityAudioClipType.FacilityAmbience);
             }
 
-            if (audioSource.clip != null && !audioSource.isPlaying)
+            if (audioSource.clip != null)
             {
-                audioSource.volume = 0f;
-                audioSource.Play();
-                Debug.Log($"[FacilityAmbiencePlayer] Playing 2D ambience clip '{audioSource.clip.name}' (Target Vol: {targetVolume:F2}, Priority: {audioSource.priority})");
+                if (!audioSource.isPlaying)
+                {
+                    audioSource.volume = 0f;
+                    audioSource.Play();
+                    Debug.Log($"[FacilityAmbiencePlayer] Playing 2D ambience clip '{audioSource.clip.name}' (Target Vol: {targetVolume:F2}, Priority: {audioSource.priority})");
+                }
+                else if (isPaused)
+                {
+                    audioSource.UnPause();
+                }
             }
 
             isFadingOut = false;
+            isPaused = false;
+            shouldBePlaying = true;
             desiredVolume = targetVolume;
+        }
+
+        /// <summary>
+        /// Pauses the facility ambience cleanly without resetting loop playback position.
+        /// </summary>
+        public void Pause()
+        {
+            if (audioSource != null && audioSource.isPlaying)
+            {
+                audioSource.Pause();
+            }
+            isPaused = true;
+        }
+
+        /// <summary>
+        /// Resumes the facility ambience from its current position.
+        /// </summary>
+        public void Resume()
+        {
+            if (!shouldBePlaying) return;
+
+            InitializeAudioSource();
+            if (audioSource != null)
+            {
+                if (!audioSource.isPlaying)
+                {
+                    audioSource.UnPause();
+                    if (!audioSource.isPlaying && audioSource.clip != null)
+                    {
+                        audioSource.Play();
+                    }
+                }
+                desiredVolume = targetVolume;
+            }
+            isPaused = false;
         }
 
         /// <summary>
@@ -189,6 +321,8 @@ namespace FacilityBreach.Audio
         /// </summary>
         public void Stop(bool immediate = false)
         {
+            shouldBePlaying = false;
+            isPaused = false;
             if (audioSource == null) return;
 
             if (immediate)

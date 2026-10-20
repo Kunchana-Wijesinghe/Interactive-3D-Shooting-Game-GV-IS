@@ -95,7 +95,6 @@ namespace FacilityBreach
             if (!audioPlayer) audioPlayer = gameObject.AddComponent<FacilityAudioPlayer>();
             if (!ambiencePlayer) ambiencePlayer = GetComponent<FacilityAmbiencePlayer>();
             if (!ambiencePlayer) ambiencePlayer = gameObject.AddComponent<FacilityAmbiencePlayer>();
-            ambiencePlayer.Play();
             dispatcher = gameObject.AddComponent<FacilityInteractionDispatcher>();
             dispatcher.Initialize(this, view, player.transform);
             foreach (var door in FindObjectsByType<InteractiveDoor>(FindObjectsSortMode.None))
@@ -262,7 +261,7 @@ namespace FacilityBreach
             if (!player.InputEnabled)
             {
                 waitForRelease = true; target = null;
-                if (!Run.Running) { reload = 0; Time.timeScale = 0; Cursor.lockState = CursorLockMode.None; Cursor.visible = true; }
+                if (!Run.Running) { reload = 0; Time.timeScale = 0; Cursor.lockState = CursorLockMode.None; Cursor.visible = true; if (ambiencePlayer) ambiencePlayer.Pause(); }
                 return;
             }
             float dt = Time.deltaTime; Run.Tick(dt); GameplayTime += dt; Enemies.Tick(GameplayTime);
@@ -410,11 +409,27 @@ namespace FacilityBreach
             Time.timeScale = Run.Running && !paused ? 1 : 0;
             Cursor.lockState = Run.Running && !paused ? CursorLockMode.Locked : CursorLockMode.None;
             Cursor.visible = Cursor.lockState != CursorLockMode.Locked;
+            if (ambiencePlayer)
+            {
+                if (paused) ambiencePlayer.Pause();
+                else if (Run.Running) ambiencePlayer.Resume();
+            }
         }
         private void OnApplicationFocus(bool focus) { if (!focus && Run.Running) SetPause(true); }
-        public void StartMission() { Run.Start(); SetPause(false); }
+        public void StartMission()
+        {
+            Run.Start();
+            SetPause(false);
+            if (ambiencePlayer) ambiencePlayer.Play();
+        }
         public void Restart() { Time.timeScale = 1; SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex); }
-        private void OnDestroy() { if (navigationInstance.valid) navigationInstance.Remove(); Time.timeScale = 1; foreach (var material in ownedMaterials) if (material) Destroy(material); }
+        private void OnDestroy()
+        {
+            if (navigationInstance.valid) navigationInstance.Remove();
+            Time.timeScale = 1;
+            foreach (var material in ownedMaterials) if (material) Destroy(material);
+            if (ambiencePlayer) ambiencePlayer.Stop(true);
+        }
         private void OnGUI()
         {
             if (!player) return;
