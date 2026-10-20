@@ -453,5 +453,20 @@ namespace FacilityBreach
 
             return convertedProps;
         }
+
+        /// <summary>
+        /// Retrieves all active kickable physics props currently in the facility environment,
+        /// combining both newly authored and allowlisted converted scene props.
+        /// </summary>
+        public static List<KickablePhysicsProp> GetAllFacilityProps()
+        {
+            var allProps = new List<KickablePhysicsProp>();
+            var found = Object.FindObjectsByType<KickablePhysicsProp>(FindObjectsSortMode.None);
+            if (found != null)
+            {
+                allProps.AddRange(found);
+            }
+            return allProps;
+        }
     }
 }
