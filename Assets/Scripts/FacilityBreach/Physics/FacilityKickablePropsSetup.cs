@@ -163,6 +163,90 @@ namespace FacilityBreach
                 1.1f,
                 1.6f,
                 new Color(0.68f, 0.48f, 0.28f)
+            ),
+
+            // 8. Room 1 Office Corner (Small Wooden Box)
+            new PropDefinition(
+                "Box_Small_Room1Office_01",
+                new Vector3(-14.0f, 0.25f, 1.5f),
+                Quaternion.identity,
+                Vector3.one * 0.45f,
+                PrimitiveType.Cube,
+                PropMaterialType.Wood,
+                3.5f,
+                1.2f,
+                1.8f,
+                new Color(0.78f, 0.58f, 0.35f)
+            ),
+
+            // 9. Central Hub Service Nook (Medium Wooden Crate)
+            new PropDefinition(
+                "Crate_Medium_CentralHub_01",
+                new Vector3(5.5f, 0.35f, 4.5f),
+                Quaternion.identity,
+                Vector3.one * 0.65f,
+                PrimitiveType.Cube,
+                PropMaterialType.Wood,
+                6.0f,
+                1.1f,
+                1.6f,
+                new Color(0.68f, 0.48f, 0.28f)
+            ),
+
+            // 10. Exit Corridor Alcove (Small Wooden Box)
+            new PropDefinition(
+                "Box_Small_ExitCorridor_01",
+                new Vector3(9.5f, 0.25f, -14.5f),
+                Quaternion.identity,
+                Vector3.one * 0.45f,
+                PrimitiveType.Cube,
+                PropMaterialType.Wood,
+                3.5f,
+                1.2f,
+                1.8f,
+                new Color(0.75f, 0.55f, 0.32f)
+            ),
+
+            // 11. Room 1 Laboratory Perimeter (Metal Barrel - Resting Horizontally on Side, Immediate Roll)
+            new PropDefinition(
+                "Barrel_Metal_Room1Lab_01",
+                new Vector3(-13.5f, 0.32f, 6.5f),
+                Quaternion.Euler(90f, 0f, 0f),
+                new Vector3(0.60f, 0.45f, 0.60f),
+                PrimitiveType.Cylinder,
+                PropMaterialType.Metal,
+                7.5f,
+                0.45f,
+                0.20f,
+                new Color(0.65f, 0.52f, 0.22f) // Industrial hazard yellow/gold
+            ),
+
+            // 12. Machinery Alcove Service Bay (Metal Barrel - Upright, Calibrated Rolling Physics)
+            new PropDefinition(
+                "Barrel_Metal_MachineryAlcove_01",
+                new Vector3(14.5f, 0.47f, 14.5f),
+                Quaternion.identity,
+                new Vector3(0.60f, 0.45f, 0.60f),
+                PrimitiveType.Cylinder,
+                PropMaterialType.Metal,
+                8.0f,
+                0.50f,
+                0.25f,
+                new Color(0.35f, 0.40f, 0.45f) // Machined steel
+            ),
+
+            // 13. Exit Perimeter Staging Area (Metal Barrel - Resting Horizontally on Side, Immediate Roll)
+            new PropDefinition(
+                "Barrel_Metal_ExitPerimeter_01",
+                new Vector3(6.5f, 0.32f, -22.0f),
+                Quaternion.Euler(0f, 45f, 90f),
+                new Vector3(0.60f, 0.45f, 0.60f),
+                PrimitiveType.Cylinder,
+                PropMaterialType.Metal,
+                7.5f,
+                0.45f,
+                0.20f,
+                new Color(0.55f, 0.25f, 0.22f) // Industrial primer red
             )
         };
 
