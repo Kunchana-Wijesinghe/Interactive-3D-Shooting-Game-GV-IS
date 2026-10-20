@@ -76,8 +76,8 @@ namespace FacilityBreach
                 PrimitiveType.Cube,
                 PropMaterialType.Wood,
                 3.5f,
+                0.48f,
                 1.2f,
-                1.8f,
                 new Color(0.78f, 0.58f, 0.35f) // Warm wood
             ),
 
@@ -90,8 +90,8 @@ namespace FacilityBreach
                 PrimitiveType.Cube,
                 PropMaterialType.Wood,
                 6.0f,
-                1.1f,
-                1.6f,
+                0.65f,
+                1.2f,
                 new Color(0.68f, 0.48f, 0.28f) // Darker crate wood
             ),
 
@@ -104,8 +104,8 @@ namespace FacilityBreach
                 PrimitiveType.Cylinder,
                 PropMaterialType.Metal,
                 7.5f,
-                0.50f,
-                0.25f, // Low angular damping allows smooth rolling
+                0.40f,
+                0.20f, // Low angular damping allows smooth rolling
                 new Color(0.32f, 0.38f, 0.44f) // Industrial slate steel
             ),
 
@@ -118,8 +118,8 @@ namespace FacilityBreach
                 PrimitiveType.Cube,
                 PropMaterialType.Wood,
                 3.5f,
+                0.48f,
                 1.2f,
-                1.8f,
                 new Color(0.78f, 0.58f, 0.35f)
             ),
 
@@ -132,8 +132,8 @@ namespace FacilityBreach
                 PrimitiveType.Cylinder,
                 PropMaterialType.Metal,
                 8.0f,
-                0.45f,
-                0.20f, // Low rolling resistance along curved surface
+                0.40f,
+                0.18f, // Low rolling resistance along curved surface
                 new Color(0.40f, 0.44f, 0.36f) // Olive drab containment barrel
             ),
 
@@ -146,8 +146,8 @@ namespace FacilityBreach
                 PrimitiveType.Cube,
                 PropMaterialType.Wood,
                 3.5f,
+                0.48f,
                 1.2f,
-                1.8f,
                 new Color(0.78f, 0.58f, 0.35f)
             ),
 
@@ -160,8 +160,8 @@ namespace FacilityBreach
                 PrimitiveType.Cube,
                 PropMaterialType.Wood,
                 6.5f,
-                1.1f,
-                1.6f,
+                0.65f,
+                1.2f,
                 new Color(0.68f, 0.48f, 0.28f)
             ),
 
@@ -174,8 +174,8 @@ namespace FacilityBreach
                 PrimitiveType.Cube,
                 PropMaterialType.Wood,
                 3.5f,
+                0.48f,
                 1.2f,
-                1.8f,
                 new Color(0.78f, 0.58f, 0.35f)
             ),
 
@@ -188,8 +188,8 @@ namespace FacilityBreach
                 PrimitiveType.Cube,
                 PropMaterialType.Wood,
                 6.0f,
-                1.1f,
-                1.6f,
+                0.65f,
+                1.2f,
                 new Color(0.68f, 0.48f, 0.28f)
             ),
 
@@ -202,8 +202,8 @@ namespace FacilityBreach
                 PrimitiveType.Cube,
                 PropMaterialType.Wood,
                 3.5f,
+                0.48f,
                 1.2f,
-                1.8f,
                 new Color(0.75f, 0.55f, 0.32f)
             ),
 
@@ -216,8 +216,8 @@ namespace FacilityBreach
                 PrimitiveType.Cylinder,
                 PropMaterialType.Metal,
                 7.5f,
-                0.45f,
-                0.20f,
+                0.40f,
+                0.18f,
                 new Color(0.65f, 0.52f, 0.22f) // Industrial hazard yellow/gold
             ),
 
@@ -230,8 +230,8 @@ namespace FacilityBreach
                 PrimitiveType.Cylinder,
                 PropMaterialType.Metal,
                 8.0f,
-                0.50f,
-                0.25f,
+                0.40f,
+                0.20f,
                 new Color(0.35f, 0.40f, 0.45f) // Machined steel
             ),
 
@@ -244,8 +244,8 @@ namespace FacilityBreach
                 PrimitiveType.Cylinder,
                 PropMaterialType.Metal,
                 7.5f,
-                0.45f,
-                0.20f,
+                0.40f,
+                0.18f,
                 new Color(0.55f, 0.25f, 0.22f) // Industrial primer red
             )
         };

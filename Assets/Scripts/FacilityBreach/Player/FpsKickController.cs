@@ -16,8 +16,8 @@ namespace FacilityBreach.Player
         [Header("Kick Configuration")]
         [SerializeField] private float kickReach = 2.25f;
         [SerializeField] private float kickRadius = 0.20f;
-        [SerializeField] private float kickImpulse = 14.0f;
-        [SerializeField] private float upwardLoft = 3.5f;
+        [SerializeField] private float kickImpulse = 18.0f;
+        [SerializeField] private float upwardLoft = 2.8f;
         [SerializeField] private float kickCooldown = 0.45f;
         [SerializeField] private float kickNoiseRadius = 12.0f;
 

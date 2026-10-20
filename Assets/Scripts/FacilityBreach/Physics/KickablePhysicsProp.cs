@@ -26,8 +26,8 @@ namespace FacilityBreach
 
         [Header("Physical Constraints")]
         [SerializeField] private float baseMass = 4.0f;
-        [SerializeField] private float linearDamping = 1.0f;
-        [SerializeField] private float angularDamping = 1.5f;
+        [SerializeField] private float linearDamping = 0.50f;
+        [SerializeField] private float angularDamping = 1.0f;
 
         private Rigidbody body;
         private float lastImpactSoundTime = -10f;
