@@ -171,6 +171,21 @@ namespace FacilityBreach.Audio
             }
         }
 
+        /// <summary>
+        /// Plays a player footstep audio event with speed-scaled volume and micro-pitch variation.
+        /// STRICT INVARIANT: Pure player audio. Zero events emitted to FacilityNoiseHub or SoundEventBus.
+        /// </summary>
+        public void PlayFootstep(Vector3 worldPosition, float volumeScale = 0.25f, int variant = 0)
+        {
+            InitializePool();
+            AudioClip clip = FacilityAudioSynthesizer.GetOrCreateFootstepClip(variant);
+            if (clip != null && player2dSource != null)
+            {
+                player2dSource.pitch = Random.Range(0.97f, 1.03f);
+                player2dSource.PlayOneShot(clip, Mathf.Clamp01(volumeScale * masterVolume));
+            }
+        }
+
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void ResetStatics()
         {

@@ -16,7 +16,8 @@ namespace FacilityBreach.Audio
         ProjectileLaunch,
         ProjectileImpact,
         FacilityAmbience,
-        BarrelRollRattle
+        BarrelRollRattle,
+        FootstepConcrete
     }
 
     /// <summary>
@@ -30,12 +31,14 @@ namespace FacilityBreach.Audio
         private const int SampleRate = 44100;
         private static readonly Dictionary<FacilityAudioClipType, AudioClip> ClipCache = new Dictionary<FacilityAudioClipType, AudioClip>();
         private static readonly AudioClip[] RattleClips = new AudioClip[3];
+        private static readonly AudioClip[] FootstepClips = new AudioClip[3];
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void ResetStatics()
         {
             ClipCache.Clear();
             System.Array.Clear(RattleClips, 0, RattleClips.Length);
+            System.Array.Clear(FootstepClips, 0, FootstepClips.Length);
         }
 
         public static AudioClip GetOrCreateClip(FacilityAudioClipType clipType)
@@ -58,6 +61,7 @@ namespace FacilityBreach.Audio
                 FacilityAudioClipType.ProjectileImpact  => SynthesizeProjectileImpact(),
                 FacilityAudioClipType.FacilityAmbience  => SynthesizeFacilityAmbience(),
                 FacilityAudioClipType.BarrelRollRattle  => GetOrCreateRattleClip(0),
+                FacilityAudioClipType.FootstepConcrete  => GetOrCreateFootstepClip(0),
                 _                                       => SynthesizeGunshotAmmo1()
             };
 
@@ -81,6 +85,20 @@ namespace FacilityBreach.Audio
                 RattleClips[idx] = SynthesizeBarrelRollRattle(idx);
             }
             return RattleClips[idx];
+        }
+
+        /// <summary>
+        /// Retrieves or creates one of 3 deterministic organic concrete boot footstep variants.
+        /// Synthesizes soft rubber heel impact, sole contact, and textured concrete surface scuff.
+        /// </summary>
+        public static AudioClip GetOrCreateFootstepClip(int variant = 0)
+        {
+            int idx = Mathf.Clamp(variant, 0, 2);
+            if (FootstepClips[idx] == null)
+            {
+                FootstepClips[idx] = SynthesizeFootstepConcrete(idx);
+            }
+            return FootstepClips[idx];
         }
 
         /// <summary>
@@ -391,6 +409,59 @@ namespace FacilityBreach.Audio
 
             NormalizeSamples(samples, 0.62f);
             AudioClip clip = AudioClip.Create($"Procedural_Barrel_Roll_Rattle_{variant}", totalSamples, 1, SampleRate, false);
+            clip.SetData(samples, 0);
+            return clip;
+        }
+
+        /// <summary>
+        /// Player Footstep: Soft combat boot contacting hard industrial concrete floor (0.08s).
+        /// Combines low-mid rubber heel thud (130Hz - 165Hz), sole contact tap (340Hz - 425Hz),
+        /// and textured concrete dust/grit surface scuff. Peak normalized to 0.52 for subtle mixing.
+        /// </summary>
+        private static AudioClip SynthesizeFootstepConcrete(int variant = 0)
+        {
+            float duration = 0.08f;
+            int totalSamples = Mathf.CeilToInt(SampleRate * duration);
+            float[] samples = new float[totalSamples];
+            var rng = new System.Random(5050 + variant * 97);
+
+            float pitchScale = variant switch
+            {
+                1 => 1.12f, // Lighter toe step
+                2 => 0.90f, // Firmer heel step
+                _ => 1.00f  // Neutral stride
+            };
+
+            float fThud = 145f * pitchScale;
+            float fSlap = 380f * pitchScale;
+
+            // Simple 1-pole lowpass filter for concrete grit noise
+            float noiseFlt = 0f;
+
+            for (int i = 0; i < totalSamples; i++)
+            {
+                float t = (float)i / SampleRate;
+                float attack = Mathf.Clamp01(t / 0.003f); // 3ms smooth heel contact
+
+                // 1. Rubber heel thud (low-mid transient)
+                float heelEnv = Mathf.Exp(-48f * t);
+                float heel = Mathf.Sin(2f * Mathf.PI * fThud * t) * 0.45f * heelEnv;
+
+                // 2. Sole acoustic contact slap
+                float slapEnv = Mathf.Exp(-38f * t);
+                float slap = Mathf.Sin(2f * Mathf.PI * fSlap * t) * 0.30f * slapEnv;
+
+                // 3. Concrete surface grit scuff (band-shaped noise)
+                float rawNoise = ((float)rng.NextDouble() * 2f - 1f);
+                noiseFlt += 0.20f * (rawNoise - noiseFlt);
+                float scuffEnv = Mathf.Exp(-32f * t) * (1f - Mathf.Exp(-50f * t));
+                float scuff = noiseFlt * scuffEnv * 0.40f;
+
+                samples[i] = attack * (heel + slap + scuff);
+            }
+
+            NormalizeSamples(samples, 0.52f);
+            AudioClip clip = AudioClip.Create($"Procedural_Footstep_Concrete_{variant}", totalSamples, 1, SampleRate, false);
             clip.SetData(samples, 0);
             return clip;
         }
