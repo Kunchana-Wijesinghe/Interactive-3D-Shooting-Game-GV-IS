@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace FacilityBreach.Physics
+namespace FacilityBreach
 {
     /// <summary>
     /// GV Part 2: Facility Kickable Props Spawner & Configuration.

@@ -1,6 +1,6 @@
 using FacilityBreach.Audio;
 using FacilityBreach.Noise;
-using FacilityBreach.Physics;
+
 using UnityEngine;
 
 namespace FacilityBreach.Player

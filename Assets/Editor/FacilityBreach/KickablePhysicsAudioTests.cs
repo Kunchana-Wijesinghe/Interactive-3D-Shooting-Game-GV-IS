@@ -5,7 +5,7 @@ using UnityEngine;
 using FacilityBreach;
 using FacilityBreach.Audio;
 using FacilityBreach.Noise;
-using FacilityBreach.Physics;
+
 using FacilityBreach.Player;
 
 namespace FacilityBreach.Editor

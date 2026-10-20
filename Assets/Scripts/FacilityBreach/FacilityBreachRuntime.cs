@@ -11,7 +11,7 @@ using FacilityBreach.AI.SoundHunter;
 using FacilityBreach.AI.Roles;
 using FacilityBreach.Audio;
 using FacilityBreach.Noise;
-using FacilityBreach.Physics;
+
 
 namespace FacilityBreach
 {
@@ -392,7 +392,7 @@ namespace FacilityBreach
             Physics.IgnoreCollision(obj.GetComponent<Collider>(), player.GetComponent<Collider>());
             obj.AddComponent<CanImpact>();
         }
-        private void Say(string message) { feedback = message; feedbackTime = 2; }
+        public void Say(string message) { feedback = message; feedbackTime = 2; }
         public void CancelEnemyAttacks()
         { foreach (var enemy in GetComponentsInChildren<EnemyCombatAdapter>()) enemy.CancelPendingAttack(); }
         public void SetPause(bool paused)

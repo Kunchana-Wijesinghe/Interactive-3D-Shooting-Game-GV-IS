@@ -2,7 +2,7 @@ using FacilityBreach.Audio;
 using FacilityBreach.Noise;
 using UnityEngine;
 
-namespace FacilityBreach.Physics
+namespace FacilityBreach
 {
     public enum PropMaterialType
     {
