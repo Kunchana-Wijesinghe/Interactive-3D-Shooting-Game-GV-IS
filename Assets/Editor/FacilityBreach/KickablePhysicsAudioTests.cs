@@ -512,6 +512,7 @@ namespace FacilityBreach.Editor
             try
             {
                 // Setup mock barricade that MUST be protected
+                mockBarricade.AddComponent<BoxCollider>();
                 mockBarricade.AddComponent<MovableBarricade>();
 
                 // Setup mock objects for each item in SafeScenePropAllowlist
