@@ -135,6 +135,42 @@ namespace FacilityBreach.Audio
             }
         }
 
+        /// <summary>
+        /// Plays procedural launch whoosh audio when a Q projectile is thrown.
+        /// </summary>
+        public void PlayProjectileLaunch(Vector3 worldPosition, float volumeScale = 1.0f)
+        {
+            InitializePool();
+            AudioClip clip = FacilityAudioSynthesizer.GetOrCreateClip(FacilityAudioClipType.ProjectileLaunch);
+            if (clip != null && player2dSource != null)
+            {
+                player2dSource.pitch = Random.Range(0.96f, 1.04f);
+                player2dSource.PlayOneShot(clip, Mathf.Clamp01(volumeScale * masterVolume));
+            }
+        }
+
+        /// <summary>
+        /// Plays 3D spatial projectile impact audio when a thrown can/ball collides with facility surfaces.
+        /// </summary>
+        public void PlayProjectileImpact(Vector3 worldPosition, float volumeScale = 1.0f)
+        {
+            InitializePool();
+            if (spatialSourcePool == null || spatialSourcePool.Length == 0) return;
+
+            AudioClip clip = FacilityAudioSynthesizer.GetOrCreateClip(FacilityAudioClipType.ProjectileImpact);
+            if (clip == null) return;
+
+            AudioSource source = spatialSourcePool[nextSpatialSourceIndex];
+            nextSpatialSourceIndex = (nextSpatialSourceIndex + 1) % spatialSourcePool.Length;
+
+            if (source != null)
+            {
+                source.transform.position = worldPosition;
+                source.pitch = Random.Range(0.93f, 1.07f);
+                source.PlayOneShot(clip, Mathf.Clamp01(volumeScale * masterVolume));
+            }
+        }
+
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void ResetStatics()
         {
