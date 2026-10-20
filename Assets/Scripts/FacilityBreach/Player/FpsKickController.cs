@@ -1,6 +1,5 @@
 using FacilityBreach.Audio;
 using FacilityBreach.Noise;
-
 using UnityEngine;
 
 namespace FacilityBreach.Player
@@ -9,13 +8,14 @@ namespace FacilityBreach.Player
     /// GV Part 2: First-Person Kick Controller.
     /// Implements camera-directed short-range physics kick interaction (F key).
     /// Applies capped directional impulse with upward loft to KickablePhysicsProp objects.
+    /// Direct screen-center raycast takes priority, falling back to a focused candidate sweep.
     /// Weapon viewmodels and tactical arms remain fully visible and uninterrupted.
     /// </summary>
     public sealed class FpsKickController : MonoBehaviour
     {
         [Header("Kick Configuration")]
-        [SerializeField] private float kickReach = 2.2f;
-        [SerializeField] private float kickRadius = 0.35f;
+        [SerializeField] private float kickReach = 2.25f;
+        [SerializeField] private float kickRadius = 0.20f;
         [SerializeField] private float kickImpulse = 14.0f;
         [SerializeField] private float upwardLoft = 3.5f;
         [SerializeField] private float kickCooldown = 0.45f;
@@ -48,6 +48,102 @@ namespace FacilityBreach.Player
         }
 
         /// <summary>
+        /// Unified target resolution used by both HUD prompt display and F-key execution.
+        /// Evaluates direct screen-center raycast first, then falls back to a tight spherecast,
+        /// strictly ignoring player colliders and enforcing solid wall occlusion.
+        /// </summary>
+        public bool FindKickTarget(Camera cam, out KickablePhysicsProp targetProp, out Vector3 targetHitPoint)
+        {
+            targetProp = null;
+            targetHitPoint = Vector3.zero;
+
+            if (cam == null) cam = playerCamera != null ? playerCamera : Camera.main;
+            if (cam == null) return false;
+
+            Vector3 origin = cam.transform.position;
+            Vector3 forward = cam.transform.forward;
+
+            // 1. Primary: Direct screen-center raycast (exact crosshair alignment)
+            var directHits = UnityEngine.Physics.RaycastAll(origin, forward, kickReach, ~0, QueryTriggerInteraction.Ignore);
+            if (directHits != null && directHits.Length > 0)
+            {
+                System.Array.Sort(directHits, (a, b) => a.distance.CompareTo(b.distance));
+
+                for (int i = 0; i < directHits.Length; i++)
+                {
+                    var hit = directHits[i];
+                    if (IsPlayerCollider(hit.collider)) continue;
+
+                    var prop = hit.collider.GetComponentInParent<KickablePhysicsProp>();
+                    if (prop != null && prop.Body != null)
+                    {
+                        targetProp = prop;
+                        targetHitPoint = hit.point;
+                        return true;
+                    }
+
+                    // A solid non-kickable collider (wall/door) was hit directly ahead; blocks ray
+                    break;
+                }
+            }
+
+            // 2. Secondary: Focused spherecast sweep for nearby candidates
+            float sweepRadius = Mathf.Min(kickRadius, 0.22f);
+            var sweepHits = UnityEngine.Physics.SphereCastAll(origin, sweepRadius, forward, kickReach, ~0, QueryTriggerInteraction.Ignore);
+            if (sweepHits != null && sweepHits.Length > 0)
+            {
+                System.Array.Sort(sweepHits, (a, b) => a.distance.CompareTo(b.distance));
+
+                for (int i = 0; i < sweepHits.Length; i++)
+                {
+                    var hit = sweepHits[i];
+                    if (IsPlayerCollider(hit.collider)) continue;
+
+                    var prop = hit.collider.GetComponentInParent<KickablePhysicsProp>();
+                    if (prop == null || prop.Body == null) continue;
+
+                    // Occlusion line-of-sight test: ensure no solid wall or closed door blocks line from camera to target
+                    Vector3 testPoint = hit.point;
+                    if (testPoint == Vector3.zero) testPoint = hit.collider.bounds.center;
+
+                    Vector3 toTarget = testPoint - origin;
+                    float dist = toTarget.magnitude;
+
+                    if (dist > 0.1f)
+                    {
+                        var occluderHits = UnityEngine.Physics.RaycastAll(origin, toTarget.normalized, dist - 0.05f, ~0, QueryTriggerInteraction.Ignore);
+                        bool isOccluded = false;
+                        for (int k = 0; k < occluderHits.Length; k++)
+                        {
+                            var occ = occluderHits[k];
+                            if (IsPlayerCollider(occ.collider)) continue;
+                            if (occ.collider.transform.IsChildOf(prop.transform)) continue;
+
+                            isOccluded = true;
+                            break;
+                        }
+                        if (isOccluded) continue;
+                    }
+
+                    targetProp = prop;
+                    targetHitPoint = testPoint;
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private bool IsPlayerCollider(Collider col)
+        {
+            if (col == null) return false;
+            if (col.transform.IsChildOf(transform)) return true;
+            if (col.CompareTag("Player")) return true;
+            if (runtime != null && runtime.PlayerTransform != null && col.transform.IsChildOf(runtime.PlayerTransform)) return true;
+            return false;
+        }
+
+        /// <summary>
         /// Attempts to execute a kick forward from the player's camera.
         /// </summary>
         public bool TryKick()
@@ -57,58 +153,26 @@ namespace FacilityBreach.Player
             Camera cam = playerCamera != null ? playerCamera : Camera.main;
             if (cam == null) return false;
 
-            Vector3 origin = cam.transform.position;
-            Vector3 forward = cam.transform.forward;
-
-            // 1. Detect candidate prop using sphere-cast within reach
-            RaycastHit candidateHit;
-            bool hitSomething = UnityEngine.Physics.SphereCast(
-                origin,
-                kickRadius,
-                forward,
-                out candidateHit,
-                kickReach,
-                ~0,
-                QueryTriggerInteraction.Ignore
-            );
-
-            if (!hitSomething || candidateHit.collider == null) return false;
-
-            // Ignore self / player colliders
-            if (candidateHit.collider.transform.IsChildOf(transform)) return false;
-
-            // 2. Validate target has KickablePhysicsProp component
-            var prop = candidateHit.collider.GetComponentInParent<KickablePhysicsProp>();
-            if (prop == null || prop.Body == null) return false;
-
-            // 3. Occlusion line-of-sight test: ensure no solid wall or barricade blocks the kick
-            Vector3 hitPoint = candidateHit.point;
-            Vector3 toTarget = hitPoint - origin;
-            float dist = toTarget.magnitude;
-
-            if (dist > 0.05f && UnityEngine.Physics.Raycast(origin, toTarget.normalized, out RaycastHit occluderHit, dist - 0.05f, ~0, QueryTriggerInteraction.Ignore))
+            if (!FindKickTarget(cam, out KickablePhysicsProp prop, out Vector3 hitPoint))
             {
-                if (!occluderHit.collider.transform.IsChildOf(prop.transform) && !occluderHit.collider.transform.IsChildOf(transform))
-                {
-                    // Blocked by solid wall / cover
-                    return false;
-                }
+                return false;
             }
 
-            // 4. Calculate directional impulse with upward loft
+            // Calculate directional impulse with upward loft
+            Vector3 forward = cam.transform.forward;
             Vector3 horizontalDir = Vector3.ProjectOnPlane(forward, Vector3.up).normalized;
             if (horizontalDir.sqrMagnitude < 0.01f) horizontalDir = forward;
 
             Vector3 finalImpulse = (horizontalDir * kickImpulse) + (Vector3.up * upwardLoft);
 
-            // 5. Apply physics kick to the Rigidbody
+            // Apply physics kick to the Rigidbody
             prop.ApplyKick(finalImpulse, hitPoint);
 
-            // 6. Play kick thud sound and emit neutral noise event
+            // Play kick thud sound and emit neutral noise event
             FacilityAudioPlayer.Instance.PlayKick(hitPoint);
             FacilityNoiseHub.Emit(transform.position, kickNoiseRadius, FacilityNoiseType.Kick, gameObject);
 
-            // 7. Update cooldown
+            // Update cooldown
             nextKickTime = Time.time + kickCooldown;
 
             if (runtime != null)
@@ -128,18 +192,12 @@ namespace FacilityBreach.Player
             Camera cam = playerCamera != null ? playerCamera : Camera.main;
             if (cam == null) return false;
 
-            if (UnityEngine.Physics.SphereCast(cam.transform.position, kickRadius, cam.transform.forward, out RaycastHit hit, kickReach, ~0, QueryTriggerInteraction.Ignore))
+            if (FindKickTarget(cam, out var prop, out _))
             {
-                if (hit.collider != null && !hit.collider.transform.IsChildOf(transform))
-                {
-                    var prop = hit.collider.GetComponentInParent<KickablePhysicsProp>();
-                    if (prop != null)
-                    {
-                        targetName = prop.name;
-                        return true;
-                    }
-                }
+                targetName = prop.name;
+                return true;
             }
+
             return false;
         }
     }
