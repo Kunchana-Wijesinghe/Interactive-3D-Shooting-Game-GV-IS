@@ -266,8 +266,9 @@ namespace FacilityBreach.Audio
         }
 
         /// <summary>
-        /// Rolling Metal: Seamless loopable metallic rumble and textured scraping for rolling cylindrical barrels (1.0s loop).
-        /// Combines low hollow barrel resonance (72Hz, 108Hz) with metallic chime overtones and smoothed boundary crossfade.
+        /// Rolling Metal: Organic metallic rumble with granular concrete friction and hollow body resonance (1.0s seamless loop).
+        /// Replaces synthetic pure tones with two-pole filtered surface-grain noise, friction-excited cavity resonance,
+        /// and subtle rotational sheet vibration, cleanly bridged at loop boundary for click-free playback.
         /// </summary>
         private static AudioClip SynthesizeRollingMetal()
         {
@@ -276,38 +277,36 @@ namespace FacilityBreach.Audio
             float[] samples = new float[totalSamples];
             var rng = new System.Random(7997);
 
-            // Base textured surface friction noise
-            float[] noiseBuffer = new float[totalSamples];
+            // Two-pole smoothed surface-grain friction noise (pink/brown noise characteristic of concrete contact)
+            float[] grainNoise = new float[totalSamples];
+            float filterState1 = 0f;
+            float filterState2 = 0f;
             for (int i = 0; i < totalSamples; i++)
             {
-                noiseBuffer[i] = ((float)rng.NextDouble() * 2f - 1f);
-            }
-
-            // Seamless boundary crossfade for noise (0.05s equal-power smooth blend)
-            int fadeSamples = Mathf.CeilToInt(SampleRate * 0.05f);
-            for (int i = 0; i < fadeSamples; i++)
-            {
-                float t = (float)i / fadeSamples;
-                float blend = t * t * (3f - 2f * t);
-                int wrapIdx = totalSamples - fadeSamples + i;
-                noiseBuffer[wrapIdx] = noiseBuffer[wrapIdx] * (1f - blend) + noiseBuffer[i] * blend;
+                float raw = ((float)rng.NextDouble() * 2f - 1f);
+                filterState1 += 0.12f * (raw - filterState1);
+                filterState2 += 0.08f * (filterState1 - filterState2);
+                grainNoise[i] = filterState2 * 3.5f; // restore level after smoothing
             }
 
             for (int i = 0; i < totalSamples; i++)
             {
                 float t = (float)i / SampleRate;
 
-                // Exact integer cycle frequencies for seamless clickless looping over 1.0s
-                float lowRumble1 = Mathf.Sin(2f * Mathf.PI * 72f * t) * 0.35f;
-                float lowRumble2 = Mathf.Sin(2f * Mathf.PI * 108f * t) * 0.25f;
-                float metallicShell = Mathf.Sin(2f * Mathf.PI * 360f * t) * 0.15f;
-                float metallicRing = Mathf.Sin(2f * Mathf.PI * 540f * t) * 0.10f;
+                // Low hollow barrel cavity resonance excited by surface contact
+                float cavityFreq1 = 76f + 1.5f * Mathf.Sin(2f * Mathf.PI * 4f * t);
+                float cavityFreq2 = 114f + 2.0f * Mathf.Sin(2f * Mathf.PI * 6f * t);
+                float cavityTone1 = Mathf.Sin(2f * Mathf.PI * cavityFreq1 * t) * (0.35f + 0.15f * grainNoise[i]);
+                float cavityHarmonic = Mathf.Sin(2f * Mathf.PI * cavityFreq2 * t) * 0.20f;
 
-                // Subtle rotational wobble (6Hz integer cycle)
-                float wobble = 0.75f + 0.25f * Mathf.Sin(2f * Mathf.PI * 6f * t);
-                float texturedFriction = noiseBuffer[i] * 0.25f * wobble;
+                // Broadband surface friction and subtle band-passed metallic scrape
+                float metallicScrape = grainNoise[i] * Mathf.Sin(2f * Mathf.PI * 420f * t) * 0.30f;
+                float concreteGrit = grainNoise[i] * 0.40f;
 
-                samples[i] = lowRumble1 + lowRumble2 + metallicShell + metallicRing + texturedFriction;
+                // Subtle rotational seam wobble (5Hz barrel revolution cycle)
+                float revWobble = 0.75f + 0.25f * Mathf.Sin(2f * Mathf.PI * 5f * t);
+
+                samples[i] = (cavityTone1 + cavityHarmonic + concreteGrit + metallicScrape) * revWobble;
             }
 
             // Smoothly bridge the last 5ms to match sample 0 for seamless click-free looping
