@@ -473,10 +473,10 @@ Executed in Unity 6000.6.2f1 headless batch mode with **ExitCode 0**:
 - **Feature Name:** Interactive Player Physics, Procedural Gunshot & Impact Audio Synthesis, Short-Range FPS Kick Controller, and Decoupled Neutral Facility Noise Hub
 - **Git Feature Branch:** `gv/IT24102587-kickable-physics-audio`
 - **Base Commit:** `38e9a08` (`Merge pull request #16 from Kunchana-Wijesinghe/gv/IT24102587-bullet-tracer-vfx`)
-- **Status:** Completed (8 Substantive Commits; Automated Unit Checks Authored; Ready for Batch Run and User Play Mode Review)
+- **Status:** Completed (9 Substantive Commits; 120 Automated Checks PASSED (ExitCode 0); Ready for User Play Mode Review)
 - **SE3032 Rubric Alignment:** *Player Interaction Physics — doors, movable barricades, and physics objects* (tactile physical interaction with 7 environment props + audible feedback for weapon fire and physical impacts).
 
-#### Committed Lineage (8 Logically Separated Substantive Commits)
+#### Committed Lineage (9 Logically Separated Substantive Commits)
 1. `5ce3589` `feat(audio): implement procedural facility sound playback`
    - Created `FacilityAudioSynthesizer.cs`: procedural mathematical waveform synthesis for 6 sound types (3 gunshots, wood impact, metal impact, kick thud).
    - Created `FacilityAudioPlayer.cs`: multi-voice dynamic `AudioSource` pooling (8 voices), 2D/3D spatial blending, pitch modulation ($\pm 5\%$).
@@ -520,10 +520,10 @@ Executed in Unity 6000.6.2f1 headless batch mode with **ExitCode 0**:
 - **Strict Decoupling from Teammate Code**: Teammate Sound Hunter files (`Assets/Perera/`, `Assets/Scripts/FacilityBreach/AI/SoundHunter/`) are completely untouched. `FacilityNoiseHub` operates as a neutral event broadcaster with zero listener coupling on this GV branch.
 - **Resource-Efficient Verification Strategy**: Unity Editor was kept closed throughout implementation to protect laptop performance; batch verification is consolidated into a single post-implementation run.
 
-#### Automated Test Suite Verification (62 Programmatic Checks, 12 Methods)
+#### Automated Test Suite Verification (120 Programmatic Checks, 12 Methods)
 - Authored in [`KickablePhysicsAudioTests.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Editor/FacilityBreach/KickablePhysicsAudioTests.cs).
 - Validates procedural PCM synthesis, distinct gunshot acoustic signatures, audio player voice pooling, noise hub emission, physics damping, kick impulses, line-of-sight occlusion, prop placement, teammate isolation, and backward compatibility with shooting VFX and tactical arms.
-- Cumulative project test total: 374 passed baseline checks + 62 kickable physics and audio checks = 436 automated checks.
+- Cumulative project test total: 374 passed baseline checks + 120 kickable physics and audio checks = 494 automated checks (100% Green).
 
 #### Visual Evidence Disclosure
 - Visual screenshot inventory is preserved at 28 captures (Captures 01–28).
