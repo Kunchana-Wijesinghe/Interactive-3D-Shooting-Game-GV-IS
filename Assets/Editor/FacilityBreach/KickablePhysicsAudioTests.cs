@@ -507,6 +507,8 @@ namespace FacilityBreach.Editor
         {
             var mockParent = new GameObject("Test_Scene_Clutter");
             var mockBarricade = new GameObject("Barricade_Entrance");
+            var mockStation = new GameObject("Entrance health +50 (HP <=50)");
+            var mockBand = new GameObject("Room1_Crate_A_Band");
             var mockProps = new List<GameObject>();
 
             try
@@ -514,6 +516,13 @@ namespace FacilityBreach.Editor
                 // Setup mock barricade that MUST be protected
                 mockBarricade.AddComponent<BoxCollider>();
                 mockBarricade.AddComponent<MovableBarricade>();
+
+                // Setup mock health station that MUST be protected
+                mockStation.AddComponent<BoxCollider>();
+                mockStation.AddComponent<FacilityBreach.Interactions.ResourceStation>();
+
+                // Setup mock band for Room1_Crate_A
+                var bandCol = mockBand.AddComponent<BoxCollider>();
 
                 // Setup mock objects for each item in SafeScenePropAllowlist
                 for (int i = 0; i < FacilityKickablePropsSetup.SafeScenePropAllowlist.Length; i++)
@@ -530,19 +539,26 @@ namespace FacilityBreach.Editor
                     mockProps.Add(go);
                 }
 
-                Assert(FacilityKickablePropsSetup.SafeScenePropAllowlist.Length == 16, "Allowlist contains exactly 16 existing clutter props (8 barrels + 8 crates)");
+                Assert(FacilityKickablePropsSetup.SafeScenePropAllowlist.Length == 27, "Allowlist contains exactly 27 existing scene props (8 barrels + 8 crates + 8 storage boxes + 3 detail crates)");
 
                 // Execute conversion
                 var converted = FacilityKickablePropsSetup.ConvertExistingSceneProps();
 
                 Assert(converted != null, "ConvertExistingSceneProps returns non-null list");
-                Assert(converted.Count == 16, "All 16 allowlisted scene clutter props are converted", $"Count={converted.Count}");
+                Assert(converted.Count == 27, "All 27 allowlisted scene clutter props are converted", $"Count={converted.Count}");
 
-                // Barricade must NOT have KickablePhysicsProp
+                // Barricade and station must NOT have KickablePhysicsProp
                 Assert(mockBarricade.GetComponent<KickablePhysicsProp>() == null, "Barricade_Entrance is strictly excluded from kick conversion");
+                Assert(mockStation.GetComponent<KickablePhysicsProp>() == null, "Entrance health station is strictly excluded from kick conversion");
+
+                // Verify mockBand collider was disabled and parented to Room1_Crate_A
+                Assert(!bandCol.enabled, "Room1_Crate_A_Band collider is disabled to prevent raycast occlusion");
+                Assert(mockBand.transform.parent != null && mockBand.transform.parent.name == "Room1_Crate_A", "Room1_Crate_A_Band is parented to Room1_Crate_A");
 
                 int barrelCount = 0;
                 int crateCount = 0;
+                int boxCount = 0;
+                int detailCrateCount = 0;
 
                 foreach (var prop in converted)
                 {
@@ -557,6 +573,18 @@ namespace FacilityBreach.Editor
                         Assert(prop.LinearDamping <= 0.50f, $"Barrel {prop.name} linear damping is calibrated for rolling", $"Damping={prop.LinearDamping}");
                         Assert(prop.AngularDamping <= 0.25f, $"Barrel {prop.name} angular damping is calibrated for rolling", $"AngularDamping={prop.AngularDamping}");
                     }
+                    else if (prop.name.StartsWith("Box_"))
+                    {
+                        boxCount++;
+                        Assert(prop.MaterialType == PropMaterialType.Wood, $"Storage Box {prop.name} has Wood material");
+                        Assert(prop.LinearDamping >= 0.45f && prop.LinearDamping <= 0.55f, $"Storage Box {prop.name} linear damping calibrated for sliding", $"Damping={prop.LinearDamping}");
+                    }
+                    else if (prop.name.StartsWith("Room1_Crate"))
+                    {
+                        detailCrateCount++;
+                        Assert(prop.MaterialType == PropMaterialType.Wood, $"Detail Crate {prop.name} has Wood material");
+                        Assert(prop.LinearDamping >= 0.55f && prop.LinearDamping <= 0.70f, $"Detail Crate {prop.name} linear damping calibrated for solid mass", $"Damping={prop.LinearDamping}");
+                    }
                     else if (prop.name.StartsWith("Crate"))
                     {
                         crateCount++;
@@ -567,10 +595,12 @@ namespace FacilityBreach.Editor
 
                 Assert(barrelCount == 8, "Exactly 8 existing barrels converted", $"BarrelCount={barrelCount}");
                 Assert(crateCount == 8, "Exactly 8 existing crates converted", $"CrateCount={crateCount}");
+                Assert(boxCount == 8, "Exactly 8 existing storage boxes converted", $"BoxCount={boxCount}");
+                Assert(detailCrateCount == 3, "Exactly 3 existing detail crates converted", $"DetailCrateCount={detailCrateCount}");
 
                 // Idempotence check
                 var secondPass = FacilityKickablePropsSetup.ConvertExistingSceneProps();
-                Assert(secondPass.Count == 16, "Repeated conversion is idempotent (returns 16 without duplicates)", $"Count={secondPass.Count}");
+                Assert(secondPass.Count == 27, "Repeated conversion is idempotent (returns 27 without duplicates)", $"Count={secondPass.Count}");
             }
             finally
             {
@@ -578,6 +608,8 @@ namespace FacilityBreach.Editor
                 {
                     if (go != null) UnityEngine.Object.DestroyImmediate(go);
                 }
+                if (mockBand != null) UnityEngine.Object.DestroyImmediate(mockBand);
+                if (mockStation != null) UnityEngine.Object.DestroyImmediate(mockStation);
                 if (mockBarricade != null) UnityEngine.Object.DestroyImmediate(mockBarricade);
                 if (mockParent != null) UnityEngine.Object.DestroyImmediate(mockParent);
             }
@@ -590,8 +622,8 @@ namespace FacilityBreach.Editor
             int totalFacilityProps = authoredCount + convertedAllowlistCount;
 
             Assert(authoredCount == 13, "Authored prop definitions count is 13 (5 boxes, 3 crates, 5 barrels)", $"Authored={authoredCount}");
-            Assert(convertedAllowlistCount == 16, "Converted allowlist count is 16 (8 barrels, 8 crates)", $"Allowlist={convertedAllowlistCount}");
-            Assert(totalFacilityProps == 29, "Total facility kickable props contract is exactly 29 props (sensibly within 25-30 target)", $"Total={totalFacilityProps}");
+            Assert(convertedAllowlistCount == 27, "Converted allowlist count is 27 (8 barrels, 8 crates, 8 storage boxes, 3 detail crates)", $"Allowlist={convertedAllowlistCount}");
+            Assert(totalFacilityProps == 40, "Total facility kickable props contract is exactly 40 props across the facility", $"Total={totalFacilityProps}");
 
             // Verify kick travel distance impulse and damping calibration
             var kickControllerGo = new GameObject("Test_KickController_DistanceTuning");
