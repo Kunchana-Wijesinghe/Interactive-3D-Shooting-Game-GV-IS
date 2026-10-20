@@ -52,6 +52,7 @@ namespace FacilityBreach
         private float rattleDistanceAccumulator = 0f;
         private float nextRattleDistance = 0.28f;
         private float lastRattleTime = -10f;
+        private float rattleCooldownTimer = 0f;
         private int rattleVariantCounter = 0;
         private int totalRattlesEmitted = 0;
 
@@ -134,7 +135,7 @@ namespace FacilityBreach
             set => maxRollVolume = Mathf.Clamp01(value);
         }
 
-        public bool IsRollingAudioActive => currentRollVolume > 0.01f || (Time.time - lastRattleTime < 0.20f);
+        public bool IsRollingAudioActive => currentRollVolume > 0.01f;
         public float CurrentRollVolume => currentRollVolume;
         public AudioSource RollingAudioSource => rollingAudioSource;
         public bool IsContactActive
@@ -151,6 +152,7 @@ namespace FacilityBreach
         public void ResetRattleState()
         {
             rattleDistanceAccumulator = 0f;
+            rattleCooldownTimer = 0f;
             lastRattleTime = -10f;
             totalRattlesEmitted = 0;
         }
@@ -267,6 +269,11 @@ namespace FacilityBreach
             float targetVolume = 0f;
             float targetPitch = 1.0f;
 
+            if (rattleCooldownTimer > 0f)
+            {
+                rattleCooldownTimer -= dt;
+            }
+
             if (shouldRoll)
             {
                 // Speed normalization across active range (0.20 to maxRollSpeed 5.0m/s)
@@ -280,11 +287,10 @@ namespace FacilityBreach
                 float rollDistanceDelta = rollMetric * dt;
                 rattleDistanceAccumulator += rollDistanceDelta;
 
-                float now = Time.time;
-                if (rattleDistanceAccumulator >= nextRattleDistance && (now - lastRattleTime) >= minRattleCooldown)
+                if (rattleDistanceAccumulator >= nextRattleDistance && rattleCooldownTimer <= 0f)
                 {
                     // Avoid stacking rattle immediately on top of a hard collision impact
-                    if (now - lastImpactSoundTime >= 0.08f)
+                    if ((Time.time - lastImpactSoundTime) >= 0.08f)
                     {
                         EmitRollingRattle(speedNorm);
                     }
@@ -354,6 +360,7 @@ namespace FacilityBreach
 
             rollingAudioSource.PlayOneShot(rattleClip, rattleVolume);
             lastRattleTime = Time.time;
+            rattleCooldownTimer = minRattleCooldown;
         }
 
         private void OnDisable()

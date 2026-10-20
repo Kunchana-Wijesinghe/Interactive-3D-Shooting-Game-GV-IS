@@ -340,7 +340,7 @@ namespace FacilityBreach.Audio
                 samples[idx] = Mathf.Lerp(samples[idx], targetSample, smooth);
             }
 
-            NormalizeSamples(samples, 0.50f);
+            NormalizeSamples(samples, 0.84f);
             AudioClip clip = AudioClip.Create("Procedural_Rolling_Metal", totalSamples, 1, SampleRate, false);
             clip.SetData(samples, 0);
             return clip;
