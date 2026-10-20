@@ -194,11 +194,12 @@ namespace FacilityBreach.Audio
         }
 
         /// <summary>
-        /// Metallic Impact: Distinct metallic transient ping with inharmonic resonance (0.18s).
+        /// Metallic Impact: Crisp, resonant metallic clank transient with high-frequency attack slap and hollow body ring (0.20s).
+        /// Tuned to distinctly punch through the continuous barrel rolling rumble during wall and obstacle collisions.
         /// </summary>
         private static AudioClip SynthesizeImpactMetal()
         {
-            float duration = 0.18f;
+            float duration = 0.20f;
             int totalSamples = Mathf.CeilToInt(SampleRate * duration);
             float[] samples = new float[totalSamples];
             var rng = new System.Random(5775);
@@ -206,18 +207,22 @@ namespace FacilityBreach.Audio
             for (int i = 0; i < totalSamples; i++)
             {
                 float t = (float)i / SampleRate;
-                float envelope = Mathf.Exp(-19f * t);
-                float attack = Mathf.Clamp01(t / 0.001f);
+                float envelope = Mathf.Exp(-22f * t);
+                float attack = Mathf.Clamp01(t / 0.0012f);
 
-                float click = ((float)rng.NextDouble() * 2f - 1f) * 0.25f;
-                // Dual metallic frequencies: 540Hz and 820Hz for characteristic metal chime
-                float ring1 = Mathf.Sin(2f * Mathf.PI * 540f * t) * 0.45f;
-                float ring2 = Mathf.Sin(2f * Mathf.PI * 820f * t) * 0.30f;
+                // Sharp transient attack slap (fast-decaying broadband click)
+                float click = ((float)rng.NextDouble() * 2f - 1f) * Mathf.Exp(-60f * t) * 0.40f;
 
-                samples[i] = attack * envelope * (click + ring1 + ring2);
+                // Multi-harmonic metallic barrel resonance
+                float bodyTone = Mathf.Sin(2f * Mathf.PI * 220f * t) * 0.40f;    // 220Hz hollow drum body
+                float midRing = Mathf.Sin(2f * Mathf.PI * 520f * t) * 0.35f;     // 520Hz shell resonance
+                float highPing = Mathf.Sin(2f * Mathf.PI * 880f * t) * 0.25f;    // 880Hz rim chime
+                float inharmonic = Mathf.Sin(2f * Mathf.PI * 1350f * t) * 0.15f; // 1350Hz inharmonic ping
+
+                samples[i] = attack * envelope * (click + bodyTone + midRing + highPing + inharmonic);
             }
 
-            NormalizeSamples(samples, 0.86f);
+            NormalizeSamples(samples, 0.94f);
             AudioClip clip = AudioClip.Create("Procedural_Impact_Metal", totalSamples, 1, SampleRate, false);
             clip.SetData(samples, 0);
             return clip;

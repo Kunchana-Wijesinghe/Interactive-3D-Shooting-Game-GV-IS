@@ -20,7 +20,7 @@ namespace FacilityBreach
     {
         [Header("Material & Audio Profile")]
         [SerializeField] private PropMaterialType materialType = PropMaterialType.Wood;
-        [SerializeField] private float minImpactVelocity = 1.0f;
+        [SerializeField] private float minImpactVelocity = 0.8f;
         [SerializeField] private float impactCooldown = 0.15f;
         [SerializeField] private float maxNoiseRadius = 15.0f;
 
@@ -327,8 +327,11 @@ namespace FacilityBreach
 
             Vector3 contactPoint = collision.contactCount > 0 ? collision.GetContact(0).point : transform.position;
 
-            // Compute scaled volume (0.25 to 1.0) based on collision velocity
-            float volume = Mathf.Clamp01((speed - minImpactVelocity) / 6.0f + 0.30f);
+            // Compute scaled volume based on collision velocity and material type
+            // Metal clank impacts are boosted (0.55 - 1.00) to stand out clearly above the rolling rumble bed
+            float volume = materialType == PropMaterialType.Metal
+                ? Mathf.Clamp01((speed - minImpactVelocity) / 3.5f * 0.45f + 0.55f)
+                : Mathf.Clamp01((speed - minImpactVelocity) / 5.0f + 0.35f);
 
             FacilityAudioClipType clipType = materialType switch
             {
