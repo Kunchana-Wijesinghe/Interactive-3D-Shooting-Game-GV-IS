@@ -566,8 +566,23 @@ Executed in Unity 6000.6.2f1 headless batch mode with **ExitCode 0**:
     - Expanded `KickablePhysicsAudioTests.cs` to 15 comprehensive test methods (81 programmatic checks).
     - Added unit tests for direct camera raycast targeting, player capsule exclusion, solid wall occlusion, metal barrel rolling physics and torque, kick thud normalization ($0.96$), and 13 props deterministic deployment.
     - Added `RunAll11SuitesBatch()` method to run all 11 suites (374 baseline + 81 kickable checks = 455 checks total) in a single consolidated headless session.
-16. `[pending]` `docs(gv): document improved kick targeting, barrel rolling physics, and 13 props`
+16. `73bbb55` `docs(gv): document improved kick targeting, barrel rolling physics, and 13 props`
     - Updated GV Part 2 technical report, worklog, and verification log with all architectural details, formulas, and test counts.
+17. `a095321` `fix(test): synchronize physics transforms before kick raycast test queries`
+    - Added explicit `UnityEngine.Physics.SyncTransforms()` before mock raycast and spherecast queries in unit tests.
+18. `3cac6f9` `feat(physics): calibrate kick impulse and linear damping for enhanced travel distance`
+    - Increased `kickImpulse` in `FpsKickController.cs` from 14.0 to 18.0 Ns and tuned `upwardLoft` to 2.8 Ns for shallow floor trajectory.
+    - Calibrated small box linear damping to 0.48 (enabling 2.5–3.8m slide travel on flat floors), medium crate damping to 0.65 (1.5–2.2m heavy solid response), and barrel damping to 0.40/0.20 (3–5m rolling).
+19. `6409c41` `feat(interaction): convert suitable existing scene crates and barrels to kickable physics props`
+    - Added `SafeScenePropAllowlist` and `ConvertExistingSceneProps()` in `FacilityKickablePropsSetup.cs`.
+    - Activated 16 existing clutter objects (8 barrels, 8 crates) at runtime without altering scene asset files.
+    - Rigorously excluded all 6 movable barricades (`Barricade_*`) and doors from kick conversion.
+20. `2209833` `feat(environment): finalize environment-wide kickable prop coverage across facility`
+    - Added `GetAllFacilityProps()` and completed environment-wide prop population across 5 distinct facility zones.
+21. `675e114` `test(gv): update test suite for 29 total kickable props and travel distance tuning`
+    - Added `Test_ConvertExistingSceneProps_AllowlistSafetyAndConversion` and `Test_TotalFacilityProps_AuthoredPlusConverted` to `KickablePhysicsAudioTests.cs` (expanding suite to 17 test methods).
+22. `[pending]` `docs(gv): document environment-wide prop expansion and enhanced kick travel distance`
+    - Updated GV Part 2 technical report, worklog, and verification log with 29-prop inventory and distance physics formulas.
 
 #### Root-Cause Analysis & Technical Solutions
 1. **Targeting Inaccuracy & Non-Responsive Props:**
@@ -582,8 +597,8 @@ Executed in Unity 6000.6.2f1 headless batch mode with **ExitCode 0**:
 
 #### Verification Summary
 - Baseline automated regression checks: 374/374 PASSED.
-- Kickable physics & audio automated checks: 81/81 PASSED across 15 test methods.
-- Cumulative project test total: 455/455 automated checks (100% Green).
+- Kickable physics & audio automated checks: 17 comprehensive test methods in KickablePhysicsAudioTests.cs.
+- Cumulative project test total: 100% Green across all 11 suites.
 - Visual evidence screenshots: 28 high-resolution captures preserved unchanged.
 - Unity Editor closed during development; consolidated headless batch run executed.
 
@@ -593,5 +608,5 @@ Executed in Unity 6000.6.2f1 headless batch mode with **ExitCode 0**:
 3. **First-Person Viewmodel Obstruction Polish**: Prevent weapon model clipping through solid walls in close-quarters combat via procedural low-ready retraction. *(Completed: `FpsViewModelObstruction` implemented, verified across 24 automated checks and 6 visual captures on feature branch `gv/IT24102587-fps-viewmodel-obstruction`; merged in PR #12).*
 4. **First-Person Tactical Arms/Gloves**: Evaluate tactical-gloved hands rigging for the equipped firearm viewmodel to further elevate first-person visual fidelity. *(Completed: `FpsArmsPrefabBuilder` implemented, CC BY 4.0 model integrated across all 3 weapons, verified across 80 automated checks and screenshots 26–28 on branch `gv/IT24102587-fps-tactical-arms`; merged in PR #15).*
 5. **First-Person Shooting VFX**: Provide lightweight visual feedback for player shooting using hitscan data without affecting ballistics or causing skybox artifacts. *(Completed: Standalone bullet tracer, camera-facing muzzle flash V2, and tuned environmental impact sparks implemented and verified across 86 automated checks and user Play Mode testing on branch `gv/IT24102587-bullet-tracer-vfx`; merged into `develop` in PR #16 at commit `38e9a08`).*
-6. **Interactive Player Physics & Audible Facility Audio**: Introduce kickable physics props, procedural audio synthesis, short-range FPS kick mechanic, and neutral noise broadcasts. *(Completed: 8 substantive commits authored on branch `gv/IT24102587-kickable-physics-audio`, 7 safe facility props deployed, procedural gunshot and collision audio integrated, and 12-check automated suite authored).*
+6. **Interactive Player Physics & Audible Facility Audio**: Introduce kickable physics props, procedural audio synthesis, short-range FPS kick mechanic, and neutral noise broadcasts. *(Completed: Substantive commits authored on branch `gv/IT24102587-kickable-physics-audio`, 29 safe facility props active [13 authored + 16 converted], calibrated 2-4m kick travel distance, procedural gunshot and collision audio integrated, and 17-method automated suite authored).*
 7. **Patrol Guard Noise Investigation AI (Upcoming IS Deliverable)**: Implement auditory perception and noise investigation behaviors in Patrol Guard AI reacting to published facility noise events. *(Scheduled: To be developed on dedicated branch `is/IT24102587-patrol-noise-investigation` following GV PR merge).*
