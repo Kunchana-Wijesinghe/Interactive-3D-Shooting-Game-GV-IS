@@ -47,6 +47,8 @@ namespace FacilityBreach
         public FpsBulletTracer BulletTracer => bulletTracer;
         private FpsMuzzleFlashV2 muzzleFlash;
         public FpsMuzzleFlashV2 MuzzleFlash => muzzleFlash;
+        private FpsImpactSparks impactSparks;
+        public FpsImpactSparks ImpactSparks => impactSparks;
         private float reload, cadence;
         private bool waitForRelease = true, controls;
         private string feedback = "";
@@ -198,6 +200,8 @@ namespace FacilityBreach
             if (!muzzleFlash) muzzleFlash = gameObject.GetComponent<FpsMuzzleFlashV2>();
             if (!muzzleFlash) muzzleFlash = gameObject.AddComponent<FpsMuzzleFlashV2>();
             muzzleFlash.NotifyWeaponChanged(muzzle);
+            if (!impactSparks) impactSparks = gameObject.GetComponent<FpsImpactSparks>();
+            if (!impactSparks) impactSparks = gameObject.AddComponent<FpsImpactSparks>();
         }
         private GameObject Box(string label, Vector3 position, Vector3 scale, Color color)
         {
@@ -344,6 +348,8 @@ namespace FacilityBreach
                 GameplayDiagnostics.Trace($"shot camera={view.transform.position} muzzle={muzzle.position} dir={direction.normalized} collider={hit.collider.name} layer={hit.collider.gameObject.layer} receiver={damageable?.GetType().Name ?? "none"} applied={damaged} HP={before}->{(enemy ? enemy.CurrentHealth : -1)}", this);
                 Say(damaged ? enemy ? $"{enemy.Identity}: {enemy.CurrentHealth}/{enemy.MaximumHealth} HP{(enemy.IsDead ? " — INACTIVE" : "")}" : "HIT" : "Blocked: " + hit.collider.name);
                 if (bulletTracer) bulletTracer.SpawnTracer(muzzle, hit.point, true);
+                bool isEnvironment = damageable == null && enemy == null;
+                if (isEnvironment && impactSparks) impactSparks.SpawnSparks(hit.point, hit.normal);
             }
             else
             {
