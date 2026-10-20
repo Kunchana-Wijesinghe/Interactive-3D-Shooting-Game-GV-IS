@@ -6,8 +6,8 @@
 **Module:** SE3032 — Graphics and Visualization (GV)<br/>
 **Assigned Role:** Part 2: Systems Engineer (Player Interaction Physics, Collision Handling & Environment Mechanics)<br/>
 **Branch Verified (Merged Baseline):** `develop`<br/>
-**Integrated Merge Commits:** [`fd94efe`](https://github.com/Kunchana-Wijesinghe/Interactive-3D-Shooting-Game-GV-IS/commit/fd94efe6d97f0102a733be274bbb38cb7102806b) (PR #9) and [`4ac6a2f`](https://github.com/Kunchana-Wijesinghe/Interactive-3D-Shooting-Game-GV-IS/commit/4ac6a2f8d8311b1a0f88debc3c00bdb4b84c6e3f) (PR #11)<br/>
-**Current Working Feature Branch:** `gv/IT24102587-fps-viewmodel-obstruction` (branch based on `develop` commit `4ac6a2f`)<br/>
+**Integrated Merge Commits:** [`fd94efe`](https://github.com/Kunchana-Wijesinghe/Interactive-3D-Shooting-Game-GV-IS/commit/fd94efe6d97f0102a733be274bbb38cb7102806b) (PR #9), [`4ac6a2f`](https://github.com/Kunchana-Wijesinghe/Interactive-3D-Shooting-Game-GV-IS/commit/4ac6a2f8d8311b1a0f88debc3c00bdb4b84c6e3f) (PR #11), [`caa133e`](https://github.com/Kunchana-Wijesinghe/Interactive-3D-Shooting-Game-GV-IS/commit/caa133ee1b370c865ea80981ee9e63f99162127d) (PR #12), and [`b1b6745`](https://github.com/Kunchana-Wijesinghe/Interactive-3D-Shooting-Game-GV-IS/commit/b1b6745f4f626f4ffa5127a5e808fcbb8f11e95e) (PR #15)<br/>
+**Current Working Feature Branch:** `gv/IT24102587-bullet-tracer-vfx` (branch based on `develop` commit `b1b6745`)<br/>
 **Target Unity Version:** Unity 6000.6.2f1 (URP / 3D, C# .NET Standard 2.1)<br/>
 **Repository:** `Interactive-3D-Shooting-Game-GV-IS` (Private)
 
@@ -34,25 +34,29 @@ To ensure strict academic integrity and reproducible technical rigor, the verifi
    Automated Edit Mode test execution covering 43 interaction arbitration checks ([`FacilityInteractionDispatcherTests.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Editor/FacilityBreach/FacilityInteractionDispatcherTests.cs)) and 141 Patrol Guard AI regression checks, verifying zero regression or pathfinding obstruction failures.
 7. **Post-Merge FPS Viewmodel Obstruction Verification (2026-10-19)**:<br/>
    Manual gameplay testing and automated Edit Mode unit testing (24 checks in [`FpsViewModelObstructionTests.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Editor/FacilityBreach/FpsViewModelObstructionTests.cs)) on feature branch `gv/IT24102587-fps-viewmodel-obstruction`, verifying procedural weapon retraction and low-ready posing in close-quarters wall proximity, stance recovery, multi-weapon reach adaptation, crosshair shooting continuity, and door interaction compatibility.
+8. **Post-Merge Tactical Arms & Shooting VFX Verification (2026-10-20)**:<br/>
+   Manual gameplay testing across all 3 weapons and automated Edit Mode regression testing for tactical-gloved arms (80 checks in [`FpsArmsTests.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Editor/FacilityBreach/FpsArmsTests.cs)) and shooting visual effects (86 checks across [`FpsBulletTracerTests.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Editor/FacilityBreach/FpsBulletTracerTests.cs), [`FpsMuzzleFlashV2Tests.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Editor/FacilityBreach/FpsMuzzleFlashV2Tests.cs), and [`FpsImpactSparksTests.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Editor/FacilityBreach/FpsImpactSparksTests.cs)), validating zero point lights, transparent unlit shaders (`_ZWrite = 0`), hitscan decoupling, and zero skybox artifacts.
 
 ```mermaid
 graph TD
     subgraph Verification_Layers["GV Part 2 Verification Architecture"]
         L1["Layer 1: Historical Play Mode Testing<br/>(2026-10-04: 8 Isolated Test Cases)"]
-        L2["Layer 2: Visual Evidence Inspection<br/>(25 High-Res PNG Captures: 01-25)"]
-        L3["Layer 3: Source-Code & Physics Inspection<br/>(Kinematics, Rigidbody Tuning, Dispatcher, Obstruction)"]
+        L2["Layer 2: Visual Evidence Inspection<br/>(28 High-Res PNG Captures: 01-28)"]
+        L3["Layer 3: Source-Code & Physics Inspection<br/>(Kinematics, Rigidbody Tuning, Dispatcher, Obstruction, Arms, VFX)"]
         L4["Layer 4: Headless Batch Compilation<br/>(Unity 6000.6.2f1, Exit Code 0, 0 Errors)"]
         L5["Layer 5: Production Manual Gameplay<br/>(Main-Scene Checks in Prototype.unity)"]
         L6["Layer 6: Automated Regression Testing<br/>(184 Checks: 43 Dispatcher + 141 Patrol)"]
         L7["Layer 7: Post-Merge Viewmodel Obstruction<br/>(24 Checks: FpsViewModelObstructionTests)"]
+        L8["Layer 8: Tactical Arms & Shooting VFX<br/>(166 Checks: 80 Arms + 31 Tracer + 30 Flash + 25 Sparks)"]
     end
-    L1 --> MasterReport["Master Verification Verdict: ALL CHECKS PASSED (208/208 GREEN)"]
+    L1 --> MasterReport["Master Verification Verdict: ALL CHECKS PASSED (374/374 GREEN)"]
     L2 --> MasterReport
     L3 --> MasterReport
     L4 --> MasterReport
     L5 --> MasterReport
     L6 --> MasterReport
     L7 --> MasterReport
+    L8 --> MasterReport
 ```
 
 ---
@@ -70,6 +74,10 @@ The Systems Engineer (GV Part 2) scope covers environmental physics, collision s
 | **FPS Viewmodel Obstruction** | [`FpsViewModelObstruction.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/FpsViewModelObstruction.cs)<br/>[`FacilityBreachRuntime.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/FacilityBreachRuntime.cs) | [`Prototype.unity`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scenes/Prototype.unity)<br/>EditMode Suite | Close-quarters wall proximity detection (SphereCast), dynamic reach calibration from muzzle ($0.70\text{m} - 1.05\text{m}$), compressed low-ready retraction ($z \le 0.28\text{m}$, $y \le 0.16\text{m}$, pitch $\le 32^\circ$), obstacle filtering, camera near clip clearance ($0.05\text{m}$), shooting vector preservation. |
 | **Non-Destructibility** | [`MovableBarricade.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/MovableBarricade.cs) | All Scenes | Zero health points, zero damage receivers, permanent physical barrier behavior. |
 | **AI / Cross-Module** | [`DynamicNavigationObstacles.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/Core/DynamicNavigationObstacles.cs)<br/>[`PatrolGuardBrain.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/AI/Roles/PatrolGuardBrain.cs) | Script Inspection & EditMode Obstacle Tests | Dynamic NavMesh carving proxy creation, door acoustic state attenuation (`IsOpen`), 141 patrol guard regression checks. |
+| **FPS Tactical Arms** | [`FpsArmsPrefabBuilder.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Editor/FacilityBreach/FpsArmsPrefabBuilder.cs)<br/>[`FpsArmsTests.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Editor/FacilityBreach/FpsArmsTests.cs) | [`Prototype.unity`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scenes/Prototype.unity)<br/>EditMode Suite | Tactical-gloved hands rigging across all 3 weapons, physical socket alignment (`GripAttachment`, `SupportHand`), bladed stance, zero colliders/cameras, low-ready retraction response. |
+| **FPS Bullet Tracer** | [`FpsBulletTracer.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/FpsBulletTracer.cs)<br/>[`FpsBulletTracerTests.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Editor/FacilityBreach/FpsBulletTracerTests.cs) | [`Prototype.unity`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scenes/Prototype.unity)<br/>EditMode Suite | Standalone visual line tracer with 10-item pool, tapered streak, 0.040s alpha fade, zero lights/colliders, transparent unlit (`_ZWrite = 0`), zero skybox occlusion. |
+| **FPS Muzzle Flash V2** | [`FpsMuzzleFlashV2.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/FpsMuzzleFlashV2.cs)<br/>[`FpsMuzzleFlashV2Tests.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Editor/FacilityBreach/FpsMuzzleFlashV2Tests.cs) | [`Prototype.unity`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scenes/Prototype.unity)<br/>EditMode Suite | Camera-facing billboard quad anchored at weapon muzzle, 0.080m diameter quad, 65ms lifetime, zero lights/colliders, transparent unlit (`_ZWrite = 0`), zero skybox blowout. |
+| **Environmental Impact Sparks** | [`FpsImpactSparks.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/FpsImpactSparks.cs)<br/>[`FpsImpactSparksTests.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Editor/FacilityBreach/FpsImpactSparksTests.cs) | [`Prototype.unity`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scenes/Prototype.unity)<br/>EditMode Suite | Bounded 8-impact pool, 5 micro-streaks, 0.08–0.12m spread, 0.11s duration, static environment-only triggering (suppressed on enemy hits/misses), vertical normal robustness, zero lights/colliders. |
 
 > [!IMPORTANT]
 > **Academic Integrity Notice — Scope Limitations**:
@@ -361,6 +369,51 @@ cmd /c '"C:\Program Files\Unity\Hub\Editor\6000.6.2f1\Editor\Unity.exe" `
 | **`PatrolGuardSearchTests`** | Milestone 2.2A lost target search, corridor scanning, waypoint progression | 22 | **22 Passed, 0 Failed** | [`patrol-search-tests-passed.txt`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/patrol-search-tests-passed.txt) |
 | **Total Master Regression** | **Complete Facility Breach Automated Verification Suite** | **208** | **208 Passed, 0 Failed** | **100% Green / Zero Regressions** |
 
+### 6.5 Automated FPS Tactical Arms Regression Testing (288 Programmatic Checks)
+
+**Execution Date:** 2026-10-20<br/>
+**Working Branch:** `gv/IT24102587-fps-tactical-arms` (merged into `develop` in PR #15)<br/>
+**Execution Context:** Unity 6000.6.2f1 headless batch mode with `ExitCode: 0`.
+
+| Test Suite Class | Focus & Verification Domain | Checks | Result | Output Evidence Log |
+| :--- | :--- | :---: | :---: | :--- |
+| **`FpsArmsTests`** | PBR material setup, zero colliders/cameras, physical socket alignment across all 3 weapons, bladed stance, low-ready retraction response | 80 | **80 Passed, 0 Failed** | Batch Log Verification |
+| **`FpsViewModelObstructionTests`** | Procedural retraction bounds, low-ready pitch/yaw, nearClipPlane margin, multi-weapon reach adaptation, obstacle filters, weapon swap reset | 24 | **24 Passed, 0 Failed** | [`scratch/obstruction_tests.log`](file:///C:/Users/Kunchana%20Wijesinghe/.gemini/antigravity/brain/233253cf-39ec-4544-894f-e1d9d7a0da8c/scratch/obstruction_tests.log) |
+| **`FacilityInteractionDispatcherTests`** | Centralized interaction routing, held barricade priority, spatial scoring formula, single-action guarantee, range/angle limits | 43 | **43 Passed, 0 Failed** | [`interaction-tests-passed.txt`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/interaction-tests-passed.txt) |
+| **`PatrolGuardObstacleTests`** | Dynamic navigation obstacle carving, barricade corridor blocking, edge invalidation, dynamic detour replanning | 46 | **46 Passed, 0 Failed** | [`patrol-obstacle-tests-passed.txt`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/patrol-obstacle-tests-passed.txt) |
+| **`PatrolGuardAStarTests`** | A* search optimality, corridor heuristic admissibility, fallback graph search | 37 | **37 Passed, 0 Failed** | [`patrol-astar-tests-passed.txt`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/patrol-astar-tests-passed.txt) |
+| **`PatrolGuardReturnTests`** | Milestone 2.2B tactical retreat, patrol route resume, return node sequencing | 36 | **36 Passed, 0 Failed** | [`patrol-return-tests-passed.txt`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/patrol-return-tests-passed.txt) |
+| **`PatrolGuardSearchTests`** | Milestone 2.2A lost target search, corridor scanning, waypoint progression | 22 | **22 Passed, 0 Failed** | [`patrol-search-tests-passed.txt`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/patrol-search-tests-passed.txt) |
+| **Total Automated Regression** | **Combined Baseline & Tactical Arms Verification (7 Suites)** | **288** | **288 Passed, 0 Failed** | **100% Green / Zero Regressions** |
+
+### 6.6 Automated First-Person Shooting VFX Testing & Final Master Suite (374 Programmatic Checks)
+
+**Execution Date:** 2026-10-20<br/>
+**Working Branch:** `gv/IT24102587-bullet-tracer-vfx`<br/>
+**Execution Context:** Unity 6000.6.2f1 headless batch mode with `ExitCode: 0`.
+
+```powershell
+"C:\Program Files\Unity\Hub\Editor\6000.6.2f1\Editor\Unity.exe" `
+  -batchmode -quit `
+  -projectPath "C:\Users\Kunchana Wijesinghe\Pictures\GV,IS\FacilityBreach" `
+  -executeMethod FacilityBreach.Editor.FpsImpactSparksTests.RunAll10SuitesBatch `
+  -logFile "<scratch>\all_10_suites.log"
+```
+
+| Test Suite Class | Focus & Verification Domain | Checks | Result | Output Evidence Log |
+| :--- | :--- | :---: | :---: | :--- |
+| **`FpsArmsTests`** | PBR material setup, zero colliders/cameras, physical socket alignment across all 3 weapons, bladed stance, low-ready retraction response | 80 | **80 Passed, 0 Failed** | Batch Log Verification |
+| **`FpsViewModelObstructionTests`** | Procedural retraction bounds, low-ready pitch/yaw, nearClipPlane margin, multi-weapon reach adaptation, obstacle filters, weapon swap reset | 24 | **24 Passed, 0 Failed** | [`scratch/obstruction_tests.log`](file:///C:/Users/Kunchana%20Wijesinghe/.gemini/antigravity/brain/233253cf-39ec-4544-894f-e1d9d7a0da8c/scratch/obstruction_tests.log) |
+| **`FacilityInteractionDispatcherTests`** | Centralized interaction routing, held barricade priority, spatial scoring formula, single-action guarantee, range/angle limits | 43 | **43 Passed, 0 Failed** | [`interaction-tests-passed.txt`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/interaction-tests-passed.txt) |
+| **`PatrolGuardObstacleTests`** | Dynamic navigation obstacle carving, barricade corridor blocking, edge invalidation, dynamic detour replanning | 46 | **46 Passed, 0 Failed** | [`patrol-obstacle-tests-passed.txt`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/patrol-obstacle-tests-passed.txt) |
+| **`PatrolGuardAStarTests`** | A* search optimality, corridor heuristic admissibility, fallback graph search | 37 | **37 Passed, 0 Failed** | [`patrol-astar-tests-passed.txt`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/patrol-astar-tests-passed.txt) |
+| **`PatrolGuardReturnTests`** | Milestone 2.2B tactical retreat, patrol route resume, return node sequencing | 36 | **36 Passed, 0 Failed** | [`patrol-return-tests-passed.txt`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/patrol-return-tests-passed.txt) |
+| **`PatrolGuardSearchTests`** | Milestone 2.2A lost target search, corridor scanning, waypoint progression | 22 | **22 Passed, 0 Failed** | [`patrol-search-tests-passed.txt`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/patrol-search-tests-passed.txt) |
+| **`FpsBulletTracerTests`** | Standalone bullet tracer pooling (10 items), zero lights/colliders, hitscan start/endpoint trajectory, clean lifetime expiry | 31 | **31 Passed, 0 Failed** | Batch Log Verification |
+| **`FpsMuzzleFlashV2Tests`** | Safe camera-facing muzzle flash, zero point lights, transparent unlit shader (`_ZWrite = 0`), muzzle anchoring, 65ms timer deactivation | 30 | **30 Passed, 0 Failed** | Batch Log Verification |
+| **`FpsImpactSparksTests`** | Environmental micro-sparks pooling (8 items), static environment-only triggering (suppressed on enemy hits/misses), vertical floor/ceiling normal robustness, zero lights/colliders, transparent unlit (`_ZWrite = 0`), 0.11s deactivation | 25 | **25 Passed, 0 Failed** | Batch Log Verification |
+| **Total Master Regression** | **Complete Facility Breach Automated Suite (10 Suites)** | **374** | **374 Passed, 0 Failed** | **100% Green / Zero Regressions** |
+
 ---
 
 ## 7. GitHub Integration & Commit Lineage Evidence
@@ -377,21 +430,27 @@ Individual PR contributions for Student ID `IT24102587` are cleanly merged and s
 - **PR #11 (GV Part 2 Systems Engineer Main-Scene Integration)**:
   - Branch: `gv/IT24102587-main-barricade-interaction`
   - Merged into `develop` at commit: [`4ac6a2f`](https://github.com/Kunchana-Wijesinghe/Interactive-3D-Shooting-Game-GV-IS/commit/4ac6a2f8d8311b1a0f88debc3c00bdb4b84c6e3f)
-- **Active Post-Merge Feature Branch (FPS Viewmodel Obstruction)**:
-  - Branch: `gv/IT24102587-fps-viewmodel-obstruction` (branch based on `develop` commit `4ac6a2f`)
-- **Active Post-Merge Feature Branch (FPS Tactical Arms)**:
-  - Branch: `gv/IT24102587-fps-tactical-arms` (branch based on `develop` commit `caa133e`)
+- **PR #12 (GV FPS Viewmodel Obstruction)**:
+  - Branch: `gv/IT24102587-fps-viewmodel-obstruction`
+  - Merged into `develop` at commit: [`caa133e`](https://github.com/Kunchana-Wijesinghe/Interactive-3D-Shooting-Game-GV-IS/commit/caa133ee1b370c865ea80981ee9e63f99162127d)
+- **PR #15 (GV First-Person Tactical Arms)**:
+  - Branch: `gv/IT24102587-fps-tactical-arms`
+  - Merged into `develop` at commit: [`b1b6745`](https://github.com/Kunchana-Wijesinghe/Interactive-3D-Shooting-Game-GV-IS/commit/b1b6745f4f626f4ffa5127a5e808fcbb8f11e95e)
+- **Active Post-Merge Feature Branch (First-Person Shooting VFX)**:
+  - Branch: `gv/IT24102587-bullet-tracer-vfx` (branch based on `develop` commit `b1b6745`)
 
 ### 7.2 Commit Ancestry Verification
 ```powershell
 git merge-base --is-ancestor 929b664 origin/develop  # GV Part 2 Tip (PR #9) -> True
 git merge-base --is-ancestor e0e319e origin/develop  # IS Patrol Tip (PR #8) -> True
 git merge-base --is-ancestor c9a0343 origin/develop  # GV Main-Scene Tip (PR #11) -> True
-git rev-parse develop                                # caa133ee1b370c865ea80981ee9e63f99162127d
-git rev-parse origin/develop                         # caa133ee1b370c865ea80981ee9e63f99162127d
+git merge-base --is-ancestor e650d9a origin/develop  # GV Obstruction Tip (PR #12) -> True
+git merge-base --is-ancestor d83a48e origin/develop  # GV Tactical Arms Tip (PR #15) -> True
+git rev-parse develop                                # b1b6745f4f626f4ffa5127a5e808fcbb8f11e95e
+git rev-parse origin/develop                         # b1b6745f4f626f4ffa5127a5e808fcbb8f11e95e
 ```
 
-All three feature branches are verified direct ancestors of `origin/develop`, and local `develop` is fast-forward synchronized with 0 ahead and 0 behind.
+All five merged feature branches are verified direct ancestors of `origin/develop`, and local `develop` is fast-forward synchronized with 0 ahead and 0 behind.
 
 ---
 
@@ -446,6 +505,8 @@ All twenty-eight visual captures supporting the GV Part 2 verification reside in
    Captures (20–25) and procedural viewmodel obstruction component ([`FpsViewModelObstruction.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/FpsViewModelObstruction.cs)) belong to feature branch `gv/IT24102587-fps-viewmodel-obstruction`. They represent an optional visual polish feature merged in PR #12. Static screenshots demonstrate instantaneous captured weapon poses and HUD text, not continuous interpolation motion, physical collision resistance, or hitscan bullet trajectory.
 6. **Post-Merge Tactical Arms Scope & Screenshot Disclosure**:<br/>
    Captures 26–28 and the tactical arms builder/test suite ([`FpsArmsPrefabBuilder.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Editor/FacilityBreach/FpsArmsPrefabBuilder.cs), [`FpsArmsTests.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Editor/FacilityBreach/FpsArmsTests.cs)) belong to feature branch `gv/IT24102587-fps-tactical-arms`. They represent a supplementary visual enhancement adding tactical-gloved hands to weapon viewmodels without altering underlying gameplay, player movement, or combat ballistics. Static screenshots 26–28 demonstrate the user-approved static weapon framing and holding pose in Unity Play Mode; they do not claim continuous skeletal animation playback or weapon-switch interpolation.
+7. **Post-Merge First-Person Shooting VFX Scope & Verification Disclosure**:<br/>
+   The standalone bullet tracer ([`FpsBulletTracer.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/FpsBulletTracer.cs)), camera-facing muzzle flash V2 ([`FpsMuzzleFlashV2.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/FpsMuzzleFlashV2.cs)), and environmental impact sparks ([`FpsImpactSparks.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/FpsImpactSparks.cs)) belong to feature branch `gv/IT24102587-bullet-tracer-vfx`. They represent an isolated visual feedback enhancement operating strictly on hitscan raycast data. Dynamic point lights are strictly eliminated, materials use transparent unlit rendering (`_ZWrite = 0`) with standard alpha blending, and environmental sparks trigger exclusively on static geometry, completely preventing skybox or background discoloration artifacts. In accordance with user direction, no additional screenshots (29–31) were requested, captured, or fabricated; visual correctness was manually confirmed in Unity Play Mode alongside 86 new automated unit checks (374 checks total).
 
 ---
 
@@ -456,9 +517,10 @@ The Graphics and Visualization (GV) — Part 2 Systems Engineer deliverables for
 - **14/14 Production Gameplay Test Cases**: Evaluated and confirmed in Unity Play Mode on 2026-10-18 in `Prototype.unity` (7 core interaction mechanics + 7 facility mission progression phases).
 - **5/5 Post-Merge Weapon Obstruction Manual Gameplay Test Cases**: Evaluated and confirmed in Unity Play Mode on 2026-10-19 in `Prototype.unity`.
 - **4/4 Post-Merge Tactical Arms Manual Gameplay Test Cases**: Evaluated and confirmed in Unity Play Mode on 2026-10-20 in `Prototype.unity` (approved baseline framing, two-handed grip alignment, crosshair clearance, low-ready retraction response).
-- **288/288 Automated Regression Checks**: Confirmed via Unity Edit Mode batch runs (80 tactical arms tests + 24 viewmodel obstruction tests + 43 interaction arbitration tests + 141 patrol guard AI tests), 100% passing.
-- **28/28 Evidence Screenshots**: Tracked and verified on disk in `docs/individual/evidence/IT24102587 GV evidence/` (7 historical test arena captures + 12 production facility Play Mode captures + 6 obstruction captures + 3 tactical arms captures).
-- **Zero C# Compilation Errors**: Confirmed via Unity 6000.6.2f1 headless batch mode on `develop` (`caa133e`) and `gv/IT24102587-fps-tactical-arms`.
-- **Clean GitHub Integration**: PR #8 (IS), PR #9 (GV), PR #11 (GV Main-Scene), and PR #12 (GV FPS Obstruction) are merged into `develop` (`caa133e`), with post-merge tactical arms ready on `gv/IT24102587-fps-tactical-arms`.
+- **3/3 Post-Merge Shooting VFX Manual Gameplay Test Cases**: Evaluated and confirmed in Unity Play Mode on 2026-10-20 in `Prototype.unity` (approved bullet tracer streak, muzzle flash V2 with zero sky discoloration, tuned environmental impact sparks with environment-only filtering).
+- **374/374 Automated Regression Checks**: Confirmed via Unity Edit Mode batch runs (80 tactical arms tests + 24 viewmodel obstruction tests + 43 interaction arbitration tests + 141 patrol guard AI tests + 31 bullet tracer tests + 30 muzzle flash V2 tests + 25 impact sparks tests), 100% passing across all 10 suites.
+- **28/28 Evidence Screenshots**: Tracked and verified on disk in `docs/individual/evidence/IT24102587 GV evidence/` (7 historical test arena captures + 12 production facility Play Mode captures + 6 obstruction captures + 3 tactical arms captures; inventory preserved unchanged).
+- **Zero C# Compilation Errors**: Confirmed via Unity 6000.6.2f1 headless batch mode on `develop` (`b1b6745`) and `gv/IT24102587-bullet-tracer-vfx`.
+- **Clean GitHub Integration**: PR #8 (IS), PR #9 (GV), PR #11 (GV Main-Scene), PR #12 (GV FPS Obstruction), and PR #15 (GV Tactical Arms) are merged into `develop` (`b1b6745`), with Shooting VFX finalized locally on `gv/IT24102587-bullet-tracer-vfx`.
 
 **Final Status: VERIFIED & READY FOR SUBMISSION**
