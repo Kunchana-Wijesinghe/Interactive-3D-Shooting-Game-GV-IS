@@ -601,8 +601,8 @@ To ensure that the procedural viewmodel obstruction, tactical arms, and shooting
 | **`PatrolGuardAStarTests`** | A* search optimality, corridor heuristic admissibility, fallback graph search | 37 | **37 Passed, 0 Failed** | [`patrol-astar-tests-passed.txt`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/patrol-astar-tests-passed.txt) |
 | **`PatrolGuardReturnTests`** | Milestone 2.2B tactical retreat, patrol route resume, return node sequencing | 36 | **36 Passed, 0 Failed** | [`patrol-return-tests-passed.txt`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/patrol-return-tests-passed.txt) |
 | **`PatrolGuardSearchTests`** | Milestone 2.2A lost target search, corridor scanning, waypoint progression | 22 | **22 Passed, 0 Failed** | [`patrol-search-tests-passed.txt`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/patrol-search-tests-passed.txt) |
-| **`FpsBulletTracerTests`** | Standalone bullet tracer pooling (12 items), zero lights/colliders, hitscan start/endpoint trajectory, clean lifetime expiry | 31 | **31 Passed, 0 Failed** | Batch Log Verification |
-| **`FpsMuzzleFlashV2Tests`** | Safe camera-facing muzzle flash, zero point lights, transparent unlit shader (`_ZWrite = 0`), muzzle anchoring, 30ms timer deactivation | 30 | **30 Passed, 0 Failed** | Batch Log Verification |
+| **`FpsBulletTracerTests`** | Standalone bullet tracer pooling (10 items), zero lights/colliders, hitscan start/endpoint trajectory, clean lifetime expiry | 31 | **31 Passed, 0 Failed** | Batch Log Verification |
+| **`FpsMuzzleFlashV2Tests`** | Safe camera-facing muzzle flash, zero point lights, transparent unlit shader (`_ZWrite = 0`), muzzle anchoring, 65ms timer deactivation | 30 | **30 Passed, 0 Failed** | Batch Log Verification |
 | **`FpsImpactSparksTests`** | Environmental micro-sparks pooling (8 items), static environment-only triggering (suppressed on enemy hits/misses), vertical floor/ceiling normal robustness, zero lights/colliders, transparent unlit (`_ZWrite = 0`), 0.11s deactivation | 25 | **25 Passed, 0 Failed** | Batch Log Verification |
 | **Total Master Regression** | **Complete Facility Breach Automated Suite (10 Suites)** | **374** | **374 Passed, 0 Failed** | **100% Green / Zero Regressions** |
 
@@ -847,9 +847,9 @@ In the merged baseline, shooting was instantaneous hitscan: raycasts computed we
   3. [`FpsImpactSparks.SpawnSparks()`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/FpsImpactSparks.cs)
 
 ### 13.2 Standalone Bullet Tracer (`FpsBulletTracer`)
-- **Bounded Pool**: Manages a pre-instantiated ring buffer of 12 `LineRenderer` instances parented under an isolated root GameObject (`[VFX_BulletTracerPool]`), completely eliminating runtime GC allocations during continuous firing.
-- **Trajectory Representation**: Extends from the authored weapon muzzle position to the hitscan impact point (or $40.0\text{m}$ along the camera forward vector on misses).
-- **Line Width & Color Gradient**: Tapered geometry ($0.025\text{m}$ start width, $0.008\text{m}$ end width) with a luminous yellow-white core (`#FFF2A8` $\rightarrow$ `#FF9900`) and smooth alpha decay over $0.08\text{s}$.
+- **Bounded Pool**: Manages a pre-instantiated ring buffer of 10 `LineRenderer` instances parented under an isolated root GameObject (`[VFX_BulletTracerPool]`), completely eliminating runtime GC allocations during continuous firing.
+- **Trajectory Representation**: Extends from the authored weapon muzzle position to the hitscan impact point (or $35.0\text{m}$ along the camera forward vector on misses).
+- **Line Width & Color Gradient**: Tapered geometry ($0.015\text{m}$ start width, $0.008\text{m}$ end width) with a luminous yellow-white core (`#FFF2A8` $\rightarrow$ `#FF9900`) and smooth alpha decay over $0.040\text{s}$.
 - **Rendering Safety**: Uses `Unlit/Transparent` with `_ZWrite = 0` to prevent depth-buffer occlusion artifacts against the facility skybox.
 - **Automated Verification**: Verified across 31 automated Edit Mode unit checks ([`FpsBulletTracerTests.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Editor/FacilityBreach/FpsBulletTracerTests.cs)).
 
@@ -859,8 +859,8 @@ In the merged baseline, shooting was instantaneous hitscan: raycasts computed we
   - Replaced point lights and complex meshes with a single camera-aligned billboard quad anchored directly at the weapon muzzle in camera local space.
   - Strictly **zero `Light` components** and **zero `Collider` components**.
   - Transparent unlit material (`_ZWrite = 0`, standard `SrcAlpha` / `OneMinusSrcAlpha` blending) with zero HDR emission keywords, completely preventing skybox blowout.
-  - Procedural micro-jitter: subtle random scale variation ($0.12\text{m} - 0.16\text{m}$) and roll rotation ($\pm 35^\circ$) per shot for organic combustion variation.
-  - Snappy $0.030\text{s}$ lifetime timer, deactivating cleanly without lingering.
+  - Procedural micro-jitter: calibrated billboard diameter ($0.080\text{m}$) with random roll rotation ($\pm 35^\circ$) per shot for organic combustion variation.
+  - Snappy $0.065\text{s}$ lifetime timer, deactivating cleanly without lingering.
 - **Automated Verification**: Verified across 30 automated Edit Mode unit checks ([`FpsMuzzleFlashV2Tests.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Editor/FacilityBreach/FpsMuzzleFlashV2Tests.cs)).
 
 ### 13.4 Environmental Impact Sparks (`FpsImpactSparks`)

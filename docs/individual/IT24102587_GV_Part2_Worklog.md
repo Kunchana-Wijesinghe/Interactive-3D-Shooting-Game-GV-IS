@@ -418,14 +418,14 @@ Located in [`docs/individual/evidence/IT24102587 GV evidence/`](evidence/IT24102
 
 #### Subsystem Mechanics & Configuration
 - **Standalone Bullet Tracer (`FpsBulletTracer.cs`)**:
-  - Pool capacity: 12 pre-allocated `LineRenderer` instances.
-  - Tapered streak geometry ($0.025\text{m}$ start width, $0.008\text{m}$ end width).
-  - Trajectory spans from weapon muzzle to hit point (or $40.0\text{m}$ along camera aim on misses).
-  - Fades smoothly over $0.08\text{s}$ via alpha key decay (`#FFF2A8` $\rightarrow$ `#FF9900`).
+  - Pool capacity: 10 pre-allocated `LineRenderer` instances.
+  - Tapered streak geometry ($0.015\text{m}$ start width, $0.008\text{m}$ end width).
+  - Trajectory spans from weapon muzzle to hit point (or $35.0\text{m}$ along camera aim on misses).
+  - Fades smoothly over $0.040\text{s}$ via alpha key decay (`#FFF2A8` $\rightarrow$ `#FF9900`).
 - **Camera-Facing Muzzle Flash V2 (`FpsMuzzleFlashV2.cs`)**:
   - Solves earlier sky discoloration artifact by using a single camera-aligned quad anchored directly at the weapon muzzle in camera local space.
-  - Scale variation ($0.12\text{m} - 0.16\text{m}$) and random roll rotation ($\pm 35^\circ$) per shot.
-  - Snappy $0.030\text{s}$ duration ensures crisp visual combustion without lingering across subsequent frames.
+  - Calibrated billboard diameter ($0.080\text{m}$) with random roll rotation ($\pm 35^\circ$) per shot.
+  - Snappy $0.065\text{s}$ duration ensures crisp visual combustion without lingering across subsequent frames.
 - **Environmental Impact Sparks (`FpsImpactSparks.cs`)**:
   - Pool capacity: 8 impact objects, each with 5 micro-streak `LineRenderer` instances.
   - User-approved tuned parameters: 5 streaks, length $\approx 0.08\text{m} - 0.12\text{m}$, width $0.012\text{m}$ start to $0.005\text{m}$ end, lifetime $0.11\text{s}$.
