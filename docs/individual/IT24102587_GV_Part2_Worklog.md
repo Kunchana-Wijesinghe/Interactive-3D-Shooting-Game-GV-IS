@@ -672,12 +672,12 @@ Executed in Unity 6000.6.2f1 headless batch mode with **ExitCode 0**:
      - **STRICT INVARIANT: Pure player immersion audio. ZERO calls to `FacilityNoiseHub` or `SoundEventBus`. AI patrol guards and noise-detection systems have 0 awareness of ambience (0 noise events / 0 score impact).**
 
 #### Verification Summary
-- Baseline automated regression checks: 374/374 PASSED.
-- Kickable physics & audio automated checks: Expanded across 26 comprehensive test methods in KickablePhysicsAudioTests.cs (covering organic rolling textures, dynamic speed curves, metallic collision transients, facility ambience synthesis, player lifecycle, and zero AI noise emission invariant).
-- Cumulative project test total: 100% Green across all 11 suites, ExitCode 0.
+- Baseline automated regression checks: 374/374 PASSED across 10 baseline suites.
+- Kickable physics & audio automated checks: 407/407 PASSED across 26 comprehensive test methods in KickablePhysicsAudioTests.cs (covering organic rolling textures, dynamic speed curves, metallic collision transients, facility ambience synthesis, player lifecycle, and zero AI noise emission invariant).
+- Cumulative project test total: 781/781 checks PASSED (100% Green across all 11 suites, ExitCode 0).
 - Total active kickable props: 40 props (13 authored + 27 converted scene props).
 - Visual evidence screenshots: 28 high-resolution captures preserved unchanged.
-- Unity Editor closed during development; consolidated headless batch run executed.
+- Unity Editor closed during development; consolidated headless batch run executed with ExitCode 0.
 
 ## 3. Future Roadmap (GV Part 2)
 1. **AI Navigation Carving**: Attach `NavMeshObstacle` components with runtime carving to doors and movable barricades to dynamically reshape NavMesh pathways when objects are opened, closed, or maneuvered to block pathways. *(Completed: Integrated via `DynamicNavigationObstacles.cs` and verified by 141 Patrol Guard regression checks).*

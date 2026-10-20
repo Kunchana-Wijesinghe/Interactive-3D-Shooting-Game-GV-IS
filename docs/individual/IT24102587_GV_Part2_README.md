@@ -1065,7 +1065,7 @@ To provide robust, zero-dependency audio feedback without missing asset GUIDs, b
   - 26 comprehensive automated test methods covering all interaction, prop dynamics, audio synthesis, continuous rolling audio, impact transients, facility ambience, projectile sounds, and isolation contracts:
   - Validates procedural synthesis (10 clip types), gunshot profiles, kick thud normalization ($0.96$), rolling metal seamless loop continuity, facility ambience loop continuity and safe peak ($0.40$), projectile launch/impact distinct waveforms, voice pooling, ambience player lifecycle and single instance, zero noise event emission invariant, noise hub emission, barrel rolling physics and torque, damping, kick impulses, precision aim resolution and player collider exclusion, thirteen props placement, 27 allowlisted scene clutter conversions, movable barricade and resource station exclusion, 40 total facility props contract, rolling audio lifecycle and velocity modulation, dynamic speed-to-volume and speed-to-pitch curves, collision impact transient volume boost over rolling bed, projectile audio playback, teammate isolation, and VFX/arms integration.
 - **Verification Summary:**
-  - Baseline checks: 374/374 passed.
-  - Kickable physics and audio checks: Expanded across 26 comprehensive test methods in KickablePhysicsAudioTests.cs.
-  - Master Regression Total: 100% green batch verification across all 11 suites with ExitCode 0.
+  - Baseline checks: 374/374 passed across 10 baseline suites.
+  - Kickable physics and audio checks: 407/407 passed across 26 comprehensive test methods in KickablePhysicsAudioTests.cs.
+  - Master Regression Total: 781/781 automated checks (374 baseline + 407 kickable physics & audio, 100% green batch verification across all 11 suites with ExitCode 0).
   - Historical evidence: 28 high-resolution screenshots preserved intact.
