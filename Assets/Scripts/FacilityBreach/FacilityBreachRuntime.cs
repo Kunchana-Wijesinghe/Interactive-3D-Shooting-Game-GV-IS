@@ -43,6 +43,8 @@ namespace FacilityBreach
         private Transform muzzle;
         private ResourceStation device;
         private ResourceStation target;
+        private FpsBulletTracer bulletTracer;
+        public FpsBulletTracer BulletTracer => bulletTracer;
         private float reload, cadence;
         private bool waitForRelease = true, controls;
         private string feedback = "";
@@ -188,6 +190,9 @@ namespace FacilityBreach
             var obstruction = view.GetComponent<FpsViewModelObstruction>();
             if (!obstruction) obstruction = view.gameObject.AddComponent<FpsViewModelObstruction>();
             obstruction.Initialize(view, player ? player.transform : null, equippedVisual.transform, muzzle);
+            if (!bulletTracer) bulletTracer = gameObject.GetComponent<FpsBulletTracer>();
+            if (!bulletTracer) bulletTracer = gameObject.AddComponent<FpsBulletTracer>();
+            bulletTracer.NotifyWeaponChanged(muzzle);
         }
         private GameObject Box(string label, Vector3 position, Vector3 scale, Color color)
         {
@@ -324,7 +329,8 @@ namespace FacilityBreach
             // First check the camera-to-muzzle segment so that cover cannot be skipped.
             Vector3 muzzleOffset = muzzle.position - view.transform.position;
             bool obstructed = NearestHit(view.transform.position, muzzleOffset.normalized, muzzleOffset.magnitude, out var hit);
-            if (obstructed || NearestHit(muzzle.position, direction.normalized, Mathf.Min(ShotRange, direction.magnitude + .01f), out hit))
+            bool hitFound = obstructed || NearestHit(muzzle.position, direction.normalized, Mathf.Min(ShotRange, direction.magnitude + .01f), out hit);
+            if (hitFound)
             {
                 LastShotCollider = hit.collider;
                 var damageable = hit.collider.GetComponentInParent<IDamageable>();
@@ -332,8 +338,13 @@ namespace FacilityBreach
                 bool damaged = damageable != null && damageable.TakeDamage(new DamageInfo(Resources.Damage[Resources.Equipped], hit.point, direction.normalized, player.gameObject));
                 GameplayDiagnostics.Trace($"shot camera={view.transform.position} muzzle={muzzle.position} dir={direction.normalized} collider={hit.collider.name} layer={hit.collider.gameObject.layer} receiver={damageable?.GetType().Name ?? "none"} applied={damaged} HP={before}->{(enemy ? enemy.CurrentHealth : -1)}", this);
                 Say(damaged ? enemy ? $"{enemy.Identity}: {enemy.CurrentHealth}/{enemy.MaximumHealth} HP{(enemy.IsDead ? " — INACTIVE" : "")}" : "HIT" : "Blocked: " + hit.collider.name);
+                if (bulletTracer) bulletTracer.SpawnTracer(muzzle, hit.point, true);
             }
-            else GameplayDiagnostics.Trace($"shot miss camera={view.transform.position} muzzle={muzzle.position} dir={direction.normalized}", this);
+            else
+            {
+                GameplayDiagnostics.Trace($"shot miss camera={view.transform.position} muzzle={muzzle.position} dir={direction.normalized}", this);
+                if (bulletTracer) bulletTracer.SpawnTracer(muzzle, aim, false);
+            }
             SoundEventBus.Emit(player.transform.position, 40, SoundCategory.Gunshot, player.GetEntityId().GetHashCode());
             return true;
         }
