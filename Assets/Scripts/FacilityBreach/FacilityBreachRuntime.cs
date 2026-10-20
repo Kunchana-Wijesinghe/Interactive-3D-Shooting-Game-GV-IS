@@ -392,6 +392,7 @@ namespace FacilityBreach
             var body = obj.AddComponent<Rigidbody>(); body.linearVelocity = view.transform.forward * 8 + Vector3.up * 2;
             Physics.IgnoreCollision(obj.GetComponent<Collider>(), player.GetComponent<Collider>());
             obj.AddComponent<CanImpact>();
+            FacilityAudioPlayer.Instance.PlayProjectileLaunch(view.transform.position);
         }
         public void Say(string message) { feedback = message; feedbackTime = 2; }
         public void CancelEnemyAttacks()
