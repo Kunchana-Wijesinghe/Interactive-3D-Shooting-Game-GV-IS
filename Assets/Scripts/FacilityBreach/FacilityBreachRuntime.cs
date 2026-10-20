@@ -58,6 +58,8 @@ namespace FacilityBreach
         public FacilityAmbiencePlayer AmbiencePlayer => ambiencePlayer;
         private FpsKickController kickController;
         public FpsKickController KickController => kickController;
+        private FpsFootstepController footstepController;
+        public FpsFootstepController FootstepController => footstepController;
         private float reload, cadence;
         private bool waitForRelease = true, controls;
         private string feedback = "";
@@ -87,6 +89,7 @@ namespace FacilityBreach
             player = root.AddComponent<TemporaryPlayerAdapter>(); player.View = view;
             root.AddComponent<PlayerDamageAdapter>().Runtime = this;
             kickController = root.AddComponent<FpsKickController>(); kickController.Initialize(this, view);
+            footstepController = root.AddComponent<FpsFootstepController>(); footstepController.Initialize(this, body, player);
             view.transform.SetParent(root.transform); view.transform.localPosition = Vector3.up * 1.6f; view.transform.localRotation = Quaternion.identity;
             var muzzleObject = new GameObject("FB_Muzzle_VisualPending"); muzzleObject.transform.SetParent(view.transform);
             muzzleObject.transform.localPosition = new Vector3(.2f, -.15f, .45f); muzzle = muzzleObject.transform;
