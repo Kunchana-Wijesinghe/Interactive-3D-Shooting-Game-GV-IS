@@ -31,6 +31,7 @@ namespace FacilityBreach
 
         [Header("Rolling Audio (Metal Barrels)")]
         [SerializeField] private float minRollSpeed = 0.35f;
+        [SerializeField] private float stopRollSpeed = 0.18f;
         [SerializeField] private float maxRollSpeed = 5.0f;
         [SerializeField] private float maxRollVolume = 0.85f;
         [SerializeField] private float rollFadeSpeed = 4.0f;
@@ -110,6 +111,12 @@ namespace FacilityBreach
             set => minRollSpeed = Mathf.Max(0.05f, value);
         }
 
+        public float StopRollSpeed
+        {
+            get => stopRollSpeed;
+            set => stopRollSpeed = Mathf.Max(0.02f, value);
+        }
+
         public float MaxRollVolume
         {
             get => maxRollVolume;
@@ -184,8 +191,10 @@ namespace FacilityBreach
             rollingAudioSource.playOnAwake = false;
             rollingAudioSource.spatialBlend = 1.0f; // Full 3D spatialization
             rollingAudioSource.rolloffMode = AudioRolloffMode.Linear;
-            rollingAudioSource.minDistance = 1.0f;
-            rollingAudioSource.maxDistance = 25.0f;
+            rollingAudioSource.minDistance = 1.5f;
+            rollingAudioSource.maxDistance = 28.0f;
+            rollingAudioSource.dopplerLevel = 0f;
+            rollingAudioSource.spread = 45f;
             rollingAudioSource.volume = 0f;
         }
 
@@ -202,6 +211,7 @@ namespace FacilityBreach
                 {
                     rollingAudioSource.Stop();
                 }
+                currentRollVolume = 0f;
                 return;
             }
 
@@ -220,22 +230,37 @@ namespace FacilityBreach
                 grounded = Physics.Raycast(transform.position, Vector3.down, 0.85f, ~0, QueryTriggerInteraction.Ignore);
             }
 
-            float linearSpeed = Body != null ? Body.linearVelocity.magnitude : 0f;
-            float angularSpeed = Body != null ? Body.angularVelocity.magnitude : 0f;
-            // Cylinders roll with linear speed or rotational motion
-            float rollMetric = Mathf.Max(linearSpeed, angularSpeed * 0.4f);
+            // Extract horizontal speed and rotational angular speed (ignoring purely vertical falling/jitter)
+            Vector3 vel = Body != null ? Body.linearVelocity : Vector3.zero;
+            float horizontalSpeed = Mathf.Sqrt(vel.x * vel.x + vel.z * vel.z);
+            Vector3 angVel = Body != null ? Body.angularVelocity : Vector3.zero;
+            float angularSpeed = angVel.magnitude;
+
+            // Effective roll metric: combination of horizontal speed and cylinder roll rotation
+            float rollMetric = Mathf.Max(horizontalSpeed, angularSpeed * 0.35f);
+
+            // Start/stop hysteresis: needs minRollSpeed to activate, maintains down to stopRollSpeed
+            float activeThreshold = currentRollVolume > 0.01f ? stopRollSpeed : minRollSpeed;
+            bool shouldRoll = grounded && (rollMetric > activeThreshold);
 
             float targetVolume = 0f;
             float targetPitch = 1.0f;
 
-            if (grounded && rollMetric > minRollSpeed)
+            if (shouldRoll)
             {
-                float speedNorm = Mathf.Clamp01((rollMetric - minRollSpeed) / Mathf.Max(0.1f, maxRollSpeed - minRollSpeed));
-                targetVolume = Mathf.Lerp(0.25f, maxRollVolume, speedNorm);
-                targetPitch = Mathf.Lerp(0.85f, 1.25f, speedNorm);
+                // Speed normalization across active range (0.20 to maxRollSpeed 5.0m/s)
+                float speedNorm = Mathf.Clamp01((rollMetric - 0.20f) / Mathf.Max(0.1f, maxRollSpeed - 0.20f));
+
+                // Natural perceptual volume curve: quiet at slow speeds, rich at moderate speeds, punchy when kicked hard
+                targetVolume = Mathf.Lerp(0.08f, maxRollVolume, Mathf.Sqrt(speedNorm));
+
+                // Dynamic speed-to-pitch response: deep low rumble (0.70x) up to fast rattling churn (1.35x)
+                targetPitch = Mathf.Lerp(0.70f, 1.35f, speedNorm);
             }
 
-            float fadeDelta = rollFadeSpeed * dt;
+            // Asymmetric smoothing: responsive attack on kick acceleration, smooth organic decay on stop
+            float fadeRate = targetVolume > currentRollVolume ? 6.0f : rollFadeSpeed;
+            float fadeDelta = fadeRate * dt;
             currentRollVolume = Mathf.MoveTowards(currentRollVolume, targetVolume, fadeDelta);
 
             if (currentRollVolume > 0.005f)
