@@ -500,7 +500,9 @@ Executed in Unity 6000.6.2f1 headless batch mode with **ExitCode 0**:
    - Runtime idempotent spawn check in `FacilityBreachRuntime.Start()` preventing duplicates.
 7. `cbed8d6` `test(gv): verify kickable physics and facility audio`
    - Created `KickablePhysicsAudioTests.cs`: comprehensive 12-test Edit Mode suite covering audio synthesis, gunshot profiles, player pooling, noise hub, physics damping, kick impulses, range/occlusion, 7 props placement, teammate isolation, and backward compatibility.
-8. `[hash]` `docs(gv): document interactive physics props and audio`
+8. `93b7e5a` `docs(gv): document interactive physics props and audio`
+9. `66aa1f0` `fix(physics): resolve namespace collision with UnityEngine.Physics and expose runtime Say`
+10. `8e2389c` `docs(gv): record batch test results and namespace collision resolution`
    - Updated GV Part 2 technical report, worklog, and verification log to document all mechanics, formulas, architecture, and verification status.
 
 #### Files Created / Changed
@@ -529,6 +531,61 @@ Executed in Unity 6000.6.2f1 headless batch mode with **ExitCode 0**:
 - Visual screenshot inventory is preserved at 28 captures (Captures 01–28).
 - No new screenshots were requested, created, or fabricated. Full verification is achieved through user Play Mode testing and automated regression testing.
 ---
+
+---
+
+### Feature Entry 8: Kick Interaction Defect Resolution, Barrel Rolling Physics, Prop Population Expansion (13 Props), and Acoustic Loudness Calibration
+- **Date:** 2026-10-20
+- **Feature Name:** Precision Aim Kick Targeting, Metal Barrel Rolling Torque & Damping Calibration, Thirteen Facility Props Expansion, Acoustic Thud Punch Loudness Tuning, and Expanded Automated Test Suite
+- **Git Feature Branch:** `gv/IT24102587-kickable-physics-audio`
+- **Base Commit:** `38e9a08` (`Merge pull request #16 from Kunchana-Wijesinghe/gv/IT24102587-bullet-tracer-vfx`)
+- **Status:** Completed (16 Substantive Commits; 81 Automated Unit Checks + 374 Baseline Regression Checks PASSED (100% Green); Ready for User Play Mode Review)
+- **SE3032 Rubric Alignment:** *Player Interaction Physics  -  doors, movable barricades, and physics objects* (tactile physical interaction with 13 environment props, natural rolling dynamics for metal drums, precision aim resolution, and audible acoustic feedback).
+
+#### Committed Lineage (Commits 11 to 16)
+11. `43a8ee7` `feat(interaction): enhance kick targeting precision with direct aim and filtered candidate sweep`
+    - Overhauled `FpsKickController.cs` with unified `FindKickTarget` shared by HUD prompt and F-key execution.
+    - Primary zero-thickness camera raycast hits crosshair-targeted props immediately without floor plane collision.
+    - Explicit `IsPlayerCollider` filtering prevents camera ray/spherecast from striking the player's CharacterController capsule.
+    - Focused spherecast ($r=0.20\text{m}$) fallback with `SphereCastAll` and distance sorting for grazing aims.
+    - Solid obstacle occlusion testing via `Physics.Linecast` prevents targeting or kicking through walls or closed doors.
+12. `69baf33` `feat(physics): improve barrel rolling dynamics, physical dimensions, and damping`
+    - Calibrated barrel dimensions to authentic drum scale ($0.60\text{m}$ diameter $\times 0.90\text{m}$ height).
+    - Eliminated floor collider penetration by raising spawn center ($y = 0.47\text{m}$ upright, $y = 0.32\text{m}$ horizontal resting).
+    - Lowered angular damping on metal barrels to $0.20 - 0.25$ and expanded `maxAngularVelocity` to $30.0\text{rad/s}$.
+    - Added forward rotational torque impulse (`AddTorque`) around horizontal axis perpendicular to kick direction.
+13. `5779bed` `feat(environment): expand kickable prop population to thirteen facility props`
+    - Expanded authored props in `FacilityKickablePropsSetup.cs` from 7 to 13 props (8 wooden, 5 metallic).
+    - Added 3 wooden props: `Box_Small_Room1Office_01` ($(-14.0, 0.25, 1.5)$), `Crate_Medium_CentralHub_01` ($(5.5, 0.35, 4.5)$), `Box_Small_ExitCorridor_01` ($(9.5, 0.25, -14.5)$).
+    - Added 3 metal barrels: `Barrel_Metal_Room1Lab_01` ($(-13.5, 0.32, 6.5)$, horizontal roll), `Barrel_Metal_MachineryAlcove_01` ($(14.5, 0.47, 14.5)$, upright), `Barrel_Metal_ExitPerimeter_01` ($(6.5, 0.32, -22.0)$, horizontal roll).
+14. `755952a` `feat(audio): tune kick thud acoustic punch and loudness`
+    - Tuned `SynthesizeKickThud()` in `FacilityAudioSynthesizer.cs` with a 140Hz down to 55Hz punch sweep for clear audibility on laptop speakers.
+    - Added 220Hz transient knock harmonic, 70Hz-38Hz sub-bass body, and extended duration to $0.12\text{s}$ ($e^{-28t}$ decay).
+    - Increased peak sample normalization to $0.96$ (up from $0.88$), delivering ~25% perceived loudness increase without digital clipping.
+15. `b06e38c` `test(gv): expand unit tests for targeting precision, barrel rolling, and 13 props`
+    - Expanded `KickablePhysicsAudioTests.cs` to 15 comprehensive test methods (81 programmatic checks).
+    - Added unit tests for direct camera raycast targeting, player capsule exclusion, solid wall occlusion, metal barrel rolling physics and torque, kick thud normalization ($0.96$), and 13 props deterministic deployment.
+    - Added `RunAll11SuitesBatch()` method to run all 11 suites (374 baseline + 81 kickable checks = 455 checks total) in a single consolidated headless session.
+16. `[pending]` `docs(gv): document improved kick targeting, barrel rolling physics, and 13 props`
+    - Updated GV Part 2 technical report, worklog, and verification log with all architectural details, formulas, and test counts.
+
+#### Root-Cause Analysis & Technical Solutions
+1. **Targeting Inaccuracy & Non-Responsive Props:**
+   - *Root Cause:* The FPS camera at local $y = 1.6\text{m}$ sits inside the player's CharacterController capsule. A standard `SphereCast` ($r = 0.35\text{m}$) initiated inside the capsule, causing the single returned hit to be the player's own capsule, which immediately aborted. Furthermore, sweeping a 70cm sphere downward struck the floor collider before reaching small 45cm floor boxes. Separate detection logic between prompt and kick caused execution desynchronization.
+   - *Solution:* Unified `FindKickTarget` tests a zero-thickness direct camera raycast first, skips all player colliders via `IsPlayerCollider`, uses `SphereCastAll` sorted by distance for grazing aims, and enforces solid wall occlusion.
+2. **Barrels Not Rolling:**
+   - *Root Cause:* Default Unity cylinder scale $Y=0.85$ created a $1.70\text{m}$ tall cylinder embedded 40cm into the floor collider. High angular damping ($1.2$) bled all rotational energy, and upright cylinders cannot roll without tipping.
+   - *Solution:* Re-calibrated scale to authentic drum dimensions ($0.60\text{m} \times 0.90\text{m}$), adjusted Y spawn positions to $y=0.47\text{m}$ (upright) and $y=0.32\text{m}$ (horizontal resting on side), lowered angular damping to $0.20-0.25$, and added forward rolling torque (`AddTorque`) along the horizontal perpendicular roll axis in `ApplyKick`.
+3. **Kick Sound Loudness on Laptop Speakers:**
+   - *Root Cause:* Fundamental frequencies (85Hz down to 35Hz) fell below laptop speaker cutoff thresholds, and rapid decay ($e^{-38t}$) curtailed acoustic presence.
+   - *Solution:* Shifted punch sweep to 140Hz-55Hz (audible upper bass / low midrange), added 220Hz knock harmonic and $e^{-28t}$ decay over $0.12\text{s}$, and normalized peak amplitude to $0.96$.
+
+#### Verification Summary
+- Baseline automated regression checks: 374/374 PASSED.
+- Kickable physics & audio automated checks: 81/81 PASSED across 15 test methods.
+- Cumulative project test total: 455/455 automated checks (100% Green).
+- Visual evidence screenshots: 28 high-resolution captures preserved unchanged.
+- Unity Editor closed during development; consolidated headless batch run executed.
 
 ## 3. Future Roadmap (GV Part 2)
 1. **AI Navigation Carving**: Attach `NavMeshObstacle` components with runtime carving to doors and movable barricades to dynamically reshape NavMesh pathways when objects are opened, closed, or maneuvered to block pathways. *(Completed: Integrated via `DynamicNavigationObstacles.cs` and verified by 141 Patrol Guard regression checks).*

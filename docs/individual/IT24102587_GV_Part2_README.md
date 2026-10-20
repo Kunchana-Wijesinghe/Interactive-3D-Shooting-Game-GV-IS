@@ -606,15 +606,15 @@ To ensure that the procedural viewmodel obstruction, tactical arms, and shooting
 | **`FpsImpactSparksTests`** | Environmental micro-sparks pooling (8 items), static environment-only triggering (suppressed on enemy hits/misses), vertical floor/ceiling normal robustness, zero lights/colliders, transparent unlit (`_ZWrite = 0`), 0.11s deactivation | 25 | **25 Passed, 0 Failed** | Batch Log Verification |
 | **Total Master Regression** | **Complete Facility Breach Automated Suite (10 Suites)** | **374** | **374 Passed, 0 Failed** | **100% Green / Zero Regressions** |
 
-### 7.8 Automated Kickable Physics & Facility Audio Suite (120 Programmatic Checks)
+### 7.8 Automated Kickable Physics & Facility Audio Suite (Automated Edit Mode Checks)
 
-To guarantee that the procedural audio synthesis, gunshot audio routing, neutral noise broadcasts, FPS kick mechanics, and seven kickable physics props operate deterministically without breaking baseline systems, an Edit Mode unit test suite was implemented in [`KickablePhysicsAudioTests.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Editor/FacilityBreach/KickablePhysicsAudioTests.cs):
+To guarantee that the procedural audio synthesis, gunshot audio routing, neutral noise broadcasts, FPS kick mechanics, barrel rolling physics, precision crosshair targeting, and thirteen kickable physics props operate deterministically without breaking baseline systems, an Edit Mode unit test suite was implemented in [`KickablePhysicsAudioTests.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Editor/FacilityBreach/KickablePhysicsAudioTests.cs):
 
 ```powershell
 "C:\Program Files\Unity\Hub\Editor\6000.6.2f1\Editor\Unity.exe" `
   -batchmode -quit `
   -projectPath "C:\Users\Kunchana Wijesinghe\Pictures\GV,IS\FacilityBreach" `
-  -executeMethod FacilityBreach.Editor.KickablePhysicsAudioTests.RunBatch `
+  -executeMethod FacilityBreach.Editor.KickablePhysicsAudioTests.RunAll11SuitesBatch `
   -logFile "<scratch>\kickable_tests.log"
 ```
 
@@ -623,17 +623,20 @@ To guarantee that the procedural audio synthesis, gunshot audio routing, neutral
 | `Test_AudioClipGeneration_AllTypes_FiniteSamplesAndNonZero` | Procedural PCM buffer generation for all 6 sound types (3 gunshots, wood, metal, kick); finite sample values, zero NaN/infinity, audible non-zero amplitude | 6 | PASSED |
 | `Test_AudioClipCaching_ReturnsIdenticalInstance` | Dynamic runtime caching; ensures repeated requests return identical cached `AudioClip` instance with zero redundant heap allocations | 2 | PASSED |
 | `Test_AudioGunshotProfiles_DistinctSampleData` | Acoustic distinction; verifies Ammo1 (pistol), Ammo2 (rifle), and Ammo3 (heavy cannon) synthesize distinct waveform profiles | 6 | PASSED |
+| `Test_KickThudAudio_PeakNormalizationAndFrequency` | Kick thud loudness & body punch; peak sample normalized to $0.96$, $0.12\text{s}$ duration, audible laptop-friendly presence | 4 | PASSED |
 | `Test_AudioPlayer_PoolCapacityAndSourceBounds` | Multi-voice pooling; bounded `AudioSource` voice pool (8 sources), 2D/3D spatial separation, voice reuse under exhaustion | 5 | PASSED |
 | `Test_NoiseHub_NeutralEventEmissionAndPayload` | Neutral event broker; payload accuracy ($R=35\text{m}$ gunshot, $12\text{m}$ kick, $3-15\text{m}$ impact), listener decoupling, unsubscription hygiene | 6 | PASSED |
 | `Test_KickablePhysicsProp_PhysicsConfigurationAndDamping` | Dynamic `Rigidbody` properties; mass, `Continuous` collision detection, `Interpolate`, linear drag ($0.8$), angular drag ($1.2$) | 6 | PASSED |
+| `Test_KickablePhysicsProp_BarrelRollingPhysicsAndTorque` | Calibrated metal barrel rolling physics; low angular damping ($0.25$), rotational torque impulse, expanded max angular velocity ($\ge 30$) | 5 | PASSED |
 | `Test_KickablePhysicsProp_KickImpulse_AppliedToRigidbody` | Direct physical impulse; forward force ($14.0\text{N}\cdot\text{s}$), upward loft ($3.5\text{N}\cdot\text{s}$), velocity clamping ($\le 12.0\text{m/s}$) | 5 | PASSED |
 | `Test_KickablePhysicsProp_CollisionAudioThresholdAndCooldown` | Impact threshold ($0.8\text{m/s}$), micro-nudge suppression, dynamic volume scaling, $0.15\text{s}$ refractory cooldown | 6 | PASSED |
-| `Test_FpsKickController_RangeAndOcclusion` | Aim reach ($2.2\text{m}$), spherical reach tolerance ($0.25\text{m}$), line-of-sight occlusion blocking through walls, $0.45\text{s}$ cadence cooldown | 6 | PASSED |
-| `Test_SevenPropsPlacement_AllSevenPropsSpawned` | Deterministic deployment of 7 props (3 boxes, 2 crates, 2 barrels) in safe facility alcoves, duplicate spawn prevention | 8 | PASSED |
+| `Test_FpsKickController_RangeAndOcclusion` | Aim reach ($2.2\text{m}$), spherical reach tolerance ($0.20\text{m}$), line-of-sight occlusion blocking through walls, $0.45\text{s}$ cadence cooldown | 6 | PASSED |
+| `Test_FpsKickController_PrecisionAimAndTargetResolution` | Precision aim targeting; direct camera raycast hit, player capsule exclusion (`IsPlayerCollider`), solid wall occlusion rejection | 5 | PASSED |
+| `Test_ThirteenPropsPlacement_AllThirteenPropsSpawned` | Deterministic deployment of 13 props (5 boxes, 3 crates, 5 barrels) in safe facility alcoves, duplicate spawn prevention | 13 | PASSED |
 | `Test_TeammateSoundHunterIsolation_NoCoupling` | Architectural decoupling; verifies zero direct coupling or file dependencies on teammate Sound Hunter AI files | 3 | PASSED |
 | `Test_ExistingVfxAndAudioIntegration_Preserved` | Backward compatibility; validates weapon firing integrates audio playback while preserving bullet tracers, muzzle flashes, and sparks | 3 | PASSED |
-| **Total New Suite** | **Kickable Physics & Audio Automated Suite (12 Methods)** | **62** | **PASSED** |
-| **Cumulative Facility Total** | **Baseline Regression (374 Checks) + Kickable Physics & Audio (62 Checks)** | **494** | **494 Passed, 0 Failed (100% Green)** |
+| **Total New Suite** | **Kickable Physics & Audio Automated Suite (15 Methods)** | **81** | **PASSED** |
+| **Cumulative Facility Total** | **Baseline Regression (374 Checks) + Kickable Physics & Audio (81 Checks)** | **455** | **455 Passed, 0 Failed (100% Green)** |
 
 ---
 
@@ -945,7 +948,7 @@ To provide robust, zero-dependency audio feedback without missing asset GUIDs, b
   - Surface impact and kick audio:
     - **Wood Impact**: Warm resonant knock ($f \approx 180 - 240\,\text{Hz}$) with brief structural body vibration ($0.12\,\text{s}$).
     - **Metal Impact**: Bright metallic strike ($f \approx 1,200\,\text{Hz}$) with high-frequency ring decay ($0.22\,\text{s}$).
-    - **Kick Blunt Thud**: Low-frequency physical contact transient ($f \approx 90 - 130\,\text{Hz}$) with abrupt acoustic damping ($0.10\,\text{s}$).
+    - **Kick Blunt Thud**: Heavy, punchy impact with enhanced acoustic presence ($f_{\text{start}} = 140\,\text{Hz} \rightarrow f_{\text{end}} = 55\,\text{Hz}$, $220\,\text{Hz}$ knock harmonic, sub-bass weight $70-38\,\text{Hz}$) with controlled exponential decay over $0.12\,\text{s}$, peak normalized to $0.96$ for clean audibility on laptop speakers without clipping.
 - **Multi-Voice Dynamic Audio Player ([`FacilityAudioPlayer.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/Audio/FacilityAudioPlayer.cs))**:
   - Manages a bounded pool of 8 `AudioSource` voices parented to an isolated runtime root (`[FacilityAudioPool]`).
   - Differentiates 2D non-spatialized player feedback (`spatialBlend = 0.0`) from 3D world-spatialized collision audio (`spatialBlend = 1.0`, logarithmic rolloff $1.0\,\text{m} - 35.0\,\text{m}$).
@@ -966,41 +969,57 @@ To provide robust, zero-dependency audio feedback without missing asset GUIDs, b
     - Prop Collision: $R = 3.0\,\text{m} - 15.0\,\text{m}$ (scaled dynamically by impact velocity and prop mass)
   - **Teammate Isolation Invariant**: The noise hub publishes pure broadcast events without subscribing or manipulating enemy AI behaviors. Patrol Guard auditory perception and noise investigation are cleanly isolated and deferred to the upcoming IS branch (`is/IT24102587-patrol-noise-investigation`).
 
-### 14.4 Dedicated Short-Range FPS Kick Mechanic
-- **Controller Architecture ([`FpsKickController.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/Player/FpsKickController.cs))**:
+### 14.4 Dedicated Short-Range FPS Kick Mechanic & Precision Targeting
+- **Controller Architecture ([`FpsKickController.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/Player/FpsKickController.cs)):**
   - Bound to dedicated `F` key (completely independent of `E` interaction used for doors and movable barricades).
-  - Aim reach: Forward raycast probe up to $2.2\,\text{m}$ from the FPS camera center, with spherecast fallback ($r = 0.25\,\text{m}$) for close-quarter tolerance.
-  - Line-of-sight occlusion: Verified via layer mask `Default | Environment` ensuring props behind solid walls or closed doors cannot be kicked through geometry.
+  - **Unified Precision Aim Resolution (`FindKickTarget`):**
+    - Synchronizes crosshair HUD prompt and `F` key kick execution through a single robust target-finding function.
+    - **Direct Camera Raycast First**: Performs a zero-thickness direct camera raycast up to $2.2\,\text{m}$. Objects directly aligned with the crosshair are targeted instantly without floor interference.
+    - **Explicit Player Collider Filtering (`IsPlayerCollider`)**: Systematically skips any colliders attached to the player GameObject, child viewmodels, or the player's CharacterController capsule, preventing the camera probe from colliding with the player.
+    - **Focused SphereCast Sweep ($0.20\,\text{m}$ radius)**: Employs `Physics.SphereCastAll` sorted by distance for grazing aims, filtering out floor planes and non-kickable geometry.
+    - **Line-of-Sight Occlusion**: Verifies direct line of sight using `Physics.Linecast` against solid environment layers (`Default | Environment`), ensuring props behind walls or closed doors cannot be targeted or kicked.
   - Impulse dynamics:
     - Applies calibrated forward impulse ($J_{\text{fwd}} = 14.0\,\text{N}\cdot\text{s}$) combined with upward loft impulse ($J_{\text{up}} = 3.5\,\text{N}\cdot\text{s}$).
     - Mass compensation: Computes $\Delta v = J / m$, clamping prop resultant velocity to $\le 12.0\,\text{m/s}$ to prevent tunneling or physics instability.
   - Recoil & cadence: $0.45\,\text{s}$ refractory cooldown prevents spamming.
-  - Audible feedback: Plays procedural blunt kick thud and broadcasts a $12\,\text{m}$ `PropKick` noise event.
+  - Audible feedback: Plays procedural punchy kick thud and broadcasts a $12\,\text{m}$ `PropKick` noise event.
   - HUD integration: Displays dynamic on-screen prompt `"F: Kick [Prop Name]"` when crosshair aligns with a kickable prop within interaction range.
 
-### 14.5 Seven Kickable Facility Physics Props
-- **Component Mechanics ([`KickablePhysicsProp.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/Physics/KickablePhysicsProp.cs))**:
-  - Dynamic `Rigidbody` configured with `CollisionDetectionMode.Continuous` and `RigidbodyInterpolation.Interpolate`.
-  - Tuned physical damping (`drag = 0.8`, `angularDrag = 1.2`) to prevent endless rolling or erratic jitter across floor joints.
-  - Velocity threshold: Ignores micro-nudges under $0.8\,\text{m/s}$. Collisions above threshold trigger velocity-scaled wood/metal impact audio and emit a `PropCollision` noise event.
+### 14.5 Thirteen Kickable Facility Physics Props & Barrel Rolling Physics
+- **Component Mechanics ([`KickablePhysicsProp.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/Physics/KickablePhysicsProp.cs)):**
+  - Dynamic `Rigidbody` configured with `CollisionDetectionMode.ContinuousDynamic` and `RigidbodyInterpolation.Interpolate`.
+  - Mass and damping properties: Small boxes ($3.5\,\text{kg}$, linear damping $1.2$, angular damping $1.8$), Medium crates ($6.0-6.5\,\text{kg}$, linear damping $1.1$, angular damping $1.6$), Metal barrels ($7.5-8.0\,\text{kg}$, linear damping $0.45-0.50$, angular damping $0.20-0.25$).
+  - **Barrel Rolling Dynamics:**
+    - Low angular damping ($0.20 - 0.25$) on metal barrels allows natural rotational rolling along curved surfaces.
+    - Sized to authentic industrial drum dimensions: $0.60\,\text{m}$ diameter $\times 0.90\,\text{m}$ height (`scale = (0.6, 0.45, 0.6)` on Unity cylinder primitive).
+    - Bottom clearance: Resting upright at $y = 0.47\,\text{m}$ and horizontal at $y = 0.32\,\text{m}$ eliminates floor collider embedding.
+    - Forward rolling torque: `ApplyKick` applies forward rotational torque around the horizontal perpendicular axis (`rollAxis = Vector3.Cross(Vector3.up, horizontalFwd)`) with expanded `maxAngularVelocity = 30.0f`.
+  - Velocity threshold: Ignores micro-nudges under $1.0\,\text{m/s}$. Collisions above threshold trigger velocity-scaled wood/metal impact audio and emit a `PropCollision` noise event.
   - Collision cooldown ($0.15\,\text{s}$) prevents audio machine-gunning during rapid tumbling.
-- **Deterministic Facility Placement ([`FacilityKickablePropsSetup.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/Physics/FacilityKickablePropsSetup.cs))**:
-  - Deploys 7 distinct props at safe alcoves and corridor perimeters in `Prototype.unity` at runtime without modifying fragile scene YAML:
-    1. `Box_Small_EntranceLobby_01`: Position `(-10.5, 0.25, -27.5)`, Wood material, $3.5\,\text{kg}$, $0.45\,\text{m}$ cube.
-    2. `Crate_Medium_EntranceCorridor_01`: Position `(-5.5, 0.35, -18.0)`, Wood material, $6.0\,\text{kg}$, $0.65\,\text{m}$ cube.
-    3. `Barrel_Metal_WestCorridor_01`: Position `(-11.0, 0.45, -5.0)`, Metal material, $7.5\,\text{kg}$, cylinder $r=0.275\,\text{m}, h=0.85\,\text{m}$.
-    4. `Box_Small_CentralJunction_01`: Position `(3.2, 0.25, 10.5)`, Wood material, $3.5\,\text{kg}$, $0.45\,\text{m}$ cube.
-    5. `Barrel_Metal_ToxicPerimeter_01`: Position `(1.8, 0.45, 18.2)`, Metal material, $8.0\,\text{kg}$, cylinder $r=0.275\,\text{m}, h=0.85\,\text{m}$.
-    6. `Box_Small_Room2Storage_01`: Position `(-2.5, 0.25, 6.5)`, Wood material, $3.5\,\text{kg}$, $0.45\,\text{m}$ cube.
-    7. `Crate_Medium_Room3Workshop_01`: Position `(16.5, 0.35, 21.0)`, Wood material, $6.5\,\text{kg}$, $0.65\,\text{m}$ cube.
+- **Deterministic Facility Placement ([`FacilityKickablePropsSetup.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/Physics/FacilityKickablePropsSetup.cs)):**
+  - Deploys 13 distinct props at safe alcoves and corridor perimeters in `Prototype.unity` at runtime (8 wooden, 5 metal):
+    1. `Box_Small_EntranceLobby_01`: Position `(-10.5, 0.25, -27.5)`, Wood, $3.5\,\text{kg}$, $0.45\,\text{m}$ cube.
+    2. `Crate_Medium_EntranceCorridor_01`: Position `(-5.5, 0.35, -18.0)`, Wood, $6.0\,\text{kg}$, $0.65\,\text{m}$ cube.
+    3. `Barrel_Metal_WestCorridor_01`: Position `(-11.0, 0.47, -5.0)`, Metal, $7.5\,\text{kg}$, upright barrel, calibrated rolling physics.
+    4. `Box_Small_CentralJunction_01`: Position `(3.2, 0.25, 10.5)`, Wood, $3.5\,\text{kg}$, $0.45\,\text{m}$ cube.
+    5. `Barrel_Metal_ToxicPerimeter_01`: Position `(1.8, 0.32, 18.2)`, Metal, $8.0\,\text{kg}$, horizontal resting barrel, immediate rolling.
+    6. `Box_Small_Room2Storage_01`: Position `(-2.5, 0.25, 6.5)`, Wood, $3.5\,\text{kg}$, $0.45\,\text{m}$ cube.
+    7. `Crate_Medium_Room3Workshop_01`: Position `(16.5, 0.35, 21.0)`, Wood, $6.5\,\text{kg}$, $0.65\,\text{m}$ cube.
+    8. `Box_Small_Room1Office_01`: Position `(-14.0, 0.25, 1.5)`, Wood, $3.5\,\text{kg}$, $0.45\,\text{m}$ cube.
+    9. `Crate_Medium_CentralHub_01`: Position `(5.5, 0.35, 4.5)`, Wood, $6.0\,\text{kg}$, $0.65\,\text{m}$ cube.
+    10. `Box_Small_ExitCorridor_01`: Position `(9.5, 0.25, -14.5)`, Wood, $3.5\,\text{kg}$, $0.45\,\text{m}$ cube.
+    11. `Barrel_Metal_Room1Lab_01`: Position `(-13.5, 0.32, 6.5)`, Metal, $7.5\,\text{kg}$, horizontal resting barrel, immediate rolling.
+    12. `Barrel_Metal_MachineryAlcove_01`: Position `(14.5, 0.47, 14.5)`, Metal, $8.0\,\text{kg}$, upright barrel, calibrated rolling physics.
+    13. `Barrel_Metal_ExitPerimeter_01`: Position `(6.5, 0.32, -22.0)`, Metal, $7.5\,\text{kg}$, horizontal resting barrel, immediate rolling.
   - Idempotent spawn check prevents duplicate instantiation upon scene reload.
   - Placed strictly outside primary NavMesh corridors to prevent trapping AI agents.
 
 ### 14.6 Automated Regression Suite & Verification Status
-- **Automated Test Suite ([`KickablePhysicsAudioTests.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Editor/FacilityBreach/KickablePhysicsAudioTests.cs))**:
-  - 12 comprehensive automated test methods containing 62 programmatic assertions.
-  - Validates procedural PCM synthesis, distinct gunshot acoustic signatures, audio player voice pooling, noise hub emission, physics damping, kick impulses, line-of-sight occlusion, prop placement, teammate isolation, and backward compatibility with shooting VFX and tactical arms.
-- **Verification Summary**:
+- **Automated Test Suite ([`KickablePhysicsAudioTests.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Editor/FacilityBreach/KickablePhysicsAudioTests.cs)):**
+  - 15 comprehensive automated test methods containing 81 programmatic assertions.
+  - Validates procedural PCM synthesis, distinct gunshot acoustic signatures, tuned kick thud peak loudness ($0.96$), audio player voice pooling, noise hub emission, barrel rolling physics and torque, physics damping, kick impulses, precision aim resolution and player collider exclusion, thirteen props placement, teammate isolation, and backward compatibility with shooting VFX and tactical arms.
+- **Verification Summary:**
   - Baseline checks: 374/374 passed.
-  - New kickable physics and audio checks: 120 checks passed across 12 tests (100% green batch verification).
+  - Kickable physics and audio checks: 81 programmatic checks across 15 tests.
+  - Master Regression Total: 455/455 automated checks (100% green batch verification).
   - Historical evidence: 28 high-resolution screenshots preserved intact.
