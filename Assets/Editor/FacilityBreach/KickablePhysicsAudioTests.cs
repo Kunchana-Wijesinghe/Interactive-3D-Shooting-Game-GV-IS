@@ -44,12 +44,16 @@ namespace FacilityBreach.Editor
             RunTest("AudioClipCaching_ReturnsIdenticalInstance", Test_AudioClipCaching_ReturnsIdenticalInstance);
             RunTest("AudioGunshotProfiles_DistinctSampleData", Test_AudioGunshotProfiles_DistinctSampleData);
             RunTest("KickThudAudio_PeakNormalizationAndFrequency", Test_KickThudAudio_PeakNormalizationAndFrequency);
+            RunTest("RollingMetalAudio_SeamlessLoopAndFrequencyRange", Test_RollingMetalAudio_SeamlessLoopAndFrequencyRange);
+            RunTest("ProjectileLaunchAndImpactAudio_DistinctWaveformsAndPeakNormalization", Test_ProjectileLaunchAndImpactAudio_DistinctWaveformsAndPeakNormalization);
             RunTest("AudioPlayer_PoolCapacityAndSourceBounds", Test_AudioPlayer_PoolCapacityAndSourceBounds);
             RunTest("NoiseHub_NeutralEventEmissionAndPayload", Test_NoiseHub_NeutralEventEmissionAndPayload);
             RunTest("KickablePhysicsProp_PhysicsConfigurationAndDamping", Test_KickablePhysicsProp_PhysicsConfigurationAndDamping);
             RunTest("KickablePhysicsProp_BarrelRollingPhysicsAndTorque", Test_KickablePhysicsProp_BarrelRollingPhysicsAndTorque);
             RunTest("KickablePhysicsProp_KickImpulse_AppliedToRigidbody", Test_KickablePhysicsProp_KickImpulse_AppliedToRigidbody);
             RunTest("KickablePhysicsProp_CollisionAudioThresholdAndCooldown", Test_KickablePhysicsProp_CollisionAudioThresholdAndCooldown);
+            RunTest("KickablePhysicsProp_RollingAudioLifecycleAndModulation", Test_KickablePhysicsProp_RollingAudioLifecycleAndModulation);
+            RunTest("ProjectileAudio_LaunchAndImpactPlayback", Test_ProjectileAudio_LaunchAndImpactPlayback);
             RunTest("FpsKickController_RangeAndOcclusion", Test_FpsKickController_RangeAndOcclusion);
             RunTest("FpsKickController_PrecisionAimAndTargetResolution", Test_FpsKickController_PrecisionAimAndTargetResolution);
             RunTest("ThirteenPropsPlacement_AllThirteenPropsSpawned", Test_ThirteenPropsPlacement_AllThirteenPropsSpawned);
@@ -128,7 +132,7 @@ namespace FacilityBreach.Editor
         private static void Test_AudioClipGeneration_AllTypes_FiniteSamplesAndNonZero()
         {
             var types = (FacilityAudioClipType[])Enum.GetValues(typeof(FacilityAudioClipType));
-            Assert(types.Length == 6, "FacilityAudioClipType defines exactly 6 audio profiles", $"Found {types.Length}");
+            Assert(types.Length == 9, "FacilityAudioClipType defines exactly 9 audio profiles", $"Found {types.Length}");
 
             foreach (var type in types)
             {
@@ -207,6 +211,64 @@ namespace FacilityBreach.Editor
 
             Assert(!hasInvalid, "Kick thud audio has zero NaN or Infinity samples");
             Assert(peak >= 0.94f && peak <= 0.98f, "Kick thud sample peak is normalized to 0.96 for punchy playback without clipping", $"Peak={peak:F4}");
+        }
+
+        private static void Test_RollingMetalAudio_SeamlessLoopAndFrequencyRange()
+        {
+            AudioClip clip = FacilityAudioSynthesizer.GetOrCreateClip(FacilityAudioClipType.RollingMetal);
+            Assert(clip != null, "Procedural rolling metal clip is non-null");
+            Assert(Mathf.Abs(clip.length - 1.0f) < 0.01f, "Rolling metal loop duration is 1.0s for seamless loop calculation", $"Length={clip.length:F3}s");
+            Assert(clip.samples == 44100, "Rolling metal clip has exactly 44100 samples at 44.1kHz", $"Samples={clip.samples}");
+            Assert(clip.channels == 1, "Rolling metal clip is mono");
+
+            float[] samples = new float[clip.samples];
+            clip.GetData(samples, 0);
+
+            // Check loop boundary continuity (start sample vs end sample)
+            float startVal = samples[0];
+            float endVal = samples[samples.Length - 1];
+            float boundaryDelta = Mathf.Abs(startVal - endVal);
+            Assert(boundaryDelta < 0.20f, "Rolling metal loop has smooth boundary continuity to avoid audible clicks", $"Delta={boundaryDelta:F4}");
+
+            // Verify safe peak amplitude
+            float peak = 0f;
+            for (int i = 0; i < samples.Length; i++)
+            {
+                float abs = Mathf.Abs(samples[i]);
+                if (abs > peak) peak = abs;
+            }
+            Assert(peak >= 0.80f && peak <= 0.90f, "Rolling metal peak is normalized in [0.80, 0.90] for consistent mix level", $"Peak={peak:F4}");
+        }
+
+        private static void Test_ProjectileLaunchAndImpactAudio_DistinctWaveformsAndPeakNormalization()
+        {
+            AudioClip launchClip = FacilityAudioSynthesizer.GetOrCreateClip(FacilityAudioClipType.ProjectileLaunch);
+            AudioClip impactClip = FacilityAudioSynthesizer.GetOrCreateClip(FacilityAudioClipType.ProjectileImpact);
+
+            Assert(launchClip != null, "Procedural projectile launch clip is generated");
+            Assert(impactClip != null, "Procedural projectile impact clip is generated");
+
+            Assert(Mathf.Abs(launchClip.length - 0.16f) < 0.01f, "Launch clip duration is calibrated to 0.16s", $"Len={launchClip.length:F3}");
+            Assert(Mathf.Abs(impactClip.length - 0.20f) < 0.01f, "Impact clip duration is calibrated to 0.20s", $"Len={impactClip.length:F3}");
+
+            float[] launchData = new float[launchClip.samples];
+            launchClip.GetData(launchData, 0);
+            float launchPeak = 0f;
+            for (int i = 0; i < launchData.Length; i++) if (Mathf.Abs(launchData[i]) > launchPeak) launchPeak = Mathf.Abs(launchData[i]);
+
+            float[] impactData = new float[impactClip.samples];
+            impactClip.GetData(impactData, 0);
+            float impactPeak = 0f;
+            for (int i = 0; i < impactData.Length; i++) if (Mathf.Abs(impactData[i]) > impactPeak) impactPeak = Mathf.Abs(impactData[i]);
+
+            Assert(launchPeak >= 0.84f && launchPeak <= 0.92f, "Launch clip peak is normalized around 0.88f", $"Peak={launchPeak:F4}");
+            Assert(impactPeak >= 0.86f && impactPeak <= 0.94f, "Impact clip peak is normalized around 0.90f", $"Peak={impactPeak:F4}");
+
+            // Compare waveforms to ensure distinct sonic identities
+            int compareCount = Mathf.Min(launchData.Length, impactData.Length, 200);
+            float diffSum = 0f;
+            for (int i = 0; i < compareCount; i++) diffSum += Mathf.Abs(launchData[i] - impactData[i]);
+            Assert(diffSum > 0.5f, "Launch and impact audio profiles have distinct acoustic waveforms", $"Diff={diffSum:F3}");
         }
 
         private static void Test_AudioPlayer_PoolCapacityAndSourceBounds()
@@ -375,6 +437,97 @@ namespace FacilityBreach.Editor
             finally
             {
                 UnityEngine.Object.DestroyImmediate(go);
+            }
+        }
+
+        private static void Test_KickablePhysicsProp_RollingAudioLifecycleAndModulation()
+        {
+            var barrelGo = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            var boxGo = GameObject.CreatePrimitive(PrimitiveType.Cube);
+
+            try
+            {
+                // 1. Metal Barrel rolling audio
+                var barrelProp = barrelGo.AddComponent<KickablePhysicsProp>();
+                barrelProp.MaterialType = PropMaterialType.Metal;
+                barrelProp.EnsureRollingAudioSource();
+
+                Assert(barrelProp.RollingAudioSource != null, "Metal barrel instantiates dedicated rolling AudioSource");
+                Assert(barrelProp.RollingAudioSource.loop, "Rolling AudioSource is configured to loop");
+                Assert(barrelProp.RollingAudioSource.spatialBlend >= 0.99f, "Rolling AudioSource uses full 3D spatialization");
+                Assert(barrelProp.RollingAudioSource.clip != null, "Rolling AudioSource is assigned the RollingMetal clip");
+
+                // Initially stationary
+                barrelProp.UpdateRollingAudio();
+                Assert(!barrelProp.IsRollingAudioActive, "Stationary barrel rolling audio is inactive");
+                Assert(barrelProp.CurrentRollVolume == 0f, "Stationary barrel rolling volume is 0");
+
+                // Simulate moving barrel with ground contact
+                barrelProp.Body.linearVelocity = new Vector3(3.0f, 0f, 0f);
+                for (int frame = 0; frame < 10; frame++)
+                {
+                    barrelProp.UpdateRollingAudio();
+                }
+
+                Assert(barrelProp.CurrentRollVolume > 0.1f, "Moving barrel volume ramps up smoothly", $"Vol={barrelProp.CurrentRollVolume:F3}");
+                Assert(barrelProp.IsRollingAudioActive, "Moving barrel reports IsRollingAudioActive == true");
+                Assert(barrelProp.RollingAudioSource.isPlaying, "Rolling AudioSource is actively playing");
+                Assert(barrelProp.RollingAudioSource.pitch >= 0.85f, "Rolling pitch is modulated with velocity", $"Pitch={barrelProp.RollingAudioSource.pitch:F2}");
+
+                // Simulate stop
+                barrelProp.Body.linearVelocity = Vector3.zero;
+                barrelProp.Body.angularVelocity = Vector3.zero;
+                for (int frame = 0; frame < 30; frame++)
+                {
+                    barrelProp.UpdateRollingAudio();
+                }
+
+                Assert(!barrelProp.IsRollingAudioActive, "Stopped barrel rolling audio smoothly ends");
+                Assert(barrelProp.CurrentRollVolume == 0f, "Stopped barrel rolling volume fades completely to 0");
+
+                // 2. Wooden box prop never initializes rolling audio
+                var boxProp = boxGo.AddComponent<KickablePhysicsProp>();
+                boxProp.MaterialType = PropMaterialType.Wood;
+                boxProp.EnsureRollingAudioSource();
+
+                Assert(boxProp.RollingAudioSource == null, "Wooden box never instantiates rolling AudioSource");
+                boxProp.Body.linearVelocity = new Vector3(5.0f, 0f, 0f);
+                boxProp.UpdateRollingAudio();
+                Assert(!boxProp.IsRollingAudioActive, "Wooden box never plays rolling audio even at high speed");
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(barrelGo);
+                UnityEngine.Object.DestroyImmediate(boxGo);
+            }
+        }
+
+        private static void Test_ProjectileAudio_LaunchAndImpactPlayback()
+        {
+            var audioGo = new GameObject("Test_AudioPlayer_Projectile");
+            var canGo = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+
+            try
+            {
+                var player = audioGo.AddComponent<FacilityAudioPlayer>();
+                player.InitializePool();
+
+                // Test Launch Audio
+                player.PlayProjectileLaunch(Vector3.zero);
+                Assert(true, "FacilityAudioPlayer.PlayProjectileLaunch executes without exceptions");
+
+                // Test Impact Audio
+                player.PlayProjectileImpact(new Vector3(5f, 1f, 10f), 0.75f);
+                Assert(true, "FacilityAudioPlayer.PlayProjectileImpact executes without exceptions");
+
+                // Test CanImpact component behavior
+                var canImpact = canGo.AddComponent<CanImpact>();
+                Assert(canImpact != null, "CanImpact component attaches cleanly to projectile GameObject");
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(canGo);
+                UnityEngine.Object.DestroyImmediate(audioGo);
             }
         }
 
