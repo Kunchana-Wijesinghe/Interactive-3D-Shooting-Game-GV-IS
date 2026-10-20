@@ -378,7 +378,90 @@ Located in [`docs/individual/evidence/IT24102587 GV evidence/`](evidence/IT24102
 > **Static Visual Disclosure**: Screenshots 26–28 demonstrate the user-approved static weapon framing and holding pose in Unity Play Mode. They do not claim skeletal animation playback or continuous weapon-switch interpolation.
 
 #### Git Status & Integrity
-- Feature work authored on branch `gv/IT24102587-fps-tactical-arms`.
+- Feature work authored on branch `gv/IT24102587-fps-tactical-arms` (merged into `develop` in PR #15).
+
+---
+
+### Feature Entry 6: Supplementary First-Person Shooting VFX (Bullet Tracer, Muzzle Flash V2 & Environmental Impact Sparks)
+- **Date:** 2026-10-20
+- **Feature Name:** First-Person Shooting Visual Effects Suite (Standalone Bullet Tracer, Camera-Facing Muzzle Flash V2 & Tuned Environmental Impact Sparks)
+- **Working Feature Branch:** `gv/IT24102587-bullet-tracer-vfx` (branch based off `develop` commit `b1b6745`)
+- **Commits (Chronological Feature & Test Pairs):**
+  - `4bd880e`: `feat(vfx): add standalone FPS bullet tracer`
+  - `4fa70fc`: `test(vfx): verify FPS bullet tracer behavior`
+  - `d6eaff1`: `feat(vfx): add safe camera-facing muzzle flash`
+  - `747ad4a`: `test(vfx): verify muzzle flash visibility and safety`
+  - `e73f562`: `feat(vfx): add environmental impact sparks`
+  - `f3ebe21`: `test(vfx): verify environmental impact sparks`
+- **Files Created / Changed:**
+  - `Assets/Scripts/FacilityBreach/FpsBulletTracer.cs` (created standalone line-based tracer component with 12-item pool)
+  - `Assets/Scripts/FacilityBreach/FpsBulletTracer.cs.meta` (created asset metadata)
+  - `Assets/Editor/FacilityBreach/FpsBulletTracerTests.cs` (created 31-check Edit Mode test suite)
+  - `Assets/Editor/FacilityBreach/FpsBulletTracerTests.cs.meta` (created asset metadata)
+  - `Assets/Scripts/FacilityBreach/FpsMuzzleFlashV2.cs` (created safe camera-aligned billboard muzzle flash component)
+  - `Assets/Scripts/FacilityBreach/FpsMuzzleFlashV2.cs.meta` (created asset metadata)
+  - `Assets/Editor/FacilityBreach/FpsMuzzleFlashV2Tests.cs` (created 30-check Edit Mode test suite)
+  - `Assets/Editor/FacilityBreach/FpsMuzzleFlashV2Tests.cs.meta` (created asset metadata)
+  - `Assets/Scripts/FacilityBreach/FpsImpactSparks.cs` (created tuned environmental micro-sparks component with 8-item pool)
+  - `Assets/Scripts/FacilityBreach/FpsImpactSparks.cs.meta` (created asset metadata)
+  - `Assets/Editor/FacilityBreach/FpsImpactSparksTests.cs` (created 25-check Edit Mode test suite)
+  - `Assets/Editor/FacilityBreach/FpsImpactSparksTests.cs.meta` (created asset metadata)
+  - `Assets/Scripts/FacilityBreach/FacilityBreachRuntime.cs` (modified: added minimal VFX initialization and shooting event hooks)
+
+#### Architectural Scope & Design Principles
+- **Decoupled Hitscan Visual Polish**: Hitscan weapon logic in `FacilityBreachRuntime.Shoot()` remains the single source of truth for player shooting. Visual effects strictly consume hitscan results without affecting weapon ballistics, raycast queries, player locomotion, damage calculations, or AI agent responses.
+- **Strict Rendering Invariants (Skybox Artifact Prevention)**:
+  1. **Strictly Zero Point Lights**: Dynamic light sources are strictly avoided to eliminate render pass conflicts with URP atmospheric skybox rendering.
+  2. **Transparent Unlit Shaders with `_ZWrite = 0`**: Depth writing is disabled on all VFX materials, preventing visual geometry from clipping or occluding the skybox.
+  3. **Standard Alpha Blending**: Configured with `SrcAlpha` / `OneMinusSrcAlpha` blending; additive HDR emission keywords are disabled to eliminate optical blowout when aiming upward.
+  4. **Pre-allocated Bounded Pooling**: All effects operate from fixed-capacity ring buffers, ensuring zero heap allocations and zero GC pressure during continuous fire.
+
+#### Subsystem Mechanics & Configuration
+- **Standalone Bullet Tracer (`FpsBulletTracer.cs`)**:
+  - Pool capacity: 12 pre-allocated `LineRenderer` instances.
+  - Tapered streak geometry ($0.025\text{m}$ start width, $0.008\text{m}$ end width).
+  - Trajectory spans from weapon muzzle to hit point (or $40.0\text{m}$ along camera aim on misses).
+  - Fades smoothly over $0.08\text{s}$ via alpha key decay (`#FFF2A8` $\rightarrow$ `#FF9900`).
+- **Camera-Facing Muzzle Flash V2 (`FpsMuzzleFlashV2.cs`)**:
+  - Solves earlier sky discoloration artifact by using a single camera-aligned quad anchored directly at the weapon muzzle in camera local space.
+  - Scale variation ($0.12\text{m} - 0.16\text{m}$) and random roll rotation ($\pm 35^\circ$) per shot.
+  - Snappy $0.030\text{s}$ duration ensures crisp visual combustion without lingering across subsequent frames.
+- **Environmental Impact Sparks (`FpsImpactSparks.cs`)**:
+  - Pool capacity: 8 impact objects, each with 5 micro-streak `LineRenderer` instances.
+  - User-approved tuned parameters: 5 streaks, length $\approx 0.08\text{m} - 0.12\text{m}$, width $0.012\text{m}$ start to $0.005\text{m}$ end, lifetime $0.11\text{s}$.
+  - Hemisphere spread aligned with surface normal; includes collinearity protection for vertical floor and ceiling impacts.
+  - Selective hit filtering: triggers exclusively on static environment geometry (`isEnvironment = damageable == null && enemy == null`), completely suppressing sparks on living character hits and sky misses.
+
+#### Manual Unity Play Mode Gameplay Verification (2026-10-20)
+The user manually verified live shooting in `Prototype.unity` across all three weapons:
+1. **Bullet Tracer**: **APPROVED** — Bright, snappy tracer clearly visible along bullet trajectory; scales naturally across all combat ranges.
+2. **Muzzle Flash V2**: **APPROVED** — Visible flash at the firearm muzzle; strictly zero sky or background discoloration artifacts when aiming upward into open airspace.
+3. **Environmental Impact Sparks**: **APPROVED** — Clearly visible micro-sparks on static walls, floors, and metal doors at tuned size; zero sparks on enemy characters.
+
+#### Automated Test Suite Verification (374 Total Checks)
+Executed in Unity 6000.6.2f1 headless batch mode with **ExitCode 0**:
+- **FPS Bullet Tracer Suite** (`FpsBulletTracerTests.cs`): **31 Passed, 0 Failed**.
+- **FPS Muzzle Flash V2 Suite** (`FpsMuzzleFlashV2Tests.cs`): **30 Passed, 0 Failed**.
+- **FPS Impact Sparks Suite** (`FpsImpactSparksTests.cs`): **25 Passed, 0 Failed**.
+- **Combined Facility Breach Regression Suite (10 Suites)**:
+  - `FpsArmsTests`: 80 PASSED, 0 FAILED
+  - `FpsViewModelObstructionTests`: 24 PASSED, 0 FAILED
+  - `FacilityInteractionDispatcherTests`: 43 PASSED, 0 FAILED
+  - `PatrolGuardAStarTests`: 37 PASSED, 0 FAILED
+  - `PatrolGuardSearchTests`: 22 PASSED, 0 FAILED
+  - `PatrolGuardReturnTests`: 36 PASSED, 0 FAILED
+  - `PatrolGuardObstacleTests`: 46 PASSED, 0 FAILED
+  - `FpsBulletTracerTests`: 31 PASSED, 0 FAILED
+  - `FpsMuzzleFlashV2Tests`: 30 PASSED, 0 FAILED
+  - `FpsImpactSparksTests`: 25 PASSED, 0 FAILED
+  - **Master Regression Total: 374/374 PASSED, 0 FAILED (100% Green)**.
+
+#### Evidence & Screenshots Disclosure
+- The existing visual evidence inventory is preserved at 28 high-resolution captures (Captures 01–28).
+- Per explicit user verification instructions, no additional screenshots (29–31) were requested, captured, or fabricated. Full verification is established through user Play Mode testing and 374 automated regression checks.
+
+#### Git Status & Integrity
+- Feature work committed across six clean feature/test commit pairs on branch `gv/IT24102587-bullet-tracer-vfx`.
 - Protected recovery directories (`Assets/_Recovery/`), package settings, `stash@{0}`, and test logs preserved untouched.
 - `git diff --check` passes with zero whitespace or line-ending warnings.
 
@@ -388,4 +471,5 @@ Located in [`docs/individual/evidence/IT24102587 GV evidence/`](evidence/IT24102
 1. **AI Navigation Carving**: Attach `NavMeshObstacle` components with runtime carving to doors and movable barricades to dynamically reshape NavMesh pathways when objects are opened, closed, or maneuvered to block pathways. *(Completed: Integrated via `DynamicNavigationObstacles.cs` and verified by 141 Patrol Guard regression checks).*
 2. **Full Scene Integration**: Integrate tested interactive doors and movable barricades into `Prototype.unity` and main facility corridors with centralized arbitration. *(Completed: Centralized `FacilityInteractionDispatcher` deployed, 6 barricades configured in `Prototype.unity`, and verified via manual Play Mode testing; merged in PR #11).*
 3. **First-Person Viewmodel Obstruction Polish**: Prevent weapon model clipping through solid walls in close-quarters combat via procedural low-ready retraction. *(Completed: `FpsViewModelObstruction` implemented, verified across 24 automated checks and 6 visual captures on feature branch `gv/IT24102587-fps-viewmodel-obstruction`; merged in PR #12).*
-4. **First-Person Tactical Arms/Gloves**: Evaluate tactical-gloved hands rigging for the equipped firearm viewmodel to further elevate first-person visual fidelity. *(Completed: `FpsArmsPrefabBuilder` implemented, CC BY 4.0 model integrated across all 3 weapons, verified across 80 automated checks and screenshots 26–28 on branch `gv/IT24102587-fps-tactical-arms`).*
+4. **First-Person Tactical Arms/Gloves**: Evaluate tactical-gloved hands rigging for the equipped firearm viewmodel to further elevate first-person visual fidelity. *(Completed: `FpsArmsPrefabBuilder` implemented, CC BY 4.0 model integrated across all 3 weapons, verified across 80 automated checks and screenshots 26–28 on branch `gv/IT24102587-fps-tactical-arms`; merged in PR #15).*
+5. **First-Person Shooting VFX**: Provide lightweight visual feedback for player shooting using hitscan data without affecting ballistics or causing skybox artifacts. *(Completed: Standalone bullet tracer, camera-facing muzzle flash V2, and tuned environmental impact sparks implemented and verified across 86 automated checks and user Play Mode testing on branch `gv/IT24102587-bullet-tracer-vfx`).*

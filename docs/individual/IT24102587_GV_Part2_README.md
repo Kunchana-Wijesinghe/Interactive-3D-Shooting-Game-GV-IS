@@ -5,9 +5,9 @@
 **Degree Programme:** BSc (Hons) in Information Technology Specialising in Software Engineering<br/>
 **Module:** SE3032 — Graphics and Visualization (GV)<br/>
 **Assigned Role:** Part 2: Systems Engineer (Player Interaction Physics, Collision Handling & Environment Mechanics)<br/>
-**Merged Baseline Branch:** `develop` (integrated via GV PR #9 commit `fd94efe`, PR #11 commit `4ac6a2f`, and PR #12 commit `caa133e`)<br/>
-**Active Feature Branch:** `gv/IT24102587-fps-tactical-arms` (branch based on `develop` commit `caa133e`)<br/>
-**Latest Synchronized Base Commit:** `caa133e` (`Merge pull request #12 from Kunchana-Wijesinghe/gv/IT24102587-fps-viewmodel-obstruction`)<br/>
+**Merged Baseline Branch:** `develop` (integrated via GV PR #9 commit `fd94efe`, PR #11 commit `4ac6a2f`, PR #12 commit `caa133e`, and PR #15 commit `b1b6745`)<br/>
+**Active Feature Branch:** `gv/IT24102587-bullet-tracer-vfx` (branch based on `develop` commit `b1b6745`)<br/>
+**Latest Synchronized Base Commit:** `b1b6745` (`Merge pull request #15 from Kunchana-Wijesinghe/gv/IT24102587-fps-tactical-arms`)<br/>
 **Target Unity Version:** Unity 6000.6.2f1 (URP / 3D, C# .NET Standard 2.1)<br/>
 **Repository:** `Interactive-3D-Shooting-Game-GV-IS` (Private)
 
@@ -579,28 +579,32 @@ Following the implementation of [`FpsViewModelObstruction.cs`](file:///c:/Users/
 
 ---
 
-### 7.7 Automated Viewmodel Obstruction & Master Regression Testing (208 Programmatic Checks)
+### 7.7 Automated Master Regression Testing (374 Programmatic Checks)
 
-To ensure that the procedural viewmodel obstruction component operates deterministically without introducing regressions to interaction arbitration or AI navigation, automated Edit Mode regression test suites were executed in Unity 6000.6.2f1 headless batch mode with **ExitCode 0**:
+To ensure that the procedural viewmodel obstruction, tactical arms, and shooting VFX components operate deterministically without introducing regressions to interaction arbitration or AI navigation, automated Edit Mode regression test suites were executed in Unity 6000.6.2f1 headless batch mode with **ExitCode 0**:
 
 ```powershell
 "C:\Program Files\Unity\Hub\Editor\6000.6.2f1\Editor\Unity.exe" `
   -batchmode -quit `
   -projectPath "C:\Users\Kunchana Wijesinghe\Pictures\GV,IS\FacilityBreach" `
-  -executeMethod FacilityBreach.Editor.FpsViewModelObstructionTests.RunBatch `
-  -logFile "<scratch>\obstruction_tests.log"
+  -executeMethod FacilityBreach.Editor.FpsImpactSparksTests.RunAll10SuitesBatch `
+  -logFile "<scratch>\all_10_suites.log"
 ```
 
-#### Master Automated Test Results Summary (208 Total Checks)
+#### Master Automated Test Results Summary (374 Total Checks)
 | Test Suite Class | Focus & Verification Domain | Checks | Result | Output Evidence Log |
 | :--- | :--- | :---: | :---: | :--- |
+| **`FpsArmsTests`** | PBR material setup, zero colliders/cameras, physical socket alignment across all 3 weapons, bladed stance, low-ready retraction response | 80 | **80 Passed, 0 Failed** | Batch Log Verification |
 | **`FpsViewModelObstructionTests`** | Procedural retraction bounds, low-ready pitch/yaw, nearClipPlane margin, multi-weapon reach adaptation, obstacle filters, weapon swap reset | 24 | **24 Passed, 0 Failed** | [`scratch/obstruction_tests.log`](file:///C:/Users/Kunchana%20Wijesinghe/.gemini/antigravity/brain/233253cf-39ec-4544-894f-e1d9d7a0da8c/scratch/obstruction_tests.log) |
 | **`FacilityInteractionDispatcherTests`** | Centralized interaction routing, held barricade priority, spatial scoring formula, single-action guarantee, range/angle limits | 43 | **43 Passed, 0 Failed** | [`interaction-tests-passed.txt`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/interaction-tests-passed.txt) |
 | **`PatrolGuardObstacleTests`** | Dynamic navigation obstacle carving, barricade corridor blocking, edge invalidation, dynamic detour replanning | 46 | **46 Passed, 0 Failed** | [`patrol-obstacle-tests-passed.txt`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/patrol-obstacle-tests-passed.txt) |
 | **`PatrolGuardAStarTests`** | A* search optimality, corridor heuristic admissibility, fallback graph search | 37 | **37 Passed, 0 Failed** | [`patrol-astar-tests-passed.txt`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/patrol-astar-tests-passed.txt) |
 | **`PatrolGuardReturnTests`** | Milestone 2.2B tactical retreat, patrol route resume, return node sequencing | 36 | **36 Passed, 0 Failed** | [`patrol-return-tests-passed.txt`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/patrol-return-tests-passed.txt) |
 | **`PatrolGuardSearchTests`** | Milestone 2.2A lost target search, corridor scanning, waypoint progression | 22 | **22 Passed, 0 Failed** | [`patrol-search-tests-passed.txt`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/patrol-search-tests-passed.txt) |
-| **Total Master Regression** | **Complete Facility Breach Automated Suite** | **208** | **208 Passed, 0 Failed** | **100% Green / Zero Regressions** |
+| **`FpsBulletTracerTests`** | Standalone bullet tracer pooling (12 items), zero lights/colliders, hitscan start/endpoint trajectory, clean lifetime expiry | 31 | **31 Passed, 0 Failed** | Batch Log Verification |
+| **`FpsMuzzleFlashV2Tests`** | Safe camera-facing muzzle flash, zero point lights, transparent unlit shader (`_ZWrite = 0`), muzzle anchoring, 30ms timer deactivation | 30 | **30 Passed, 0 Failed** | Batch Log Verification |
+| **`FpsImpactSparksTests`** | Environmental micro-sparks pooling (8 items), static environment-only triggering (suppressed on enemy hits/misses), vertical floor/ceiling normal robustness, zero lights/colliders, transparent unlit (`_ZWrite = 0`), 0.11s deactivation | 25 | **25 Passed, 0 Failed** | Batch Log Verification |
+| **Total Master Regression** | **Complete Facility Breach Automated Suite (10 Suites)** | **374** | **374 Passed, 0 Failed** | **100% Green / Zero Regressions** |
 
 ---
 
@@ -644,6 +648,12 @@ All core GV Part 2 deliverables were authored across branch `gv/Kunchana-interac
 | [`Assets/Scripts/FacilityBreach/FacilityBreachRuntime.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/FacilityBreachRuntime.cs) | Centralized dispatching, barricade mass calibration, dynamic registration, HUD prompt routing, and viewmodel obstruction hook | `8d7b3dc` | **Merged (PR #11) / Updated on Feature Branch** |
 | [`Assets/Scripts/FacilityBreach/FpsViewModelObstruction.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/FpsViewModelObstruction.cs) | Procedural viewmodel wall-obstruction and low-ready retraction controller | Feature Branch | **Verified on Feature Branch** |
 | [`Assets/Editor/FacilityBreach/FpsViewModelObstructionTests.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Editor/FacilityBreach/FpsViewModelObstructionTests.cs) | 24 Edit Mode automated viewmodel obstruction regression tests | Feature Branch | **Verified on Feature Branch** |
+| [`Assets/Scripts/FacilityBreach/FpsBulletTracer.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/FpsBulletTracer.cs) | Standalone FPS bullet tracer component with bounded pooling and alpha fade | Feature Branch | **Verified on Feature Branch** |
+| [`Assets/Editor/FacilityBreach/FpsBulletTracerTests.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Editor/FacilityBreach/FpsBulletTracerTests.cs) | 31 Edit Mode automated bullet tracer regression tests | Feature Branch | **Verified on Feature Branch** |
+| [`Assets/Scripts/FacilityBreach/FpsMuzzleFlashV2.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/FpsMuzzleFlashV2.cs) | Safe camera-facing muzzle flash quad with transparent unlit rendering | Feature Branch | **Verified on Feature Branch** |
+| [`Assets/Editor/FacilityBreach/FpsMuzzleFlashV2Tests.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Editor/FacilityBreach/FpsMuzzleFlashV2Tests.cs) | 30 Edit Mode automated muzzle flash regression tests | Feature Branch | **Verified on Feature Branch** |
+| [`Assets/Scripts/FacilityBreach/FpsImpactSparks.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/FpsImpactSparks.cs) | Environmental impact sparks component (5 streaks, 0.08–0.12m spread, 0.11s lifetime, environment-only filtering) | Feature Branch | **Verified on Feature Branch** |
+| [`Assets/Editor/FacilityBreach/FpsImpactSparksTests.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Editor/FacilityBreach/FpsImpactSparksTests.cs) | 25 Edit Mode automated environmental impact sparks regression tests | Feature Branch | **Verified on Feature Branch** |
 | [`Assets/Scripts/InteractiveDoor.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/InteractiveDoor.cs) | Hinge kinematics, Slerp rotation, occupant clearance probe, `handleInternalInput` flag | `8d7b3dc` | **Merged into develop (PR #11)** |
 | [`Assets/Scenes/Prototype.unity`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scenes/Prototype.unity) | Production facility scene with 6 pushable barricades configured for grab/release | `8d7b3dc` | **Merged into develop (PR #11)** |
 | [`Assets/Scripts/DoorTrigger.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/DoorTrigger.cs) | Player proximity trigger volume detection | `b275b3d` | **Tracked / Verified** |
@@ -681,6 +691,9 @@ All core GV Part 2 deliverables were authored across branch `gv/Kunchana-interac
 | `docs/individual/evidence/IT24102587 GV evidence/23_GV_FPS_Weapon_Swap_Retraction.png` | Evidence Capture 23: Weapon swap reach adaptation against wall | Feature Branch | **Captured / Verified (Feature Branch)** |
 | `docs/individual/evidence/IT24102587 GV evidence/24_GV_FPS_Weapon_Normal.png` | Evidence Capture 24: Unobstructed viewmodel normal hip-fire stance | Feature Branch | **Captured / Verified (Feature Branch)** |
 | `docs/individual/evidence/IT24102587 GV evidence/25_GV_FPS_Door_Prompt.png` | Evidence Capture 25: Door prompt and viewmodel during pause menu | Feature Branch | **Captured / Verified (Feature Branch)** |
+| `docs/individual/evidence/IT24102587 GV evidence/26_GV_FPS_Tactical_Arms_Final.png` | Evidence Capture 26: User-approved tactical arms first-person framing with equipped Ammo1gun in standard holding pose | Feature Branch | **Captured / Verified (Feature Branch)** |
+| `docs/individual/evidence/IT24102587 GV evidence/27_GV_FPS_Tactical_Arms_Wall_Retraction.png` | Evidence Capture 27: Combined gun-and-arms assembly smoothly retracted into low-ready stance against wall | Feature Branch | **Captured / Verified (Feature Branch)** |
+| `docs/individual/evidence/IT24102587 GV evidence/28_GV_FPS_Tactical_Arms_Ammo3gun.png` | Evidence Capture 28: Long-rifle Ammo3gun equipped with tactical arms, confirming proper handguard support and grip alignment | Feature Branch | **Captured / Verified (Feature Branch)** |
 
 ---
 
@@ -706,6 +719,12 @@ All core GV Part 2 deliverables were authored across branch `gv/Kunchana-interac
 
 ### Q7: How does the procedural weapon-wall obstruction controller prevent clipping without affecting shooting accuracy?
 > **Answer**: [`FpsViewModelObstruction.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/FpsViewModelObstruction.cs) governs only the local visual transform offsets (`localPosition` and `localRotation`) of the `equippedVisual` GameObject parented under the camera. Hitscan weapon firing in [`FacilityBreachRuntime.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/FacilityBreachRuntime.cs) originates strictly from the camera world position (`view.transform.position`) along the camera forward aim vector (`view.transform.forward`). Because crosshair aiming and ballistics are completely decoupled from the cosmetic viewmodel pose, smoothly sliding the weapon backward and pitching it downward in close-quarters combat eliminates wall clipping while ensuring bullets always hit the true crosshair center without angular deviation.
+
+### Q8: How does the first-person shooting VFX system avoid skybox and background rendering artifacts?
+> **Answer**: Earlier VFX iterations in Unity 6 exhibited intermittent sky discoloration when shooting upward due to dynamic point light components and additive HDR blending interacting with URP sky rendering. The finalized shooting VFX suite strictly enforces three rendering invariants across all three effects: (1) strictly zero `Light` components are used (100% luminous color-gradient LineRenderers and camera-aligned quads); (2) all materials use transparent unlit shaders (`Unlit/Transparent`) with depth writing disabled (`_ZWrite = 0`), preventing them from occluding the skybox; and (3) standard alpha blending (`SrcAlpha` / `OneMinusSrcAlpha`) is used instead of additive blending, preventing HDR color blowout when aiming skyward.
+
+### Q9: How does the hitscan pipeline differentiate between environment impact sparks and character damage?
+> **Answer**: In [`FacilityBreachRuntime.Shoot()`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/FacilityBreachRuntime.cs), hitscan raycast results are evaluated immediately: `bool isEnvironment = damageable == null && enemy == null;`. If the raycast strikes a living character (e.g. Patrol Guard `PG-01`), damage is applied, damage floating feedback is displayed, and environmental impact sparks are explicitly suppressed. Only when the ray hits static facility geometry (walls, floors, metal doors, concrete barricades) does [`FpsImpactSparks.SpawnSparks(hit.point, hit.normal)`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/FpsImpactSparks.cs) trigger, spawning micro-sparks oriented away from the hit surface normal. Misses (raycasts hitting nothing) also produce zero impact sparks.
 
 ---
 
@@ -809,3 +828,65 @@ Located in [`docs/individual/evidence/IT24102587 GV evidence/`](evidence/IT24102
 
 > [!NOTE]
 > **Static Visual Disclosure**: Screenshots 26–28 demonstrate the user-approved static weapon framing and holding pose in Unity Play Mode. They do not claim skeletal animation playback or continuous weapon-switch interpolation.
+
+---
+
+## 13. Post-Merge Supplementary Visual Enhancement: First-Person Shooting VFX (Bullet Tracer, Camera-Facing Muzzle Flash V2 & Environmental Impact Sparks)
+
+> [!NOTE]
+> **Academic & Scope Disclosure**:
+> The first-person shooting VFX suite is a visual-only polish enhancement authored on feature branch `gv/IT24102587-bullet-tracer-vfx` (branched from `develop` at base commit `b1b6745`). This enhancement introduces real-time visual feedback for player shooting while strictly preserving existing hitscan mechanics, raycast logic, damage calculation, player movement, and AI behaviors with zero modifications. In accordance with the user's explicit verification preference, existing screenshot evidence remains preserved at 28 captures without creating or fabricating additional screenshots 29–31.
+
+### 13.1 Visual Feedback Architecture & Hitscan Decoupling
+In the merged baseline, shooting was instantaneous hitscan: raycasts computed weapon hits and immediately applied damage without visible ballistics, muzzle ignition, or surface impact feedback. To elevate game feel while maintaining deterministic combat accuracy:
+- All shooting effects are **strictly decoupled** from weapon ballistics.
+- Raycasts in [`FacilityBreachRuntime.Shoot()`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/FacilityBreachRuntime.cs) continue originating from the camera center toward the crosshair.
+- Hitscan results (`muzzle`, `hit.point`, `hit.normal`, `isEnvironment`) are forwarded to lightweight, pooled VFX components:
+  1. [`FpsBulletTracer.SpawnTracer()`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/FpsBulletTracer.cs)
+  2. [`FpsMuzzleFlashV2.TriggerFlash()`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/FpsMuzzleFlashV2.cs)
+  3. [`FpsImpactSparks.SpawnSparks()`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/FpsImpactSparks.cs)
+
+### 13.2 Standalone Bullet Tracer (`FpsBulletTracer`)
+- **Bounded Pool**: Manages a pre-instantiated ring buffer of 12 `LineRenderer` instances parented under an isolated root GameObject (`[VFX_BulletTracerPool]`), completely eliminating runtime GC allocations during continuous firing.
+- **Trajectory Representation**: Extends from the authored weapon muzzle position to the hitscan impact point (or $40.0\text{m}$ along the camera forward vector on misses).
+- **Line Width & Color Gradient**: Tapered geometry ($0.025\text{m}$ start width, $0.008\text{m}$ end width) with a luminous yellow-white core (`#FFF2A8` $\rightarrow$ `#FF9900`) and smooth alpha decay over $0.08\text{s}$.
+- **Rendering Safety**: Uses `Unlit/Transparent` with `_ZWrite = 0` to prevent depth-buffer occlusion artifacts against the facility skybox.
+- **Automated Verification**: Verified across 31 automated Edit Mode unit checks ([`FpsBulletTracerTests.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Editor/FacilityBreach/FpsBulletTracerTests.cs)).
+
+### 13.3 Safe Camera-Facing Muzzle Flash V2 (`FpsMuzzleFlashV2`)
+- **Root-Cause Analysis of Previous Artifacts**: An earlier muzzle flash prototype produced intermittent background and sky discoloration when aiming upward. Diagnostic profiling identified dynamic point lights and additive HDR blending interacting erratically with the URP sky render pass.
+- **V2 Kinematic Architecture**:
+  - Replaced point lights and complex meshes with a single camera-aligned billboard quad anchored directly at the weapon muzzle in camera local space.
+  - Strictly **zero `Light` components** and **zero `Collider` components**.
+  - Transparent unlit material (`_ZWrite = 0`, standard `SrcAlpha` / `OneMinusSrcAlpha` blending) with zero HDR emission keywords, completely preventing skybox blowout.
+  - Procedural micro-jitter: subtle random scale variation ($0.12\text{m} - 0.16\text{m}$) and roll rotation ($\pm 35^\circ$) per shot for organic combustion variation.
+  - Snappy $0.030\text{s}$ lifetime timer, deactivating cleanly without lingering.
+- **Automated Verification**: Verified across 30 automated Edit Mode unit checks ([`FpsMuzzleFlashV2Tests.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Editor/FacilityBreach/FpsMuzzleFlashV2Tests.cs)).
+
+### 13.4 Environmental Impact Sparks (`FpsImpactSparks`)
+- **Bounded Pool Architecture**: Pre-allocates 8 pooled impact objects (`[VFX_ImpactSparksPool]`), each containing 5 micro-streak `LineRenderer` components.
+- **User-Approved Visual Tuning**:
+  - **Spark Count**: 5 streaks radiating outward along a hemisphere aligned with the hit surface normal.
+  - **Spark Length**: Modest spread of $\approx 0.08\text{m} - 0.12\text{m}$ (`Random.Range(0.08f, 0.11f)` plus depth normal offset).
+  - **Streak Width**: Tapered $0.012\text{m}$ start width down to $0.005\text{m}$ end width for high contrast against dark facility textures.
+  - **Lifetime**: $0.11\text{s}$ lifetime, allowing the human eye to perceive the micro-burst without cluttering the screen.
+- **Surface Normal Robustness**: Implements singularity-free orientation handling:
+  $$\mathbf{u}_{\text{ref}} = |\mathbf{n} \cdot \mathbf{u}_{\text{up}}| > 0.85 \;?\; \mathbf{u}_{\text{forward}} : \mathbf{u}_{\text{up}}$$
+  Ensures vertical floor impacts ($\mathbf{n} = (0, 1, 0)$) and ceiling impacts ($\mathbf{n} = (0, -1, 0)$) do not trigger collinear `LookRotation` zero-vector exceptions.
+- **Selective Hit Classification**:
+  - `isEnvironment = damageable == null && enemy == null;`
+  - Environmental sparks spawn **exclusively** on static geometry (walls, floors, doors, barricades).
+  - Raycasts striking patrol guards or enemies bypass spark spawning entirely.
+  - Misses into open corridors or the sky bypass spark spawning entirely.
+- **Rendering Safety**: Transparent unlit material (`_ZWrite = 0`), zero colliders, and zero point lights.
+- **Automated Verification**: Verified across 25 automated Edit Mode unit checks ([`FpsImpactSparksTests.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Editor/FacilityBreach/FpsImpactSparksTests.cs)).
+
+### 13.5 Manual Play Mode Gameplay Verification & Evidence Status
+- **User Manual Play Mode Testing (2026-10-20)**:
+  - Fired all three player firearms (`Ammo1gun`, `Ammo2gun`, `Ammo3gun`) against walls, floors, doors, barricades, and into open airspace.
+  - **Bullet Tracer**: **APPROVED** — Clearly visible streak along shot trajectory; consistent across close-range and long-distance fire.
+  - **Muzzle Flash V2**: **APPROVED** — Snappy flash clearly visible at gun muzzle; zero sky discoloration or abnormal background artifacts when aiming upward.
+  - **Environmental Impact Sparks**: **APPROVED** — Micro-sparks clearly visible on static facility walls and floors at approved tuned size; strictly zero sparks on character hits or sky misses.
+- **Evidence Asset Disclosure**:
+  - In accordance with the user's explicit verification preference, the visual evidence inventory is preserved at 28 high-resolution screenshots (Captures 01–28).
+  - Screenshots 29–31 were not requested or created, and no visual evidence was fabricated. Manual visual approval in live Play Mode combined with 86 new automated unit checks (374 master total) provides full technical verification.
