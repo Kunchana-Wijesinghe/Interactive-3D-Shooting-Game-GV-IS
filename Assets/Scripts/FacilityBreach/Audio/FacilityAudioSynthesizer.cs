@@ -15,7 +15,8 @@ namespace FacilityBreach.Audio
         RollingMetal,
         ProjectileLaunch,
         ProjectileImpact,
-        FacilityAmbience
+        FacilityAmbience,
+        BarrelRollRattle
     }
 
     /// <summary>
@@ -28,11 +29,13 @@ namespace FacilityBreach.Audio
     {
         private const int SampleRate = 44100;
         private static readonly Dictionary<FacilityAudioClipType, AudioClip> ClipCache = new Dictionary<FacilityAudioClipType, AudioClip>();
+        private static readonly AudioClip[] RattleClips = new AudioClip[3];
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void ResetStatics()
         {
             ClipCache.Clear();
+            System.Array.Clear(RattleClips, 0, RattleClips.Length);
         }
 
         public static AudioClip GetOrCreateClip(FacilityAudioClipType clipType)
@@ -54,6 +57,7 @@ namespace FacilityBreach.Audio
                 FacilityAudioClipType.ProjectileLaunch  => SynthesizeProjectileLaunch(),
                 FacilityAudioClipType.ProjectileImpact  => SynthesizeProjectileImpact(),
                 FacilityAudioClipType.FacilityAmbience  => SynthesizeFacilityAmbience(),
+                FacilityAudioClipType.BarrelRollRattle  => GetOrCreateRattleClip(0),
                 _                                       => SynthesizeGunshotAmmo1()
             };
 
@@ -63,6 +67,20 @@ namespace FacilityBreach.Audio
             }
 
             return generatedClip;
+        }
+
+        /// <summary>
+        /// Retrieves or creates one of 3 deterministic short metallic rattle tick variants.
+        /// Derived from the approved metallic impact timbre for realistic rolling clatter.
+        /// </summary>
+        public static AudioClip GetOrCreateRattleClip(int variant = 0)
+        {
+            int idx = Mathf.Clamp(variant, 0, 2);
+            if (RattleClips[idx] == null)
+            {
+                RattleClips[idx] = SynthesizeBarrelRollRattle(idx);
+            }
+            return RattleClips[idx];
         }
 
         /// <summary>
@@ -273,9 +291,9 @@ namespace FacilityBreach.Audio
         }
 
         /// <summary>
-        /// Rolling Metal: Organic metallic rumble with granular concrete friction and hollow body resonance (1.0s seamless loop).
-        /// Replaces synthetic pure tones with two-pole filtered surface-grain noise, friction-excited cavity resonance,
-        /// and subtle rotational sheet vibration, cleanly bridged at loop boundary for click-free playback.
+        /// Rolling Friction Texture: Soft mechanical surface contact noise (1.0s seamless loop).
+        /// Replaces synthetic pure tones with filtered granular surface friction and subtle non-electronic scrape,
+        /// providing a quiet floor contact bed beneath the discrete metallic rattles.
         /// </summary>
         private static AudioClip SynthesizeRollingMetal()
         {
@@ -284,7 +302,7 @@ namespace FacilityBreach.Audio
             float[] samples = new float[totalSamples];
             var rng = new System.Random(7997);
 
-            // Two-pole smoothed surface-grain friction noise (pink/brown noise characteristic of concrete contact)
+            // Two-pole smoothed surface-grain friction noise
             float[] grainNoise = new float[totalSamples];
             float filterState1 = 0f;
             float filterState2 = 0f;
@@ -293,27 +311,22 @@ namespace FacilityBreach.Audio
                 float raw = ((float)rng.NextDouble() * 2f - 1f);
                 filterState1 += 0.12f * (raw - filterState1);
                 filterState2 += 0.08f * (filterState1 - filterState2);
-                grainNoise[i] = filterState2 * 3.5f; // restore level after smoothing
+                grainNoise[i] = filterState2 * 3.5f;
             }
 
             for (int i = 0; i < totalSamples; i++)
             {
                 float t = (float)i / SampleRate;
 
-                // Low hollow barrel cavity resonance excited by surface contact
-                float cavityFreq1 = 76f + 1.5f * Mathf.Sin(2f * Mathf.PI * 4f * t);
-                float cavityFreq2 = 114f + 2.0f * Mathf.Sin(2f * Mathf.PI * 6f * t);
-                float cavityTone1 = Mathf.Sin(2f * Mathf.PI * cavityFreq1 * t) * (0.35f + 0.15f * grainNoise[i]);
-                float cavityHarmonic = Mathf.Sin(2f * Mathf.PI * cavityFreq2 * t) * 0.20f;
+                // Pure mechanical surface contact (concrete grit + soft physical scrape, ZERO continuous sine tones)
+                float concreteGrit = grainNoise[i] * 0.45f;
+                float scrapeNoise = ((float)rng.NextDouble() * 2f - 1f) * 0.15f;
+                float metallicScrape = (grainNoise[i] * 0.6f + scrapeNoise * 0.4f) * Mathf.Sin(2f * Mathf.PI * 340f * t) * 0.25f;
 
-                // Broadband surface friction and subtle band-passed metallic scrape
-                float metallicScrape = grainNoise[i] * Mathf.Sin(2f * Mathf.PI * 420f * t) * 0.30f;
-                float concreteGrit = grainNoise[i] * 0.40f;
+                // Subtle rotational seam modulation (4Hz barrel turn cycle)
+                float revWobble = 0.80f + 0.20f * Mathf.Sin(2f * Mathf.PI * 4f * t);
 
-                // Subtle rotational seam wobble (5Hz barrel revolution cycle)
-                float revWobble = 0.75f + 0.25f * Mathf.Sin(2f * Mathf.PI * 5f * t);
-
-                samples[i] = (cavityTone1 + cavityHarmonic + concreteGrit + metallicScrape) * revWobble;
+                samples[i] = (concreteGrit + metallicScrape) * revWobble;
             }
 
             // Smoothly bridge the last 5ms to match sample 0 for seamless click-free looping
@@ -327,8 +340,57 @@ namespace FacilityBreach.Audio
                 samples[idx] = Mathf.Lerp(samples[idx], targetSample, smooth);
             }
 
-            NormalizeSamples(samples, 0.85f);
+            NormalizeSamples(samples, 0.50f);
             AudioClip clip = AudioClip.Create("Procedural_Rolling_Metal", totalSamples, 1, SampleRate, false);
+            clip.SetData(samples, 0);
+            return clip;
+        }
+
+        /// <summary>
+        /// Metal Barrel Rolling Rattle: Short, crisp metallic tap transient derived directly from the
+        /// approved metallic impact timbre (0.05s).
+        /// Emitted repeatedly as a metal barrel rolls and its structural rims/seams tap against the floor.
+        /// </summary>
+        private static AudioClip SynthesizeBarrelRollRattle(int variant = 0)
+        {
+            float duration = 0.05f;
+            int totalSamples = Mathf.CeilToInt(SampleRate * duration);
+            float[] samples = new float[totalSamples];
+            var rng = new System.Random(7100 + variant * 37);
+
+            // Pitch offsets for subtle variation between the 3 rattle variants
+            float pitchScale = variant switch
+            {
+                1 => 1.08f, // Lighter rim ping
+                2 => 0.92f, // Deeper hollow knock
+                _ => 1.00f  // Standard body tap
+            };
+
+            float fBody = 220f * pitchScale;
+            float fShell = 520f * pitchScale;
+            float fRim = 880f * pitchScale;
+            float fInharmonic = 1350f * pitchScale;
+
+            for (int i = 0; i < totalSamples; i++)
+            {
+                float t = (float)i / SampleRate;
+                float envelope = Mathf.Exp(-52f * t); // Fast decay over 45ms
+                float attack = Mathf.Clamp01(t / 0.0008f);
+
+                // Sharp transient slap/tick (fast-decaying micro click)
+                float click = ((float)rng.NextDouble() * 2f - 1f) * Mathf.Exp(-90f * t) * 0.40f;
+
+                // Multi-harmonic metallic barrel resonance identical to approved impact clank
+                float bodyTone = Mathf.Sin(2f * Mathf.PI * fBody * t) * 0.40f;
+                float midRing = Mathf.Sin(2f * Mathf.PI * fShell * t) * 0.35f;
+                float highPing = Mathf.Sin(2f * Mathf.PI * fRim * t) * 0.25f;
+                float inharmonic = Mathf.Sin(2f * Mathf.PI * fInharmonic * t) * 0.15f;
+
+                samples[i] = attack * envelope * (click + bodyTone + midRing + highPing + inharmonic);
+            }
+
+            NormalizeSamples(samples, 0.62f);
+            AudioClip clip = AudioClip.Create($"Procedural_Barrel_Roll_Rattle_{variant}", totalSamples, 1, SampleRate, false);
             clip.SetData(samples, 0);
             return clip;
         }
