@@ -53,6 +53,8 @@ namespace FacilityBreach.Editor
             RunTest("FpsKickController_RangeAndOcclusion", Test_FpsKickController_RangeAndOcclusion);
             RunTest("FpsKickController_PrecisionAimAndTargetResolution", Test_FpsKickController_PrecisionAimAndTargetResolution);
             RunTest("ThirteenPropsPlacement_AllThirteenPropsSpawned", Test_ThirteenPropsPlacement_AllThirteenPropsSpawned);
+            RunTest("ConvertExistingSceneProps_AllowlistSafetyAndConversion", Test_ConvertExistingSceneProps_AllowlistSafetyAndConversion);
+            RunTest("TotalFacilityProps_AuthoredPlusConverted", Test_TotalFacilityProps_AuthoredPlusConverted);
             RunTest("TeammateSoundHunterIsolation_NoCoupling", Test_TeammateSoundHunterIsolation_NoCoupling);
             RunTest("ExistingVfxAndAudioIntegration_Preserved", Test_ExistingVfxAndAudioIntegration_Preserved);
 
@@ -498,6 +500,109 @@ namespace FacilityBreach.Editor
                 var root = GameObject.Find(FacilityKickablePropsSetup.PropsRootName);
                 if (root != null) UnityEngine.Object.DestroyImmediate(root);
                 UnityEngine.Object.DestroyImmediate(rootParent);
+            }
+        }
+
+        private static void Test_ConvertExistingSceneProps_AllowlistSafetyAndConversion()
+        {
+            var mockParent = new GameObject("Test_Scene_Clutter");
+            var mockBarricade = new GameObject("Barricade_Entrance");
+            var mockProps = new List<GameObject>();
+
+            try
+            {
+                // Setup mock barricade that MUST be protected
+                mockBarricade.AddComponent<MovableBarricade>();
+
+                // Setup mock objects for each item in SafeScenePropAllowlist
+                for (int i = 0; i < FacilityKickablePropsSetup.SafeScenePropAllowlist.Length; i++)
+                {
+                    string propName = FacilityKickablePropsSetup.SafeScenePropAllowlist[i];
+                    var go = propName.StartsWith("Barrel") ?
+                        GameObject.CreatePrimitive(PrimitiveType.Cylinder) :
+                        GameObject.CreatePrimitive(PrimitiveType.Cube);
+
+                    go.name = propName;
+                    go.transform.SetParent(mockParent.transform);
+                    var rb = go.GetComponent<Rigidbody>();
+                    if (rb == null) rb = go.AddComponent<Rigidbody>();
+                    mockProps.Add(go);
+                }
+
+                Assert(FacilityKickablePropsSetup.SafeScenePropAllowlist.Length == 16, "Allowlist contains exactly 16 existing clutter props (8 barrels + 8 crates)");
+
+                // Execute conversion
+                var converted = FacilityKickablePropsSetup.ConvertExistingSceneProps();
+
+                Assert(converted != null, "ConvertExistingSceneProps returns non-null list");
+                Assert(converted.Count == 16, "All 16 allowlisted scene clutter props are converted", $"Count={converted.Count}");
+
+                // Barricade must NOT have KickablePhysicsProp
+                Assert(mockBarricade.GetComponent<KickablePhysicsProp>() == null, "Barricade_Entrance is strictly excluded from kick conversion");
+
+                int barrelCount = 0;
+                int crateCount = 0;
+
+                foreach (var prop in converted)
+                {
+                    Assert(prop != null, "Converted prop is non-null");
+                    Assert(prop.Body != null, $"Prop {prop.name} has Rigidbody");
+                    Assert(prop.Body.collisionDetectionMode == CollisionDetectionMode.ContinuousDynamic, $"Prop {prop.name} uses ContinuousDynamic collision");
+
+                    if (prop.name.StartsWith("Barrel"))
+                    {
+                        barrelCount++;
+                        Assert(prop.MaterialType == PropMaterialType.Metal, $"Barrel {prop.name} has Metal material");
+                        Assert(prop.LinearDamping <= 0.50f, $"Barrel {prop.name} linear damping is calibrated for rolling", $"Damping={prop.LinearDamping}");
+                        Assert(prop.AngularDamping <= 0.25f, $"Barrel {prop.name} angular damping is calibrated for rolling", $"AngularDamping={prop.AngularDamping}");
+                    }
+                    else if (prop.name.StartsWith("Crate"))
+                    {
+                        crateCount++;
+                        Assert(prop.MaterialType == PropMaterialType.Wood, $"Crate {prop.name} has Wood material");
+                        Assert(prop.LinearDamping >= 0.60f && prop.LinearDamping <= 0.70f, $"Crate {prop.name} linear damping gives heavy solid response", $"Damping={prop.LinearDamping}");
+                    }
+                }
+
+                Assert(barrelCount == 8, "Exactly 8 existing barrels converted", $"BarrelCount={barrelCount}");
+                Assert(crateCount == 8, "Exactly 8 existing crates converted", $"CrateCount={crateCount}");
+
+                // Idempotence check
+                var secondPass = FacilityKickablePropsSetup.ConvertExistingSceneProps();
+                Assert(secondPass.Count == 16, "Repeated conversion is idempotent (returns 16 without duplicates)", $"Count={secondPass.Count}");
+            }
+            finally
+            {
+                foreach (var go in mockProps)
+                {
+                    if (go != null) UnityEngine.Object.DestroyImmediate(go);
+                }
+                if (mockBarricade != null) UnityEngine.Object.DestroyImmediate(mockBarricade);
+                if (mockParent != null) UnityEngine.Object.DestroyImmediate(mockParent);
+            }
+        }
+
+        private static void Test_TotalFacilityProps_AuthoredPlusConverted()
+        {
+            int authoredCount = FacilityKickablePropsSetup.AuthoredPropDefinitions.Length;
+            int convertedAllowlistCount = FacilityKickablePropsSetup.SafeScenePropAllowlist.Length;
+            int totalFacilityProps = authoredCount + convertedAllowlistCount;
+
+            Assert(authoredCount == 13, "Authored prop definitions count is 13 (5 boxes, 3 crates, 5 barrels)", $"Authored={authoredCount}");
+            Assert(convertedAllowlistCount == 16, "Converted allowlist count is 16 (8 barrels, 8 crates)", $"Allowlist={convertedAllowlistCount}");
+            Assert(totalFacilityProps == 29, "Total facility kickable props contract is exactly 29 props (sensibly within 25-30 target)", $"Total={totalFacilityProps}");
+
+            // Verify kick travel distance impulse and damping calibration
+            var kickControllerGo = new GameObject("Test_KickController_DistanceTuning");
+            try
+            {
+                var kickCtrl = kickControllerGo.AddComponent<FpsKickController>();
+                Assert(kickCtrl.KickImpulse >= 18.0f, "Kick impulse is tuned for extended travel distance (>= 18.0f)", $"Impulse={kickCtrl.KickImpulse}");
+                Assert(kickCtrl.UpwardLoft >= 2.5f && kickCtrl.UpwardLoft <= 3.0f, "Upward loft gives shallow trajectory arc for floor slide", $"Loft={kickCtrl.UpwardLoft}");
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(kickControllerGo);
             }
         }
 
