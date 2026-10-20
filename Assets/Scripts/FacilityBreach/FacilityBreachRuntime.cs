@@ -11,6 +11,7 @@ using FacilityBreach.AI.SoundHunter;
 using FacilityBreach.AI.Roles;
 using FacilityBreach.Audio;
 using FacilityBreach.Noise;
+using FacilityBreach.Physics;
 
 namespace FacilityBreach
 {
@@ -112,6 +113,7 @@ namespace FacilityBreach
                 mb.ConfigurePhysics();
                 dispatcher.RegisterBarricade(mb);
             }
+            FacilityKickablePropsSetup.EnsurePropsSpawned(transform);
             // The committed scene lacks the waste root despite shipping its generator.
             // Add only an obstacle here; never call the destructive world generators.
             Vector3 waste = new Vector3(-2, 0, 20);
