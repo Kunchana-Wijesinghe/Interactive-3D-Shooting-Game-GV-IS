@@ -581,8 +581,23 @@ Executed in Unity 6000.6.2f1 headless batch mode with **ExitCode 0**:
     - Added `GetAllFacilityProps()` and completed environment-wide prop population across 5 distinct facility zones.
 21. `675e114` `test(gv): update test suite for 29 total kickable props and travel distance tuning`
     - Added `Test_ConvertExistingSceneProps_AllowlistSafetyAndConversion` and `Test_TotalFacilityProps_AuthoredPlusConverted` to `KickablePhysicsAudioTests.cs` (expanding suite to 17 test methods).
-22. `[pending]` `docs(gv): document environment-wide prop expansion and enhanced kick travel distance`
+22. `768c226` `docs(gv): document environment-wide prop expansion and enhanced kick travel distance`
     - Updated GV Part 2 technical report, worklog, and verification log with 29-prop inventory and distance physics formulas.
+23. `ddd51d4` `fix(test): add required collider to mock barricade before component attachment`
+    - Added `BoxCollider` to mock barricade GameObject prior to `AddComponent<MovableBarricade>()` in unit test to satisfy `[RequireComponent(typeof(Collider))]`.
+24. `d340b4b` `feat(physics): expand kickable prop allowlist to include existing clutter boxes and detail crates`
+    - Expanded `SafeScenePropAllowlist` in `FacilityKickablePropsSetup.cs` from 16 to 27 scene props by adding 8 clutter storage boxes (`Box_*`) and 3 Room 1 detail crates (`Room1_Crate_*`).
+    - Updated `ConvertExistingSceneProps()` to find props under `Facility_Details` as well as `Facility_Barricades`.
+    - Handled sibling detail crate bands (`Room1_Crate_*_Band`) by disabling band colliders (preventing raycast blockage) and parenting bands to crate transforms (ensuring visual bands move synchronously with kicked crates).
+    - Configured calibrated masses and damping: storage boxes (3.5kg, 0.48 linear damping for extended slide), detail crates (6.5/5.0/4.5kg, 0.65/0.60 linear damping for heavy impact feel).
+    - Enforced strict safety gate protecting `MovableBarricade` and `ResourceStation` instances from kick conversion.
+25. `2e3f24a` `test(physics): update kickable prop conversion tests for 27 scene props and station protection`
+    - Updated `Test_ConvertExistingSceneProps_AllowlistSafetyAndConversion` and `Test_TotalFacilityProps_AuthoredPlusConverted` in `KickablePhysicsAudioTests.cs` for 27 converted scene props and 40 total facility props.
+    - Added explicit unit assertions for `ResourceStation` protection, detail crate sibling band parenting, and disabled band colliders.
+    - Verified all 17 test methods passed with 319 programmatic checks (693 cumulative project checks across all 11 suites).
+26. `[pending]` `docs(gv): document screenshot prop diagnostics, allowlist expansion, and health station protection`
+    - Documented comprehensive root-cause analysis for Screenshot A (omitted brown clutter/detail crates) and Screenshot B (protected green health station pickup).
+    - Documented updated 40-prop inventory (13 authored + 27 converted) and consolidated 693/693 automated test results.
 
 #### Root-Cause Analysis & Technical Solutions
 1. **Targeting Inaccuracy & Non-Responsive Props:**
@@ -595,10 +610,22 @@ Executed in Unity 6000.6.2f1 headless batch mode with **ExitCode 0**:
    - *Root Cause:* Fundamental frequencies (85Hz down to 35Hz) fell below laptop speaker cutoff thresholds, and rapid decay ($e^{-38t}$) curtailed acoustic presence.
    - *Solution:* Shifted punch sweep to 140Hz-55Hz (audible upper bass / low midrange), added 220Hz knock harmonic and $e^{-28t}$ decay over $0.12\text{s}$, and normalized peak amplitude to $0.96$.
 
+4. **Non-Responsive Visible Facility Crates/Boxes (User Play Mode Screenshots):**
+   - *Screenshot A Diagnosis (Large Brown Crate under crosshair):*
+     - Identified as either `Box_Entrance_01` (from `Facility_Barricades`, material `Clutter_StorageBox.mat` - solid brown, $0.90\text{m} \times 0.75\text{m} \times 0.75\text{m}$) or `Room1_Crate_A` (from `Facility_Details`, material `Detail_IndustrialOrange.mat` - wood orange/brown, $1.3\text{m}$ cube).
+     - *Root Cause 1:* The 8 clutter storage boxes (`Box_*`) were entirely omitted from `SafeScenePropAllowlist` in `FacilityKickablePropsSetup.cs` (only `Barrel_*` and `Crate_*` were converted). Lacking `KickablePhysicsProp`, they exhibited no HUD prompt and ignored F-key kicks.
+     - *Root Cause 2:* The 3 Room 1 detail crates (`Room1_Crate_A/B/C`) lacked dynamic `Rigidbody` components and had sibling `*_Band` GameObjects with `BoxCollider` components that wrapped around the crate, intercepting camera raycasts.
+     - *Solution:* Added all 8 clutter storage boxes and all 3 detail crates to `SafeScenePropAllowlist` (expanding converted props from 16 to 27). In `ConvertExistingSceneProps()`, dynamically attach `Rigidbody` and `KickablePhysicsProp`, disable sibling band colliders, parent bands to crates, and tune mass (3.5kg for storage boxes; 6.5/5.0/4.5kg for detail crates) and damping.
+   - *Screenshot B Diagnosis (Bright Green Box under crosshair):*
+     - Identified as `Entrance health +50 (HP <=50)` instantiated at `spawn + Vector3(2, 0.75, 0)` in `FacilityBreachRuntime.cs` line 132 using `Box(..., Color.green)`.
+     - *Classification: Class B (Protected and must remain unchanged).*
+     - *Technical Reason:* This object is a gameplay `ResourceStation` of type `StationKind.Health`, governed by `FacilityInteractionDispatcher` (`E: Entrance health +50 (HP <=50)`). Rule 19 strictly mandates: *"Never convert or interfere with: Weapon stations and pickups (ResourceStation)"*. Converting it to a dynamic kickable prop would allow the critical health pickup to be kicked across the facility, lost in toxic pits, or lodged behind barricades, preventing players from completing mission recovery. Furthermore, physics forces would create contention with `ResourceStation.Use()` interaction logic. Kept strictly protected.
+
 #### Verification Summary
 - Baseline automated regression checks: 374/374 PASSED.
-- Kickable physics & audio automated checks: 17 comprehensive test methods in KickablePhysicsAudioTests.cs.
-- Cumulative project test total: 100% Green across all 11 suites.
+- Kickable physics & audio automated checks: 319/319 PASSED across 17 comprehensive test methods in KickablePhysicsAudioTests.cs.
+- Cumulative project test total: 693/693 checks PASSED (100% Green across all 11 suites, ExitCode 0).
+- Total active kickable props: 40 props (13 authored + 27 converted scene props).
 - Visual evidence screenshots: 28 high-resolution captures preserved unchanged.
 - Unity Editor closed during development; consolidated headless batch run executed.
 
@@ -608,5 +635,5 @@ Executed in Unity 6000.6.2f1 headless batch mode with **ExitCode 0**:
 3. **First-Person Viewmodel Obstruction Polish**: Prevent weapon model clipping through solid walls in close-quarters combat via procedural low-ready retraction. *(Completed: `FpsViewModelObstruction` implemented, verified across 24 automated checks and 6 visual captures on feature branch `gv/IT24102587-fps-viewmodel-obstruction`; merged in PR #12).*
 4. **First-Person Tactical Arms/Gloves**: Evaluate tactical-gloved hands rigging for the equipped firearm viewmodel to further elevate first-person visual fidelity. *(Completed: `FpsArmsPrefabBuilder` implemented, CC BY 4.0 model integrated across all 3 weapons, verified across 80 automated checks and screenshots 26–28 on branch `gv/IT24102587-fps-tactical-arms`; merged in PR #15).*
 5. **First-Person Shooting VFX**: Provide lightweight visual feedback for player shooting using hitscan data without affecting ballistics or causing skybox artifacts. *(Completed: Standalone bullet tracer, camera-facing muzzle flash V2, and tuned environmental impact sparks implemented and verified across 86 automated checks and user Play Mode testing on branch `gv/IT24102587-bullet-tracer-vfx`; merged into `develop` in PR #16 at commit `38e9a08`).*
-6. **Interactive Player Physics & Audible Facility Audio**: Introduce kickable physics props, procedural audio synthesis, short-range FPS kick mechanic, and neutral noise broadcasts. *(Completed: Substantive commits authored on branch `gv/IT24102587-kickable-physics-audio`, 29 safe facility props active [13 authored + 16 converted], calibrated 2-4m kick travel distance, procedural gunshot and collision audio integrated, and 17-method automated suite authored).*
+6. **Interactive Player Physics & Audible Facility Audio**: Introduce kickable physics props, procedural audio synthesis, short-range FPS kick mechanic, and neutral noise broadcasts. *(Completed: Substantive commits authored on branch `gv/IT24102587-kickable-physics-audio`, 40 safe facility props active [13 authored + 27 converted], calibrated 2-4m kick travel distance, procedural gunshot and collision audio integrated, and 17-method automated suite authored [319 checks, 693 cumulative project checks]).*
 7. **Patrol Guard Noise Investigation AI (Upcoming IS Deliverable)**: Implement auditory perception and noise investigation behaviors in Patrol Guard AI reacting to published facility noise events. *(Scheduled: To be developed on dedicated branch `is/IT24102587-patrol-noise-investigation` following GV PR merge).*

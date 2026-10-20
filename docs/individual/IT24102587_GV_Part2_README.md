@@ -986,7 +986,7 @@ To provide robust, zero-dependency audio feedback without missing asset GUIDs, b
   - Audible feedback: Plays procedural punchy kick thud and broadcasts a $12\,\text{m}$ `PropKick` noise event.
   - HUD integration: Displays dynamic on-screen prompt `"F: Kick [Prop Name]"` when crosshair aligns with a kickable prop within interaction range.
 
-### 14.5 Environment-Wide Prop Population: 29 Total Kickable Objects (13 Authored + 16 Converted)
+### 14.5 Environment-Wide Prop Population: 40 Total Kickable Objects (13 Authored + 27 Converted)
 - **Component Mechanics ([`KickablePhysicsProp.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/Physics/KickablePhysicsProp.cs)):**
   - Dynamic `Rigidbody` configured with `CollisionDetectionMode.ContinuousDynamic` and `RigidbodyInterpolation.Interpolate`.
   - Mass and damping calibration: Small boxes ($3.5\,\text{kg}$, linear damping $0.48$, angular damping $1.2$), Medium crates ($6.0-6.5\,\text{kg}$, linear damping $0.65$, angular damping $1.2$), Metal barrels ($7.0-8.0\,\text{kg}$, linear damping $0.40$, angular damping $0.18-0.20$).
@@ -1014,20 +1014,23 @@ To provide robust, zero-dependency audio feedback without missing asset GUIDs, b
     13. `Barrel_Metal_ExitPerimeter_01`: Position `(6.5, 0.32, -22.0)`, Metal, $7.5\,\text{kg}$, horizontal resting barrel, immediate rolling.
   - Idempotent spawn check prevents duplicate instantiation upon scene reload.
   - Placed strictly outside primary NavMesh corridors to prevent trapping AI agents.
-- **16 Converted Existing Scene Clutter Props (`ConvertExistingSceneProps`):**
+- **27 Converted Existing Scene Clutter Props (`ConvertExistingSceneProps`):**
   - Reversibly activates suitable existing scene clutter objects without editing scene asset files:
     - **8 Existing Metal Barrels**: `Barrel_Entrance_01`, `Barrel_Room1_01`, `Barrel_LeftRoute_01`, `Barrel_Room2_Left`, `Barrel_Room2_Top`, `Barrel_Room3_Bottom`, `Barrel_LowerRoute_01`, `Barrel_Exit_01` (Metal, $7.0\,\text{kg}$, linear damping $0.40$, angular damping $0.20$).
     - **8 Existing Wooden Crates**: `Crate_Entrance_01`, `Crate_LeftRoute_01`, `Crate_UpperRoute_01`, `Crate_Room1_Right`, `Crate_Room2_Bottom`, `Crate_Room2_Right`, `Crate_Room3_Left`, `Crate_Room3_Top` (Wood, $6.0\,\text{kg}$, linear damping $0.65$, angular damping $1.2$).
-  - **Strict Preservation & Exclusion of Movable Barricades**:
+    - **8 Existing Storage Boxes**: `Box_Entrance_01`, `Box_Room1_Top`, `Box_Room2_Bottom`, `Box_Room2_Top`, `Box_CenterRoute_01`, `Box_Room3_Bottom`, `Box_LowerRoute_01`, `Box_Exit_01` (Wood, $3.5\,\text{kg}$, linear damping $0.48$, angular damping $1.2$).
+    - **3 Existing Room 1 Detail Crates**: `Room1_Crate_A` ($6.5\,\text{kg}$), `Room1_Crate_B` ($5.0\,\text{kg}$), `Room1_Crate_C` ($4.5\,\text{kg}$) (Wood, linear damping $0.60-0.65$, angular damping $1.2$; sibling band colliders disabled and parented to crates).
+  - **Strict Preservation & Exclusion of Movable Barricades and Resource Stations**:
     - All 6 interactive movable barricades (`Barricade_Entrance`, `Barricade_LowerRoute`, `Barricade_Room1Area`, `Barricade_Middle`, `Barricade_UpperLeft`, `Barricade_ExitArea`) retain their dedicated `MovableBarricade` E-key interaction and are strictly excluded from kick conversion.
-- **Total Facility Coverage**: $13 + 16 = 29$ total kickable objects evenly distributed across the entire facility (Entrance: 4, West Route/Room 1: 7, Room 2/Central Hub: 7, Toxic/Room 3: 7, Lower Route/Exit: 4).
+    - All gameplay `ResourceStation` instances (such as `Entrance health +50 (HP <=50)`) are strictly preserved and excluded from kick physics to prevent mission pickup displacement.
+- **Total Facility Coverage**: $13 + 27 = 40$ total kickable objects evenly distributed across the entire facility (Entrance: 6, West Route/Room 1: 11, Room 2/Central Hub: 10, Toxic/Room 3: 8, Lower Route/Exit: 5).
 
 ### 14.6 Automated Regression Suite & Verification Status
 - **Automated Test Suite ([`KickablePhysicsAudioTests.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Editor/FacilityBreach/KickablePhysicsAudioTests.cs)):**
   - 17 comprehensive automated test methods covering all interaction, prop dynamics, audio synthesis, and isolation contracts:
-  - Validates procedural synthesis, gunshot profiles, kick thud normalization ($0.96$), voice pooling, noise hub emission, barrel rolling physics and torque, damping, kick impulses, precision aim resolution and player collider exclusion, thirteen props placement, 16 allowlisted scene clutter conversions, movable barricade exclusion, 29 total facility props contract, teammate isolation, and VFX/arms integration.
+  - Validates procedural synthesis, gunshot profiles, kick thud normalization ($0.96$), voice pooling, noise hub emission, barrel rolling physics and torque, damping, kick impulses, precision aim resolution and player collider exclusion, thirteen props placement, 27 allowlisted scene clutter conversions, movable barricade and resource station exclusion, 40 total facility props contract, teammate isolation, and VFX/arms integration.
 - **Verification Summary:**
   - Baseline checks: 374/374 passed.
   - Kickable physics and audio checks: 17 comprehensive test methods in KickablePhysicsAudioTests.cs.
-  - Master Regression Total: 455/455 automated checks (100% green batch verification).
+  - Master Regression Total: 693/693 automated checks (374 baseline + 319 kickable physics & audio, 100% green batch verification).
   - Historical evidence: 28 high-resolution screenshots preserved intact.
