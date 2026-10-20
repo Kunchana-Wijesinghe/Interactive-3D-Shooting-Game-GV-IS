@@ -418,14 +418,16 @@ namespace FacilityBreach.Editor
                 // 1. Direct alignment within reach (1.5m in front of camera)
                 propGo.transform.position = new Vector3(0f, 1.6f, 1.5f);
                 obstacleGo.transform.position = new Vector3(50f, 50f, 50f);
+                UnityEngine.Physics.SyncTransforms();
 
                 bool foundDirect = kickCtrl.FindKickTarget(cam, out var targetProp, out var hitPoint);
                 Assert(foundDirect, "Direct camera raycast resolves kickable prop within range");
-                Assert(targetProp == prop, "Resolved target matches authored kickable prop");
-                Assert(targetProp.gameObject != playerGo, "Player's own GameObject/CharacterController is never targeted");
+                Assert(targetProp != null && targetProp == prop, "Resolved target matches authored kickable prop");
+                Assert(targetProp != null && targetProp.gameObject != playerGo, "Player's own GameObject/CharacterController is never targeted");
 
                 // 2. Out of range (beyond KickReach 2.2m, e.g. 3.5m)
                 propGo.transform.position = new Vector3(0f, 1.6f, 3.5f);
+                UnityEngine.Physics.SyncTransforms();
                 bool foundOutOfRange = kickCtrl.FindKickTarget(cam, out _, out _);
                 Assert(!foundOutOfRange, "Kick target beyond KickReach is rejected");
 
@@ -433,6 +435,7 @@ namespace FacilityBreach.Editor
                 propGo.transform.position = new Vector3(0f, 1.6f, 1.8f);
                 obstacleGo.transform.position = new Vector3(0f, 1.6f, 0.9f);
                 obstacleGo.transform.localScale = new Vector3(2f, 2f, 0.2f);
+                UnityEngine.Physics.SyncTransforms();
 
                 bool foundBehindWall = kickCtrl.FindKickTarget(cam, out _, out _);
                 Assert(!foundBehindWall, "Kick target occluded behind solid wall obstacle is rejected");
