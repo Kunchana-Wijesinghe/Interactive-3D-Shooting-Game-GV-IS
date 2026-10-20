@@ -30,7 +30,7 @@ namespace FacilityBreach
         [SerializeField] private float angularDamping = 1.0f;
 
         [Header("Rolling Audio (Metal Barrels)")]
-        [SerializeField] private float minRollSpeed = 0.35f;
+        [SerializeField] private float minRollSpeed = 0.22f;
         [SerializeField] private float stopRollSpeed = 0.18f;
         [SerializeField] private float maxRollSpeed = 5.0f;
         [SerializeField] private float maxRollVolume = 0.85f;

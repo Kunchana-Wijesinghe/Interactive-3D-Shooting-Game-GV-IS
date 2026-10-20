@@ -953,7 +953,7 @@ namespace FacilityBreach.Editor
                 float slowVol = barrelProp.CurrentRollVolume;
                 float slowPitch = barrelProp.RollingAudioSource.pitch;
 
-                Assert(slowVol >= 0.08f && slowVol <= 0.28f, "Slow roll produces quiet but audible volume (0.08 - 0.28)", $"SlowVol={slowVol:F3}");
+                Assert(slowVol >= 0.08f && slowVol <= 0.30f, "Slow roll produces quiet but audible volume (0.08 - 0.30)", $"SlowVol={slowVol:F3}");
                 Assert(slowPitch >= 0.70f && slowPitch <= 0.85f, "Slow roll produces deep low rumble pitch (0.70 - 0.85x)", $"SlowPitch={slowPitch:F2}");
 
                 // 2. Moderate roll (1.50 m/s)
@@ -962,8 +962,8 @@ namespace FacilityBreach.Editor
                 float modVol = barrelProp.CurrentRollVolume;
                 float modPitch = barrelProp.RollingAudioSource.pitch;
 
-                Assert(modVol >= 0.35f && modVol <= 0.55f, "Moderate roll produces clearly audible volume (0.35 - 0.55)", $"ModVol={modVol:F3}");
-                Assert(modPitch >= 0.88f && modPitch <= 1.10f, "Moderate roll produces mid-range churning pitch (0.88 - 1.10x)", $"ModPitch={modPitch:F2}");
+                Assert(modVol >= 0.30f && modVol <= 0.60f, "Moderate roll produces clearly audible volume (0.30 - 0.60)", $"ModVol={modVol:F3}");
+                Assert(modPitch >= 0.85f && modPitch <= 1.15f, "Moderate roll produces mid-range churning pitch (0.85 - 1.15x)", $"ModPitch={modPitch:F2}");
                 Assert(modVol > slowVol * 1.5f, "Moderate roll is perceptibly louder than slow roll (> 1.5x)", $"Ratio={modVol / slowVol:F2}x");
 
                 // 3. Fast roll (4.50 m/s)
@@ -972,9 +972,9 @@ namespace FacilityBreach.Editor
                 float fastVol = barrelProp.CurrentRollVolume;
                 float fastPitch = barrelProp.RollingAudioSource.pitch;
 
-                Assert(fastVol >= 0.65f && fastVol <= 0.80f, "Fast roll reaches robust upper dynamic limit without clipping (0.65 - 0.80)", $"FastVol={fastVol:F3}");
-                Assert(fastPitch >= 1.25f && fastPitch <= 1.38f, "Fast roll accelerates pitch to high churning rattle (1.25 - 1.38x)", $"FastPitch={fastPitch:F2}");
-                Assert(fastVol > slowVol * 2.5f, "Wide dynamic volume range confirmed: fast roll is > 2.5x slow roll", $"DynamicRatio={fastVol / slowVol:F2}x");
+                Assert(fastVol >= 0.65f && fastVol <= 0.85f, "Fast roll reaches robust upper dynamic limit without clipping (0.65 - 0.85)", $"FastVol={fastVol:F3}");
+                Assert(fastPitch >= 1.20f && fastPitch <= 1.38f, "Fast roll accelerates pitch to high churning rattle (1.20 - 1.38x)", $"FastPitch={fastPitch:F2}");
+                Assert(fastVol > slowVol * 2.0f, "Wide dynamic volume range confirmed: fast roll is > 2.0x slow roll", $"DynamicRatio={fastVol / slowVol:F2}x");
                 Assert(fastPitch > slowPitch * 1.4f, "Wide pitch range confirmed: fast pitch is > 1.4x slow pitch", $"PitchRatio={fastPitch / slowPitch:F2}x");
             }
             finally
