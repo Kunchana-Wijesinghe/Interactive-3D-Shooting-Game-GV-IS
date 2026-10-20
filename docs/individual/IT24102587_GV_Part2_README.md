@@ -1025,25 +1025,47 @@ To provide robust, zero-dependency audio feedback without missing asset GUIDs, b
     - All gameplay `ResourceStation` instances (such as `Entrance health +50 (HP <=50)`) are strictly preserved and excluded from kick physics to prevent mission pickup displacement.
 - **Total Facility Coverage**: $13 + 27 = 40$ total kickable objects evenly distributed across the entire facility (Entrance: 6, West Route/Room 1: 11, Room 2/Central Hub: 10, Toxic/Room 3: 8, Lower Route/Exit: 5).
 
-### 14.6 Continuous Barrel Rolling Audio & Q Distraction Can Audio Integration
+### 14.6 Continuous Barrel Rolling Audio, Collision Impact Transients & Q Distraction Can Audio Integration
 - **Continuous Barrel Rolling Audio Controller ([`KickablePhysicsProp.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/Physics/KickablePhysicsProp.cs)):**
-  - Synthesized `FacilityAudioClipType.RollingMetal`: 1.0s seamless loopable PCM audio generated at 44.1kHz using integer harmonic frequencies ($72\,\text{Hz}$ and $108\,\text{Hz}$ hollow barrel tones, $360\,\text{Hz}$ and $540\,\text{Hz}$ shell chime overtones, $6\,\text{Hz}$ rotational wobble) and a 5ms cubic smoothstep loop seam bridge (`Mathf.Lerp(samples[idx], targetSample, smooth)`) guaranteeing zero loop boundary pop.
-  - Dedicated looping 3D `AudioSource` with linear rolloff ($1.0\,\text{m} - 25.0\,\text{m}$), full spatialization (`spatialBlend = 1.0`), and zero initial volume.
+  - **Organic Texture Synthesis**: Overhauled procedural `FacilityAudioClipType.RollingMetal`: 1.0s seamless loopable PCM audio generated at 44.1kHz combining two-pole low-pass filtered concrete-grain friction noise, hollow dual resonant body rumble ($76\,\text{Hz}$ and $114\,\text{Hz}$), band-passed metallic scrape ($420\,\text{Hz}$), $5\,\text{Hz}$ rotational revolution wobble, and a 5ms cubic smoothstep loop seam bridge (`Mathf.Lerp(samples[idx], targetSample, smooth)`) guaranteeing zero loop boundary pop. Peak normalized to $0.84$.
+  - Dedicated looping 3D `AudioSource` with linear rolloff ($1.5\,\text{m} - 28.0\,\text{m}$), full spatialization (`spatialBlend = 1.0`), $45^\circ$ stereo spread, zero Doppler distortion, and zero initial volume.
   - Ground contact verification: Checks active collision contact, recent collision within $0.15\,\text{s}$, or downward raycast probe ($0.85\,\text{m}$).
-  - Dynamic velocity modulation: Calculates effective rolling metric $M = \max(\text{linearSpeed}, \text{angularSpeed} \times 0.4)$. Scales target volume ($0.25 - 0.85$) and pitch ($0.85 - 1.25\text{x}$) smoothly with speed.
-  - Exponential volume decay: When rolling decelerates below threshold ($0.35\,\text{m/s}$), volume smoothly glides to zero (`rollFadeSpeed = 4.0`), cleanly stopping playback.
+  - **Wide Perceptual Speed-to-Volume Curve**: $V = \text{Lerp}(0.08, 0.75, \sqrt{\text{speedNorm}})$. Stopped barrel is completely silent ($V = 0$). Barely moving barrel is quiet ($0.10 - 0.20$), moderate roll is clearly audible ($0.35 - 0.55$), and fast roll is loud without clipping ($0.65 - 0.75$).
+  - **Wide Speed-to-Pitch Modulation**: $P = \text{Lerp}(0.70, 1.35, \text{speedNorm})$. Sweeps continuously from deep low rumbling grind ($0.70\times$) up to high churning rattle ($1.35\times$).
+  - **Start/Stop Hysteresis**: $v_{\text{start}} = 0.22\,\text{m/s}$ and $v_{\text{stop}} = 0.18\,\text{m/s}$ prevent rapid audio stuttering during gentle rolling.
   - Material gating: Wooden boxes and crates are strictly prohibited from rolling audio playback.
+- **Metallic Collision Impact Transient Punch**:
+  - Overhauled `SynthesizeImpactMetal()` with a sharp $2\,\text{ms}$ transient slap click, $220\,\text{Hz}$ drum body, $520\,\text{Hz}$ shell resonance, $880\,\text{Hz}$ rim ping, and $1350\,\text{Hz}$ inharmonic overtone (peak $0.94$).
+  - Calibrated collision volume scaling in `KickablePhysicsProp.cs`: $\text{scale} = \text{Clamp01}((v - 0.8) / 3.5 \times 0.45 + 0.55)$ ($0.55 - 1.00$), ensuring wall and obstacle impacts decisively punch above the ongoing rolling audio bed ($0.35 - 0.50$).
 - **Q-Key Distraction Can Projectile Audio ([`FacilityBreachRuntime.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/FacilityBreachRuntime.cs), [`CanImpact.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/Combat/CanImpact.cs)):**
   - **Launch Whoosh**: Distinctive aerodynamic launch transient `FacilityAudioClipType.ProjectileLaunch` ($0.16\,\text{s}$, $280\,\text{Hz} \rightarrow 80\,\text{Hz}$ downward sweep, $15\,\text{ms}$ attack, peak normalized to $0.88$) triggered once upon confirmed distraction can throw.
   - **3D Localized Metal Clatter Impact**: Procedural impact clip `FacilityAudioClipType.ProjectileImpact` ($0.20\,\text{s}$, $180\,\text{Hz}$ body resonance + $620\,\text{Hz}/950\,\text{Hz}$ high can ping + secondary micro-bounce transient at $45\,\text{ms}$, peak normalized to $0.90$) played via 3D spatial pool at physical collision point.
   - **Debounce Protection & Clean Decoupling**: Protected by `MinImpactVelocity = 0.8\,\text{m/s}` and `ImpactCooldown = 0.10\,\text{s}` against physics subframe duplicate spam and destruction race conditions. Teammate `SoundEventBus.Emit` trigger contract is preserved untouched.
 
-### 14.7 Automated Regression Suite & Verification Status
+### 14.7 Dedicated Persistent 2D Facility Industrial Environmental Ambience
+- **Facility Ambience Architecture ([`FacilityAmbiencePlayer.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/Audio/FacilityAmbiencePlayer.cs))**:
+  - Provides continuous, subtle 2D sci-fi industrial background atmosphere directly to the player's audio listener with smooth fade-in and fade-out lifecycle.
+  - Dedicated singleton component with single-instance enforcement, attached to `FacilityBreachRuntime` at startup.
+  - Dedicated 2D stereo `AudioSource` (`spatialBlend = 0.0`, `loop = true`, `priority = 180`), starting at zero volume and smoothly fading in to calibrated target volume ($0.22$) over $\sim 1.5\,\text{s}$ (`fadeSpeed = 0.15`).
+- **Procedural Ambience Synthesis ([`FacilityAudioSynthesizer.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/Audio/FacilityAudioSynthesizer.cs))**:
+  - `FacilityAudioClipType.FacilityAmbience`: 2.0s seamless loopable PCM audio generated at 44.1kHz combining:
+    1. HVAC airflow breathing oscillation ($0.5\,\text{Hz}$ modulation).
+    2. Sub-bass ventilation resonance (integer cycles at $54\,\text{Hz}$ and $82\,\text{Hz}$).
+    3. Distant machinery drone (integer cycles at $120\,\text{Hz}$ and $180\,\text{Hz}$ with $1.0\,\text{Hz}$ beating).
+    4. 60Hz mains electrical hum with $240\,\text{Hz}$ gentle harmonic.
+    5. Soft structural metallic creak swell around $1.0\,\text{s}$ (Gaussian envelope, non-alarming).
+    6. 5ms cubic smoothstep loop boundary bridge ensuring click-free looping. Peak normalized to $0.40$.
+- **STRICT AI ISOLATION INVARIANT**:
+  - Pure player-facing immersion audio.
+  - Never calls `FacilityNoiseHub.Emit` or `SoundEventBus.Emit`.
+  - Zero awareness or response from AI patrol guards or noise-detection systems (0 noise score / 0 hearing events).
+
+### 14.8 Automated Regression Suite & Verification Status
 - **Automated Test Suite ([`KickablePhysicsAudioTests.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Editor/FacilityBreach/KickablePhysicsAudioTests.cs)):**
-  - 21 comprehensive automated test methods covering all interaction, prop dynamics, audio synthesis, continuous rolling audio, projectile sounds, and isolation contracts:
-  - Validates procedural synthesis (9 clip types), gunshot profiles, kick thud normalization ($0.96$), rolling metal seamless loop continuity, projectile launch/impact distinct waveforms, voice pooling, noise hub emission, barrel rolling physics and torque, damping, kick impulses, precision aim resolution and player collider exclusion, thirteen props placement, 27 allowlisted scene clutter conversions, movable barricade and resource station exclusion, 40 total facility props contract, rolling audio lifecycle and velocity modulation, projectile audio playback, teammate isolation, and VFX/arms integration.
+  - 26 comprehensive automated test methods covering all interaction, prop dynamics, audio synthesis, continuous rolling audio, impact transients, facility ambience, projectile sounds, and isolation contracts:
+  - Validates procedural synthesis (10 clip types), gunshot profiles, kick thud normalization ($0.96$), rolling metal seamless loop continuity, facility ambience loop continuity and safe peak ($0.40$), projectile launch/impact distinct waveforms, voice pooling, ambience player lifecycle and single instance, zero noise event emission invariant, noise hub emission, barrel rolling physics and torque, damping, kick impulses, precision aim resolution and player collider exclusion, thirteen props placement, 27 allowlisted scene clutter conversions, movable barricade and resource station exclusion, 40 total facility props contract, rolling audio lifecycle and velocity modulation, dynamic speed-to-volume and speed-to-pitch curves, collision impact transient volume boost over rolling bed, projectile audio playback, teammate isolation, and VFX/arms integration.
 - **Verification Summary:**
   - Baseline checks: 374/374 passed.
-  - Kickable physics and audio checks: 370/370 passed across 21 comprehensive test methods in KickablePhysicsAudioTests.cs.
-  - Master Regression Total: 744/744 automated checks (374 baseline + 370 kickable physics & audio, 100% green batch verification with ExitCode 0).
+  - Kickable physics and audio checks: Expanded across 26 comprehensive test methods in KickablePhysicsAudioTests.cs.
+  - Master Regression Total: 100% green batch verification across all 11 suites with ExitCode 0.
   - Historical evidence: 28 high-resolution screenshots preserved intact.
