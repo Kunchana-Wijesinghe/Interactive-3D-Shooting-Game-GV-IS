@@ -595,9 +595,36 @@ Executed in Unity 6000.6.2f1 headless batch mode with **ExitCode 0**:
     - Updated `Test_ConvertExistingSceneProps_AllowlistSafetyAndConversion` and `Test_TotalFacilityProps_AuthoredPlusConverted` in `KickablePhysicsAudioTests.cs` for 27 converted scene props and 40 total facility props.
     - Added explicit unit assertions for `ResourceStation` protection, detail crate sibling band parenting, and disabled band colliders.
     - Verified all 17 test methods passed with 319 programmatic checks (693 cumulative project checks across all 11 suites).
-26. `[pending]` `docs(gv): document screenshot prop diagnostics, allowlist expansion, and health station protection`
+26. `3bd817a` `docs(gv): document screenshot prop diagnostics, allowlist expansion, and health station protection`
     - Documented comprehensive root-cause analysis for Screenshot A (omitted brown clutter/detail crates) and Screenshot B (protected green health station pickup).
     - Documented updated 40-prop inventory (13 authored + 27 converted) and consolidated 693/693 automated test results.
+27. `503b2a3` `feat(gv): synthesize rolling metal loop, projectile launch, and impact audio`
+    - Added `FacilityAudioClipType.RollingMetal`, `FacilityAudioClipType.ProjectileLaunch`, and `FacilityAudioClipType.ProjectileImpact` to `FacilityAudioSynthesizer.cs`.
+    - Synthesized 1.0s seamless loopable PCM audio for rolling cylindrical metal barrels (72Hz/108Hz hollow cavity resonance, 360Hz/540Hz shell overtones, 6Hz rotational wobble, and boundary crossfade).
+    - Synthesized 0.16s aerodynamic launch whoosh for Q distraction cans (280Hz -> 80Hz pitch drop, 15ms build-up, normalized peak 0.88).
+    - Synthesized 0.20s metallic projectile impact clatter (180Hz body tone, 620Hz/950Hz high ping, secondary bounce micro-transient at 45ms, normalized peak 0.90).
+    - Added `PlayProjectileLaunch` and `PlayProjectileImpact` playback methods to `FacilityAudioPlayer.cs`.
+28. `5f780d6` `feat(gv): implement continuous barrel rolling audio controller with velocity modulation`
+    - Added continuous rolling audio controller to `KickablePhysicsProp.cs` for metal props (`materialType == PropMaterialType.Metal`).
+    - Configured dedicated looping 3D `AudioSource` with linear rolloff ($1.0\text{m} - 25.0\text{m}$) and volume initialized to 0.
+    - Implemented ground contact tracking via active collision events and downward raycasting.
+    - Modulated volume ($0.25 - 0.85$) and pitch ($0.85 - 1.25\text{x}$) based on effective rolling metric `max(linearSpeed, angularSpeed * 0.4f)`.
+    - Implemented smooth hysteresis volume fading (`rollFadeSpeed = 4.0`), smoothly ending audio when rolling halts.
+    - Ensured wooden props never initialize or play rolling audio.
+29. `6761648` `feat(gv): wire Q projectile launch and impact audio callbacks`
+    - Wired `FacilityAudioPlayer.Instance.PlayProjectileLaunch` into `FacilityBreachRuntime.ThrowCan()`, triggering launch whoosh once per Q throw.
+    - Wired `FacilityAudioPlayer.Instance.PlayProjectileImpact` into `CanImpact.OnCollisionEnter()`, localizing 3D metal clatter at the contact point.
+    - Added debounce protection with `MinImpactVelocity = 0.8f` and `ImpactCooldown = 0.10f` to prevent duplicate physics subframe spam.
+    - Preserved teammate `SoundEventBus.Emit` trigger contract untouched.
+30. `231d894` `test(gv): add automated regression tests for rolling and projectile audio`
+    - Expanded `KickablePhysicsAudioTests.cs` to test all 9 synthesized audio clips.
+    - Added tests for loop duration, sample boundaries, launch/impact waveform differences, rolling lifecycle, and projectile audio triggers.
+31. `8d509cb` `fix(gv): refine rolling loop seam continuity, edit-mode delta step, and ground contact test fixture`
+    - Added 5ms cubic smoothstep loop seam bridge to `SynthesizeRollingMetal()`, ensuring zero boundary delta and eliminating audio clicks.
+    - Updated `KickablePhysicsProp.UpdateRollingAudio(float deltaTime = -1f)` with fallback delta step for Edit Mode batch testing.
+    - Exposed `IsContactActive` property for deterministic test fixtures.
+32. `[pending]` `docs(gv): document barrel rolling audio, Q projectile sound integration, and 744-check regression verification`
+    - Documented continuous rolling audio architecture, distraction can projectile sound integration, and full 744/744 automated batch test verification.
 
 #### Root-Cause Analysis & Technical Solutions
 1. **Targeting Inaccuracy & Non-Responsive Props:**
@@ -621,10 +648,16 @@ Executed in Unity 6000.6.2f1 headless batch mode with **ExitCode 0**:
      - *Classification: Class B (Protected and must remain unchanged).*
      - *Technical Reason:* This object is a gameplay `ResourceStation` of type `StationKind.Health`, governed by `FacilityInteractionDispatcher` (`E: Entrance health +50 (HP <=50)`). Rule 19 strictly mandates: *"Never convert or interfere with: Weapon stations and pickups (ResourceStation)"*. Converting it to a dynamic kickable prop would allow the critical health pickup to be kicked across the facility, lost in toxic pits, or lodged behind barricades, preventing players from completing mission recovery. Furthermore, physics forces would create contention with `ResourceStation.Use()` interaction logic. Kept strictly protected.
 
+5. **Continuous Barrel Rolling Audio & Q Distraction Can Projectile Audio:**
+   - *Problem 1 (Intermittent Barrel Rolling Sound):* Metal barrels moved and rolled properly when kicked, but rolling audio was intermittent because audio playback relied exclusively on `OnCollisionEnter` one-shots. When rolling smoothly along the floor without bouncing, no new collisions entered.
+   - *Solution 1:* Implemented continuous procedural looping audio controller in `KickablePhysicsProp.cs`. Synthesized `FacilityAudioClipType.RollingMetal` (1.0s seamless loop at 44.1kHz with 72Hz/108Hz hollow barrel tones, 360Hz/540Hz chime overtones, 6Hz rotational wobble, and a 5ms cubic smoothstep loop seam bridge ensuring zero boundary pop). Tracks ground contact (`isContactActive`, recent contact, or downward raycast) and modulates volume ($0.25 - 0.85$) and pitch ($0.85 - 1.25\text{x}$) based on effective rolling metric $\max(\text{linearSpeed}, \text{angularSpeed} \times 0.4)$. Uses smooth exponential volume fading (`rollFadeSpeed = 4.0`) to end audio gracefully when the barrel halts. Wooden props are strictly excluded.
+   - *Problem 2 (Q Projectile Ball Launch & Impact Silence):* Pressing Q launched distraction cans (`FB_DistractionCan`), but lacked tactile launch and collision sound feedback.
+   - *Solution 2:* Synthesized aerodynamic launch whoosh `FacilityAudioClipType.ProjectileLaunch` (0.16s, 280Hz -> 80Hz pitch drop, 15ms build-up, normalized peak 0.88) triggered in `FacilityBreachRuntime.ThrowCan()`, and hollow metallic can clatter `FacilityAudioClipType.ProjectileImpact` (0.20s, 180Hz cavity + 620Hz/950Hz can ping + secondary bounce transient at 45ms, normalized peak 0.90) triggered in `CanImpact.OnCollisionEnter()`. Debounce protection (`MinImpactVelocity = 0.8\text{m/s}` and `ImpactCooldown = 0.10\text{s}`) guarantees exactly one sound per collision and eliminates duplicate physics subframe spam. Teammate `SoundEventBus.Emit` trigger contract is preserved untouched.
+
 #### Verification Summary
 - Baseline automated regression checks: 374/374 PASSED.
-- Kickable physics & audio automated checks: 319/319 PASSED across 17 comprehensive test methods in KickablePhysicsAudioTests.cs.
-- Cumulative project test total: 693/693 checks PASSED (100% Green across all 11 suites, ExitCode 0).
+- Kickable physics & audio automated checks: 370/370 PASSED across 21 comprehensive test methods in KickablePhysicsAudioTests.cs.
+- Cumulative project test total: 744/744 checks PASSED (100% Green across all 11 suites, ExitCode 0).
 - Total active kickable props: 40 props (13 authored + 27 converted scene props).
 - Visual evidence screenshots: 28 high-resolution captures preserved unchanged.
 - Unity Editor closed during development; consolidated headless batch run executed.
@@ -635,5 +668,5 @@ Executed in Unity 6000.6.2f1 headless batch mode with **ExitCode 0**:
 3. **First-Person Viewmodel Obstruction Polish**: Prevent weapon model clipping through solid walls in close-quarters combat via procedural low-ready retraction. *(Completed: `FpsViewModelObstruction` implemented, verified across 24 automated checks and 6 visual captures on feature branch `gv/IT24102587-fps-viewmodel-obstruction`; merged in PR #12).*
 4. **First-Person Tactical Arms/Gloves**: Evaluate tactical-gloved hands rigging for the equipped firearm viewmodel to further elevate first-person visual fidelity. *(Completed: `FpsArmsPrefabBuilder` implemented, CC BY 4.0 model integrated across all 3 weapons, verified across 80 automated checks and screenshots 26–28 on branch `gv/IT24102587-fps-tactical-arms`; merged in PR #15).*
 5. **First-Person Shooting VFX**: Provide lightweight visual feedback for player shooting using hitscan data without affecting ballistics or causing skybox artifacts. *(Completed: Standalone bullet tracer, camera-facing muzzle flash V2, and tuned environmental impact sparks implemented and verified across 86 automated checks and user Play Mode testing on branch `gv/IT24102587-bullet-tracer-vfx`; merged into `develop` in PR #16 at commit `38e9a08`).*
-6. **Interactive Player Physics & Audible Facility Audio**: Introduce kickable physics props, procedural audio synthesis, short-range FPS kick mechanic, and neutral noise broadcasts. *(Completed: Substantive commits authored on branch `gv/IT24102587-kickable-physics-audio`, 40 safe facility props active [13 authored + 27 converted], calibrated 2-4m kick travel distance, procedural gunshot and collision audio integrated, and 17-method automated suite authored [319 checks, 693 cumulative project checks]).*
+6. **Interactive Player Physics & Audible Facility Audio**: Introduce kickable physics props, procedural audio synthesis, short-range FPS kick mechanic, and neutral noise broadcasts. *(Completed: Substantive commits authored on branch `gv/IT24102587-kickable-physics-audio`, 40 safe facility props active [13 authored + 27 converted], calibrated 2-4m kick travel distance, procedural gunshot, collision, continuous barrel rolling, and Q projectile audio integrated, and 21-method automated suite authored [370 checks, 744 cumulative project checks]).*
 7. **Patrol Guard Noise Investigation AI (Upcoming IS Deliverable)**: Implement auditory perception and noise investigation behaviors in Patrol Guard AI reacting to published facility noise events. *(Scheduled: To be developed on dedicated branch `is/IT24102587-patrol-noise-investigation` following GV PR merge).*
