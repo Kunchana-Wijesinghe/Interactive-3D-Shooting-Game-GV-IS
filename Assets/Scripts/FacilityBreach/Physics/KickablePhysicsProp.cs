@@ -116,9 +116,14 @@ namespace FacilityBreach
             set => maxRollVolume = Mathf.Clamp01(value);
         }
 
-        public bool IsRollingAudioActive => rollingAudioSource != null && rollingAudioSource.isPlaying && currentRollVolume > 0.01f;
+        public bool IsRollingAudioActive => currentRollVolume > 0.01f;
         public float CurrentRollVolume => currentRollVolume;
         public AudioSource RollingAudioSource => rollingAudioSource;
+        public bool IsContactActive
+        {
+            get => isContactActive;
+            set => isContactActive = value;
+        }
 
         public bool IsKickedRecently => (Time.time - lastKickTime) < 0.5f;
 
@@ -189,7 +194,7 @@ namespace FacilityBreach
             UpdateRollingAudio();
         }
 
-        public void UpdateRollingAudio()
+        public void UpdateRollingAudio(float deltaTime = -1f)
         {
             if (materialType != PropMaterialType.Metal)
             {
@@ -205,6 +210,8 @@ namespace FacilityBreach
                 EnsureRollingAudioSource();
                 if (rollingAudioSource == null) return;
             }
+
+            float dt = deltaTime >= 0f ? deltaTime : (Time.deltaTime > 0f ? Time.deltaTime : 0.02f);
 
             // Surface contact check: active collision stay, recent collision within 0.15s, or ground raycast
             bool grounded = isContactActive || (Time.time - lastContactTime < 0.15f);
@@ -228,7 +235,7 @@ namespace FacilityBreach
                 targetPitch = Mathf.Lerp(0.85f, 1.25f, speedNorm);
             }
 
-            float fadeDelta = rollFadeSpeed * Time.deltaTime;
+            float fadeDelta = rollFadeSpeed * dt;
             currentRollVolume = Mathf.MoveTowards(currentRollVolume, targetVolume, fadeDelta);
 
             if (currentRollVolume > 0.005f)

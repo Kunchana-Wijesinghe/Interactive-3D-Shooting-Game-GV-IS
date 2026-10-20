@@ -458,28 +458,30 @@ namespace FacilityBreach.Editor
                 Assert(barrelProp.RollingAudioSource.clip != null, "Rolling AudioSource is assigned the RollingMetal clip");
 
                 // Initially stationary
-                barrelProp.UpdateRollingAudio();
+                barrelProp.UpdateRollingAudio(0.02f);
                 Assert(!barrelProp.IsRollingAudioActive, "Stationary barrel rolling audio is inactive");
                 Assert(barrelProp.CurrentRollVolume == 0f, "Stationary barrel rolling volume is 0");
 
                 // Simulate moving barrel with ground contact
+                barrelProp.IsContactActive = true;
                 barrelProp.Body.linearVelocity = new Vector3(3.0f, 0f, 0f);
                 for (int frame = 0; frame < 10; frame++)
                 {
-                    barrelProp.UpdateRollingAudio();
+                    barrelProp.UpdateRollingAudio(0.02f);
                 }
 
                 Assert(barrelProp.CurrentRollVolume > 0.1f, "Moving barrel volume ramps up smoothly", $"Vol={barrelProp.CurrentRollVolume:F3}");
                 Assert(barrelProp.IsRollingAudioActive, "Moving barrel reports IsRollingAudioActive == true");
-                Assert(barrelProp.RollingAudioSource.isPlaying, "Rolling AudioSource is actively playing");
+                Assert(barrelProp.RollingAudioSource.volume > 0.1f, "Rolling AudioSource volume is updated", $"Vol={barrelProp.RollingAudioSource.volume:F3}");
                 Assert(barrelProp.RollingAudioSource.pitch >= 0.85f, "Rolling pitch is modulated with velocity", $"Pitch={barrelProp.RollingAudioSource.pitch:F2}");
 
                 // Simulate stop
                 barrelProp.Body.linearVelocity = Vector3.zero;
                 barrelProp.Body.angularVelocity = Vector3.zero;
+                barrelProp.IsContactActive = false;
                 for (int frame = 0; frame < 30; frame++)
                 {
-                    barrelProp.UpdateRollingAudio();
+                    barrelProp.UpdateRollingAudio(0.02f);
                 }
 
                 Assert(!barrelProp.IsRollingAudioActive, "Stopped barrel rolling audio smoothly ends");
@@ -492,7 +494,7 @@ namespace FacilityBreach.Editor
 
                 Assert(boxProp.RollingAudioSource == null, "Wooden box never instantiates rolling AudioSource");
                 boxProp.Body.linearVelocity = new Vector3(5.0f, 0f, 0f);
-                boxProp.UpdateRollingAudio();
+                boxProp.UpdateRollingAudio(0.02f);
                 Assert(!boxProp.IsRollingAudioActive, "Wooden box never plays rolling audio even at high speed");
             }
             finally

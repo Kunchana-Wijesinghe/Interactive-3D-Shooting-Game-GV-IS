@@ -310,6 +310,17 @@ namespace FacilityBreach.Audio
                 samples[i] = lowRumble1 + lowRumble2 + metallicShell + metallicRing + texturedFriction;
             }
 
+            // Smoothly bridge the last 5ms to match sample 0 for seamless click-free looping
+            int seamSamples = Mathf.CeilToInt(SampleRate * 0.005f);
+            float targetSample = samples[0];
+            for (int k = 0; k < seamSamples; k++)
+            {
+                int idx = totalSamples - seamSamples + k;
+                float blend = (float)(k + 1) / seamSamples;
+                float smooth = blend * blend * (3f - 2f * blend);
+                samples[idx] = Mathf.Lerp(samples[idx], targetSample, smooth);
+            }
+
             NormalizeSamples(samples, 0.85f);
             AudioClip clip = AudioClip.Create("Procedural_Rolling_Metal", totalSamples, 1, SampleRate, false);
             clip.SetData(samples, 0);
