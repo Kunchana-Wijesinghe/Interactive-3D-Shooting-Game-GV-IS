@@ -69,6 +69,7 @@ namespace FacilityBreach.Editor
             RunTest("TotalFacilityProps_AuthoredPlusConverted", Test_TotalFacilityProps_AuthoredPlusConverted);
             RunTest("TeammateSoundHunterIsolation_NoCoupling", Test_TeammateSoundHunterIsolation_NoCoupling);
             RunTest("ExistingVfxAndAudioIntegration_Preserved", Test_ExistingVfxAndAudioIntegration_Preserved);
+            RunTest("InGamePause_AmbienceAndFootstepSynchronization", Test_InGamePause_AmbienceAndFootstepSynchronization);
 
             if (failedCount == 0)
             {
@@ -823,6 +824,44 @@ namespace FacilityBreach.Editor
             }
         }
 
+        private static void Test_InGamePause_AmbienceAndFootstepSynchronization()
+        {
+            var go = new GameObject("Test_PauseSync");
+            FacilityAmbiencePlayer ambience = null;
+            try
+            {
+                ambience = go.AddComponent<FacilityAmbiencePlayer>();
+                ambience.InitializeAudioSource();
+                ambience.Play();
+                Assert(ambience.IsPlaying, "Ambience starts playing on Play()");
+
+                // In-Game Pause Verification: Pause() mutes volume immediately to zero and marks IsPaused
+                ambience.Pause();
+                Assert(ambience.IsPaused, "Ambience marked IsPaused after Pause()");
+                Assert(ambience.AudioSource.volume == 0f, "Ambience AudioSource volume immediately zeroed on Pause to eliminate audio bleed");
+
+                // Test footstep pause reaction
+                var charCtrl = go.AddComponent<CharacterController>();
+                var stepCtrl = go.AddComponent<FpsFootstepController>();
+                stepCtrl.Initialize(null, charCtrl, null);
+
+                // Simulate movement during pause
+                stepCtrl.SimulateStepUpdate(0.02f, new Vector3(0.1f, 0, 0), grounded: true, hasInput: true, paused: true);
+                Assert(stepCtrl.TotalStepsEmitted == 0, "Zero footsteps emitted while paused");
+                Assert(stepCtrl.StepDistanceAccumulator == 0f, "Step accumulator remains zero while paused");
+
+                // Explicit OnGameplayPaused() callback test
+                stepCtrl.OnGameplayPaused();
+                Assert(stepCtrl.StepDistanceAccumulator == 0f, "OnGameplayPaused clears step distance accumulator");
+                Assert(!stepCtrl.FootstepAudioSource.isPlaying, "OnGameplayPaused ensures footstep AudioSource is not playing");
+            }
+            finally
+            {
+                if (ambience != null) ambience.Stop(true);
+                UnityEngine.Object.DestroyImmediate(go);
+            }
+        }
+
         private static void Test_ExistingVfxAndAudioIntegration_Preserved()
         {
             var go = new GameObject("Test_Runtime_Integration");
@@ -1154,7 +1193,7 @@ namespace FacilityBreach.Editor
                 }
 
                 Assert(!hasNaN, $"Footstep clip {variant} contains zero NaN or Infinity samples");
-                Assert(peak >= 0.45f && peak <= 0.60f, $"Footstep clip {variant} peak normalized around 0.52", $"Peak={peak:F3}");
+                Assert(peak >= 0.65f && peak <= 0.80f, $"Footstep clip {variant} peak normalized around 0.72", $"Peak={peak:F3}");
             }
 
             // 2. Footstep Motion Gating and Cadence Verification
