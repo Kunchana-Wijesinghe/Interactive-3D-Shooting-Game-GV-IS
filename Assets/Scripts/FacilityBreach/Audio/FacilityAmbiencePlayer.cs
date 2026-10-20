@@ -129,9 +129,9 @@ namespace FacilityBreach.Audio
             else if (instance != this)
             {
                 if (Application.isPlaying)
-                    Destroy(gameObject);
+                    Destroy(this);
                 else
-                    DestroyImmediate(gameObject);
+                    DestroyImmediate(this);
                 return;
             }
 
@@ -150,18 +150,15 @@ namespace FacilityBreach.Audio
         {
             if (audioSource == null) return;
 
-            // Runtime gameplay pause detection: automatically pause if Time.timeScale is frozen during gameplay
-            if (Application.isPlaying && shouldBePlaying)
+            // Authoritative pause check: synchronize directly with FacilityBreachRuntime and Time.timeScale
+            bool runtimePaused = (FacilityBreachRuntime.Instance != null && (FacilityBreachRuntime.Instance.Run.Paused || !FacilityBreachRuntime.Instance.Run.Running));
+            if (Application.isPlaying && (runtimePaused || Time.timeScale <= 0f))
             {
-                if (Time.timeScale <= 0f && !isPaused && audioSource.isPlaying)
+                if (!isPaused && shouldBePlaying)
                 {
                     Pause();
-                    return;
                 }
-                else if (Time.timeScale > 0f && isPaused && !isFadingOut)
-                {
-                    Resume();
-                }
+                return;
             }
 
             if (isPaused) return;
@@ -286,11 +283,15 @@ namespace FacilityBreach.Audio
         /// </summary>
         public void Pause()
         {
-            if (audioSource != null && audioSource.isPlaying)
-            {
-                audioSource.Pause();
-            }
             isPaused = true;
+            if (audioSource != null)
+            {
+                if (audioSource.isPlaying)
+                {
+                    audioSource.Pause();
+                }
+                audioSource.volume = 0f;
+            }
         }
 
         /// <summary>
@@ -299,6 +300,7 @@ namespace FacilityBreach.Audio
         public void Resume()
         {
             if (!shouldBePlaying) return;
+            if (FacilityBreachRuntime.Instance != null && (FacilityBreachRuntime.Instance.Run.Paused || !FacilityBreachRuntime.Instance.Run.Running)) return;
 
             InitializeAudioSource();
             if (audioSource != null)
@@ -311,9 +313,9 @@ namespace FacilityBreach.Audio
                         audioSource.Play();
                     }
                 }
+                isPaused = false;
                 desiredVolume = targetVolume;
             }
-            isPaused = false;
         }
 
         /// <summary>

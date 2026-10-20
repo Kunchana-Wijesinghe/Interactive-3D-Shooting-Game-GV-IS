@@ -19,6 +19,7 @@ namespace FacilityBreach
     [DefaultExecutionOrder(-200)]
     public sealed class FacilityBreachRuntime : MonoBehaviour
     {
+        public static FacilityBreachRuntime Instance { get; private set; }
         public MissionRun Run { get; private set; } = new MissionRun();
         public PlayerResources Resources { get; private set; } = new PlayerResources();
         public EnemyRoster Enemies { get; private set; } = new EnemyRoster();
@@ -73,6 +74,11 @@ namespace FacilityBreach
             if (!found) throw new System.InvalidOperationException("Facility Breach missing authored anchor: " + objectName);
             return found.transform;
         }
+        private void Awake()
+        {
+            Instance = this;
+        }
+
         private void Start()
         {
             view = Camera.main;
@@ -417,6 +423,10 @@ namespace FacilityBreach
                 if (paused) ambiencePlayer.Pause();
                 else if (Run.Running) ambiencePlayer.Resume();
             }
+            if (footstepController && paused)
+            {
+                footstepController.OnGameplayPaused();
+            }
         }
         private void OnApplicationFocus(bool focus) { if (!focus && Run.Running) SetPause(true); }
         public void StartMission()
@@ -428,6 +438,7 @@ namespace FacilityBreach
         public void Restart() { Time.timeScale = 1; SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex); }
         private void OnDestroy()
         {
+            if (Instance == this) Instance = null;
             if (navigationInstance.valid) navigationInstance.Remove();
             Time.timeScale = 1;
             foreach (var material in ownedMaterials) if (material) Destroy(material);
