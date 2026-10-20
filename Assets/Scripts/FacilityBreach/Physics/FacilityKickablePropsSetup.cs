@@ -351,5 +351,107 @@ namespace FacilityBreach
 
             return spawnedProps;
         }
+
+        /// <summary>
+        /// Explicit allowlist of existing scene clutter objects (8 barrels, 8 crates) verified safe for F-key kicking.
+        /// Movable barricades, doors, and structural walls are strictly excluded.
+        /// </summary>
+        public static readonly string[] SafeScenePropAllowlist = new string[]
+        {
+            // 8 Existing Metal Barrels
+            "Barrel_Entrance_01",
+            "Barrel_Room1_01",
+            "Barrel_LeftRoute_01",
+            "Barrel_Room2_Left",
+            "Barrel_Room2_Top",
+            "Barrel_Room3_Bottom",
+            "Barrel_LowerRoute_01",
+            "Barrel_Exit_01",
+
+            // 8 Existing Wooden Crates
+            "Crate_Entrance_01",
+            "Crate_LeftRoute_01",
+            "Crate_UpperRoute_01",
+            "Crate_Room1_Right",
+            "Crate_Room2_Bottom",
+            "Crate_Room2_Right",
+            "Crate_Room3_Left",
+            "Crate_Room3_Top"
+        };
+
+        /// <summary>
+        /// Converts existing allowable scene crates and barrels into kickable physics props at runtime.
+        /// Configures collision detection, mass, damping, and audio materials reversibly without editing scene assets.
+        /// </summary>
+        public static List<KickablePhysicsProp> ConvertExistingSceneProps()
+        {
+            var convertedProps = new List<KickablePhysicsProp>();
+            GameObject barricadesRoot = GameObject.Find("Facility_Barricades");
+
+            for (int i = 0; i < SafeScenePropAllowlist.Length; i++)
+            {
+                string propName = SafeScenePropAllowlist[i];
+                GameObject go = GameObject.Find(propName);
+                if (go == null && barricadesRoot != null)
+                {
+                    var child = barricadesRoot.transform.Find(propName);
+                    if (child != null) go = child.gameObject;
+                }
+
+                if (go == null) continue;
+
+                // Safety gate: never touch or convert movable barricades or doors
+                if (go.name.StartsWith("Barricade") || go.GetComponent<MovableBarricade>() != null)
+                {
+                    continue;
+                }
+
+                var kickable = go.GetComponent<KickablePhysicsProp>();
+                if (kickable == null)
+                {
+                    kickable = go.AddComponent<KickablePhysicsProp>();
+                }
+
+                var rb = go.GetComponent<Rigidbody>();
+                if (rb == null)
+                {
+                    rb = go.AddComponent<Rigidbody>();
+                }
+
+                bool isBarrel = propName.StartsWith("Barrel");
+                if (isBarrel)
+                {
+                    kickable.MaterialType = PropMaterialType.Metal;
+                    kickable.BaseMass = 7.0f;
+                    kickable.LinearDamping = 0.40f;
+                    kickable.AngularDamping = 0.20f;
+
+                    rb.mass = 7.0f;
+                    rb.linearDamping = 0.40f;
+                    rb.angularDamping = 0.20f;
+                    rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
+                    rb.maxAngularVelocity = 30.0f;
+                }
+                else
+                {
+                    // Wooden Crate
+                    kickable.MaterialType = PropMaterialType.Wood;
+                    kickable.BaseMass = 6.0f;
+                    kickable.LinearDamping = 0.65f;
+                    kickable.AngularDamping = 1.2f;
+
+                    rb.mass = 6.0f;
+                    rb.linearDamping = 0.65f;
+                    rb.angularDamping = 1.2f;
+                    rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
+                    rb.maxAngularVelocity = 30.0f;
+                }
+
+                kickable.ConfigurePhysics();
+                convertedProps.Add(kickable);
+            }
+
+            return convertedProps;
+        }
     }
 }

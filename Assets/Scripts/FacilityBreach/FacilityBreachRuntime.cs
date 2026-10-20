@@ -114,6 +114,7 @@ namespace FacilityBreach
                 dispatcher.RegisterBarricade(mb);
             }
             FacilityKickablePropsSetup.EnsurePropsSpawned(transform);
+            FacilityKickablePropsSetup.ConvertExistingSceneProps();
             // The committed scene lacks the waste root despite shipping its generator.
             // Add only an obstacle here; never call the destructive world generators.
             Vector3 waste = new Vector3(-2, 0, 20);
