@@ -582,7 +582,7 @@ namespace FacilityBreach
                     GUILayout.Label("Retrieve the card near toxic waste. Connect it to the fictional device in Machinery within five minutes. Escape alive. Combat is optional.");
                     if (GUILayout.Button("Start Mission")) StartMission();
                     if (GUILayout.Button("Controls")) controls = !controls;
-                    if (controls) GUILayout.Label("WASD move • Mouse look • Shift sprint • E interact\nLeft click shoot • R reload • Q can • Escape pause");
+                    if (controls) GUILayout.Label("WASD move • Mouse look • Shift sprint • Space jump • E interact\nF kick boxes and barrels • Left click shoot • R reload • Q can • Escape pause");
                 }
                 else if (Run.Paused && Run.Running)
                 {
