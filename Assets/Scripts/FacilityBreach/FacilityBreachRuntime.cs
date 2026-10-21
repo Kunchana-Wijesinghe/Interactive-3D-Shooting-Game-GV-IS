@@ -143,7 +143,7 @@ namespace FacilityBreach
                 var nav = obstacle.AddComponent<UnityEngine.AI.NavMeshObstacle>(); nav.carving = true; nav.shape = UnityEngine.AI.NavMeshObstacleShape.Box; nav.size = Vector3.one;
             }
             // Platform extents from the supplied obstacle script. Eastern edge outside containment.
-            Station("Access card", StationKind.Card, waste + new Vector3(3.4f, .75f, 0), Color.cyan);
+            Station("Access card", StationKind.Card, waste + new Vector3(3.4f, .75f, 0), ResourceStation.GoldCard);
             Station("Ammo3gun swap", StationKind.Weapon, waste + new Vector3(3.4f, .75f, -1.5f), Color.yellow).Weapon = 2;
             Station("Entrance health +50 (HP <=50)", StationKind.Health, spawn + new Vector3(2, .75f, 0), Color.white);
             Vector3 storage = Anchor("Room1_Right_Bottom").position;
