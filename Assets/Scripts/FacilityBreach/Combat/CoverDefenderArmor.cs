@@ -155,6 +155,10 @@ namespace FacilityBreach.Combat
             Part("Rifle muzzle glow", PrimitiveType.Cylinder, At(c, 0, 0, .58f), new Vector3(.05f, .015f, .05f), Purple, bone, 90, 0, true);
             Part("Rifle magazine", PrimitiveType.Cube, At(c, 0, -.12f, .02f), new Vector3(.05f, .16f, .07f), body, bone);
             Part("Rifle stock", PrimitiveType.Cube, At(c, 0, -.02f, -.27f), new Vector3(.06f, .11f, .16f), body, bone);
+            var muzzle = new GameObject("Muzzle");
+            muzzle.transform.SetPositionAndRotation(At(c, 0, 0, .64f), Quaternion.LookRotation(forward, Vector3.up));
+            muzzle.transform.SetParent(bone, true);
+            gameObject.AddComponent<EnemyWeaponEffects>().SetMuzzle(muzzle.transform, Purple, 1.1f);
         }
 
         private void OnDestroy() { foreach (var m in materials) if (m) Destroy(m); }

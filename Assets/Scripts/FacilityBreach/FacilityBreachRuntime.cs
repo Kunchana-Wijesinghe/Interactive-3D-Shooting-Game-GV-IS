@@ -197,6 +197,8 @@ namespace FacilityBreach
                 obj.GetComponent<Renderer>().enabled = false;
                 if (identity == "SH-01") obj.AddComponent<SoundHunterTacticalGear>().Build(visual);
                 else if (identity == "CD-03") obj.AddComponent<CoverDefenderArmor>().Build(visual);
+                else if (identity == "PG-01") obj.AddComponent<EnemyWeaponEffects>().BuildRifle(visual, new Color(.14f, .16f, .18f), new Color(0, .8f, .8f), new Color(1f, .85f, .4f));
+                else if (identity == "FL-04") obj.AddComponent<EnemyWeaponEffects>().BuildRifle(visual, new Color(.14f, .16f, .14f), new Color(.7f, 1f, .2f), new Color(1f, .85f, .4f));
             }
             else Debug.LogWarning("Missing robot visual: " + identity, obj);
             if (identity == "CD-03")
