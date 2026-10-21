@@ -1,3 +1,4 @@
+using FacilityBreach.Audio;
 using FacilityBreach.Core;
 using Perera.Core;
 using UnityEngine;
@@ -94,6 +95,12 @@ namespace FacilityBreach.Combat
             if (landed) SuccessfulHits++;
             GameplayDiagnostics.Trace($"enemy shot id={Identity} resolved={ResolvedShots} hit={landed} magazine={Magazine} playerHP={runtime.Resources.Health}", this);
             SoundEventBus.Emit(transform.position, 40, SoundCategory.Gunshot, GetEntityId().GetHashCode());
+            if (Identity == "SH-01")
+            {
+                var gear = GetComponent<SoundHunterTacticalGear>();
+                FacilityAudioPlayer.Instance.PlayEnemyGunshot(gear && gear.Muzzle ? gear.Muzzle.position : transform.position + Vector3.up * 1.2f);
+                if (gear) gear.NotifyShot();
+            }
         }
         private void Synchronize()
         {

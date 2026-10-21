@@ -128,6 +128,7 @@ namespace FacilityBreach
             }
             FacilityKickablePropsSetup.EnsurePropsSpawned(transform);
             FacilityKickablePropsSetup.ConvertExistingSceneProps();
+            AttachBloodMarksToDoors();
             // The committed scene lacks the waste root despite shipping its generator.
             // Add only an obstacle here; never call the destructive world generators.
             Vector3 waste = new Vector3(-2, 0, 20);
@@ -137,16 +138,18 @@ namespace FacilityBreach
             {
                 var obstacle = Box("FB_ToxicWaste_IntegrationPlaceholder", waste + Vector3.up * .5f, new Vector3(5.2f, 1, 4.8f), new Color(.2f, .5f, .1f));
                 Label(obstacle, "TOXIC WASTE — NO ENTRY");
+                obstacle.GetComponent<Renderer>().enabled = false;
+                BuildToxicBarrels(waste);
                 var nav = obstacle.AddComponent<UnityEngine.AI.NavMeshObstacle>(); nav.carving = true; nav.shape = UnityEngine.AI.NavMeshObstacleShape.Box; nav.size = Vector3.one;
             }
             // Platform extents from the supplied obstacle script. Eastern edge outside containment.
             Station("Access card", StationKind.Card, waste + new Vector3(3.4f, .75f, 0), Color.cyan);
             Station("Ammo3gun swap", StationKind.Weapon, waste + new Vector3(3.4f, .75f, -1.5f), Color.yellow).Weapon = 2;
-            Station("Entrance health +50 (HP <=50)", StationKind.Health, spawn + new Vector3(2, .75f, 0), Color.green);
+            Station("Entrance health +50 (HP <=50)", StationKind.Health, spawn + new Vector3(2, .75f, 0), Color.white);
             Vector3 storage = Anchor("Room1_Right_Bottom").position;
             Station("Ammo2gun swap", StationKind.Weapon, new Vector3(storage.x - 1.5f, .75f, -14), Color.yellow).Weapon = 1;
-            Station("Marked ammo crate 25", StationKind.AmmoCrate, spawn + new Vector3(-2, .65f, 2), Color.gray).Quantity = 25;
-            Station("Marked ammo crate 50", StationKind.AmmoCrate, waste + new Vector3(3.5f, .65f, 2), Color.gray).Quantity = 50;
+            Station("Marked ammo crate 25", StationKind.AmmoCrate, spawn + new Vector3(-2, .65f, 2), CrateGreen).Quantity = 25;
+            Station("Marked ammo crate 50", StationKind.AmmoCrate, waste + new Vector3(3.5f, .65f, 2), CrateGreen).Quantity = 50;
             Vector3 machinery = Anchor("Room3_Machine_A").position;
             device = Station("Connect card: fictional device", StationKind.Device, new Vector3(machinery.x - 2, 1, machinery.z), Color.red);
             foreach (string door in new[] { "Door_Room3_Left", "Door_Room3_Bottom", "Door_Room3_Top" })
@@ -188,6 +191,7 @@ namespace FacilityBreach
                 var visual = Instantiate(EnemyVisuals[visualIndex], obj.transform); visual.name = "ModelVisual";
                 RemoveVisualColliders(visual);
                 obj.GetComponent<Renderer>().enabled = false;
+                if (identity == "SH-01") obj.AddComponent<SoundHunterTacticalGear>().Build(visual);
             }
             else Debug.LogWarning("Missing robot visual: " + identity, obj);
             if (identity == "CD-03")
@@ -235,6 +239,63 @@ namespace FacilityBreach
             var material = new Material(Shader.Find("Standard")); material.color = color; ownedMaterials.Add(material);
             obj.GetComponent<Renderer>().sharedMaterial = material; return obj;
         }
+        // Visual-only barrel cluster over the waste obstacle's collider: dark metal drums with black bands, some with a glowing green lid.
+        private void BuildToxicBarrels(Vector3 center)
+        {
+            var holder = new GameObject("FB_ToxicWaste_Barrels"); holder.transform.SetParent(transform);
+            Material Mat(Color color, bool glow)
+            {
+                var m = new Material(Shader.Find("Standard")) { color = color };
+                if (glow) { m.EnableKeyword("_EMISSION"); m.SetColor("_EmissionColor", new Color(.2f, 1f, .25f) * 1.6f); }
+                ownedMaterials.Add(m); return m;
+            }
+            var metal = Mat(new Color(.2f, .23f, .27f), false);
+            var band = Mat(new Color(.03f, .03f, .03f), false);
+            var glowLid = Mat(new Color(.25f, .8f, .3f), true);
+            int index = 0;
+            foreach (var x in new[] { -1.6f, 0f, 1.6f })
+                foreach (var z in new[] { -1.5f, 0f, 1.5f })
+                {
+                    var at = center + new Vector3(x, 0, z);
+                    Drum(holder.transform, "Barrel", at + Vector3.up * .5f, new Vector3(.9f, .5f, .9f), metal);
+                    Drum(holder.transform, "Barrel band", at + Vector3.up * .12f, new Vector3(.95f, .04f, .95f), band);
+                    Drum(holder.transform, "Barrel band", at + Vector3.up * .88f, new Vector3(.95f, .04f, .95f), band);
+                    Drum(holder.transform, "Barrel lid", at + Vector3.up * 1.005f, new Vector3(.8f, .01f, .8f), index % 3 == 0 ? glowLid : metal);
+                    index++;
+                }
+        }
+        private static void Drum(Transform parent, string drumName, Vector3 position, Vector3 scale, Material material)
+        {
+            var part = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            part.name = drumName; Destroy(part.GetComponent<Collider>());
+            part.transform.SetParent(parent); part.transform.position = position; part.transform.localScale = scale;
+            part.GetComponent<Renderer>().sharedMaterial = material;
+        }
+        // Scene blood marks are loose objects; any mark lying on a door panel must swing with the door instead of hanging in the doorway.
+        private void AttachBloodMarksToDoors()
+        {
+            var root = GameObject.Find("Facility_BloodMarks");
+            if (!root) return;
+            var doors = FindObjectsByType<InteractiveDoor>();
+            var marks = new List<Transform>();
+            foreach (Transform mark in root.transform) marks.Add(mark);
+            foreach (var mark in marks)
+            {
+                var renderers = mark.GetComponentsInChildren<Renderer>();
+                if (renderers.Length == 0) continue;
+                var area = renderers[0].bounds;
+                foreach (var r in renderers) area.Encapsulate(r.bounds);
+                area.Expand(.3f); // marks sit a few cm off the door surface
+                foreach (var door in doors)
+                {
+                    bool onDoor = false;
+                    foreach (var panel in door.GetComponentsInChildren<Collider>())
+                        if (!panel.isTrigger && panel.bounds.Intersects(area)) { onDoor = true; break; }
+                    if (onDoor) { mark.SetParent(door.transform, true); Debug.Log($"Blood mark {mark.name} attached to {door.name}"); break; }
+                }
+            }
+        }
+        private static readonly Color CrateGreen = new Color(.29f, .40f, .27f);
         private ResourceStation Station(string name, StationKind kind, Vector3 position, Color color)
         {
             position = ClearPlacement(position, kind == StationKind.Card ? new Vector3(.2f, .05f, .125f) : Vector3.one * .25f);
@@ -276,6 +337,7 @@ namespace FacilityBreach
             float dt = Time.deltaTime; Run.Tick(dt); GameplayTime += dt; Enemies.Tick(GameplayTime);
             if (!Run.Running) { CancelEnemyAttacks(); return; }
             foreach (var station in stations) station.Tick(dt);
+            if (device) device.SetDeviceActive(Run.State != MissionState.Escape && Run.State != MissionState.Won);
             foreach (var gate in gates) gate.SetActive(!Run.HasCard);
             feedbackTime -= dt; cadence = Mathf.Max(0, cadence - dt);
             if (reload > 0) { reload = Mathf.Max(0, reload - dt); if (reload == 0) Resources.Reload(); }
@@ -502,7 +564,7 @@ namespace FacilityBreach
             foreach (var door in FindObjectsByType<InteractiveDoor>()) Dot(rect, door.transform.position, Color.gray, "");
             foreach (var station in stations)
                 if (station.Available && (station.Kind == StationKind.Card || station.Kind == StationKind.Health || station.Kind == StationKind.Device))
-                    Dot(rect, station.transform.position, station.Kind == StationKind.Card ? Color.cyan : station.Kind == StationKind.Health ? Color.green : Color.red, station.Kind.ToString());
+                    Dot(rect, station.transform.position, station.Kind == StationKind.Card ? Color.cyan : station.Kind == StationKind.Health ? Color.white : Color.red, station.Kind.ToString());
             Dot(rect, exit, Run.ExitUnlocked ? Color.green : Color.red, "Exit");
             Dot(rect, player.transform.position, Color.white, "▲");
             Vector2 facing = MapPoint(rect, player.transform.position + player.transform.forward * 2); GUI.DrawTexture(new Rect(facing.x, facing.y, 3, 3), Texture2D.whiteTexture);

@@ -17,7 +17,8 @@ namespace FacilityBreach.Audio
         ProjectileImpact,
         FacilityAmbience,
         BarrelRollRattle,
-        FootstepConcrete
+        FootstepConcrete,
+        CrateDestroyed
     }
 
     /// <summary>
@@ -62,6 +63,7 @@ namespace FacilityBreach.Audio
                 FacilityAudioClipType.FacilityAmbience  => SynthesizeFacilityAmbience(),
                 FacilityAudioClipType.BarrelRollRattle  => GetOrCreateRattleClip(0),
                 FacilityAudioClipType.FootstepConcrete  => GetOrCreateFootstepClip(0),
+                FacilityAudioClipType.CrateDestroyed    => SynthesizeCrateDestroyed(),
                 _                                       => SynthesizeGunshotAmmo1()
             };
 
@@ -495,6 +497,46 @@ namespace FacilityBreach.Audio
 
             NormalizeSamples(samples, 0.88f);
             AudioClip clip = AudioClip.Create("Procedural_Projectile_Launch", totalSamples, 1, SampleRate, false);
+            clip.SetData(samples, 0);
+            return clip;
+        }
+
+        /// <summary>
+        /// Crate Destroyed: sheet-metal burst (noise crack and torn-lid ring) followed by debris tapping the floor (0.75s).
+        /// </summary>
+        private static AudioClip SynthesizeCrateDestroyed()
+        {
+            float duration = 0.75f;
+            int totalSamples = Mathf.CeilToInt(SampleRate * duration);
+            float[] samples = new float[totalSamples];
+            var rng = new System.Random(3141);
+            float lowPass = 0f;
+            float[] tapTimes = { 0.12f, 0.21f, 0.34f };
+            float[] tapPitch = { 760f, 1040f, 640f };
+
+            for (int i = 0; i < totalSamples; i++)
+            {
+                float t = (float)i / SampleRate;
+                float attack = Mathf.Clamp01(t / 0.0008f);
+                float noise = (float)rng.NextDouble() * 2f - 1f;
+                lowPass += (noise - lowPass) * 0.25f;
+
+                float crack = noise * Mathf.Exp(-32f * t) * 0.60f;
+                float boom = (lowPass * 0.9f + Mathf.Sin(2f * Mathf.PI * 70f * t) * 0.5f) * Mathf.Exp(-9f * t);
+                float ring = (Mathf.Sin(2f * Mathf.PI * 410f * t) * 0.30f + Mathf.Sin(2f * Mathf.PI * 1130f * t) * 0.18f) * Mathf.Exp(-14f * t);
+
+                float debris = 0f;
+                for (int k = 0; k < tapTimes.Length; k++)
+                {
+                    float dt = t - tapTimes[k];
+                    if (dt > 0f) debris += Mathf.Sin(2f * Mathf.PI * tapPitch[k] * dt) * Mathf.Exp(-42f * dt) * 0.28f;
+                }
+
+                samples[i] = attack * (crack + boom + ring) + debris;
+            }
+
+            NormalizeSamples(samples, 0.95f);
+            AudioClip clip = AudioClip.Create("Procedural_Crate_Destroyed", totalSamples, 1, SampleRate, false);
             clip.SetData(samples, 0);
             return clip;
         }

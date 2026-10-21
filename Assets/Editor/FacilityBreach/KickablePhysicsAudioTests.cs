@@ -143,7 +143,7 @@ namespace FacilityBreach.Editor
         private static void Test_AudioClipGeneration_AllTypes_FiniteSamplesAndNonZero()
         {
             var types = (FacilityAudioClipType[])Enum.GetValues(typeof(FacilityAudioClipType));
-            Assert(types.Length == 12, "FacilityAudioClipType defines exactly 12 audio profiles (including FootstepConcrete)", $"Found {types.Length}");
+            Assert(types.Length == 13, "FacilityAudioClipType defines exactly 13 audio profiles (including FootstepConcrete and CrateDestroyed)", $"Found {types.Length}");
 
             foreach (var type in types)
             {
