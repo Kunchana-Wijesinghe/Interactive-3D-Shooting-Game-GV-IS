@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using FacilityBreach.Player;
 
 namespace FacilityBreach.Audio
 {
@@ -178,7 +179,7 @@ namespace FacilityBreach.Audio
         public void PlayFootstep(Vector3 worldPosition, float volumeScale = 0.25f, int variant = 0)
         {
             InitializePool();
-            AudioClip clip = FacilityAudioSynthesizer.GetOrCreateFootstepClip(variant);
+            AudioClip clip = FpsFootstepController.GetFootstepClip(variant);
             if (clip != null && player2dSource != null)
             {
                 player2dSource.pitch = Random.Range(0.97f, 1.03f);

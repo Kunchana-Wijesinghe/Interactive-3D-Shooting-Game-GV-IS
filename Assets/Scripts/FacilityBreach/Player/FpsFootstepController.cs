@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using FacilityBreach.Audio;
 
@@ -228,16 +229,187 @@ namespace FacilityBreach.Player
             }
         }
 
+        private static AudioClip[] cachedRecordedClips;
+
+        public static AudioClip[] CachedRecordedClips => cachedRecordedClips;
+        public static bool IsUsingRecordedClips => cachedRecordedClips != null && cachedRecordedClips.Length > 0;
+
+        public static void ClearClipsCache()
+        {
+            cachedRecordedClips = null;
+        }
+
+        public static AudioClip[] LoadRecordedFootstepClips()
+        {
+            if (cachedRecordedClips != null && cachedRecordedClips.Length > 0)
+                return cachedRecordedClips;
+
+            var list = new System.Collections.Generic.List<AudioClip>();
+
+            // 1. Try loading dedicated individual footstep slices from Resources
+            for (int i = 1; i <= 8; i++)
+            {
+                var slice = UnityEngine.Resources.Load<AudioClip>($"Audio/Footsteps/footstep_0{i}");
+                if (slice != null)
+                {
+                    list.Add(slice);
+                }
+            }
+
+            // 2. If no individual slices found in Resources, try loading master recording
+            if (list.Count == 0)
+            {
+                var masterClip = UnityEngine.Resources.Load<AudioClip>("Audio/Footsteps/foot_Steps_sound");
+#if UNITY_EDITOR
+                if (masterClip == null)
+                {
+                    masterClip = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/Footsteps/foot_Steps_sound.mp3");
+                }
+                if (masterClip == null)
+                {
+                    masterClip = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Resources/Audio/Footsteps/foot_Steps_sound.mp3");
+                }
+#endif
+                if (masterClip != null)
+                {
+                    var extracted = ExtractSlicesFromClip(masterClip, 4);
+                    if (extracted != null && extracted.Length > 0)
+                    {
+                        list.AddRange(extracted);
+                    }
+                }
+            }
+
+            if (list.Count > 0)
+            {
+                cachedRecordedClips = list.ToArray();
+                Debug.Log($"[FpsFootstepController] Loaded {cachedRecordedClips.Length} recorded footstep clips (DEFAULT walking audio).");
+                return cachedRecordedClips;
+            }
+
+            return null;
+        }
+
+        public static AudioClip[] ExtractSlicesFromClip(AudioClip masterClip, int maxSlices = 4)
+        {
+            if (masterClip == null) return null;
+
+            int channels = masterClip.channels;
+            int sampleRate = masterClip.frequency;
+            int totalFrames = masterClip.samples;
+            if (totalFrames <= 0) return null;
+
+            float[] raw = new float[totalFrames * channels];
+            if (!masterClip.GetData(raw, 0)) return null;
+
+            float[] mono = new float[totalFrames];
+            for (int i = 0; i < totalFrames; i++)
+            {
+                float sum = 0f;
+                for (int c = 0; c < channels; c++) sum += raw[i * channels + c];
+                mono[i] = sum / channels;
+            }
+
+            int windowSize = Mathf.Max(1, sampleRate / 50);
+            int numWindows = totalFrames / windowSize;
+            float[] rms = new float[numWindows];
+            float maxRms = 0f;
+            for (int w = 0; w < numWindows; w++)
+            {
+                float sumSq = 0f;
+                int start = w * windowSize;
+                for (int j = 0; j < windowSize; j++)
+                {
+                    float s = mono[start + j];
+                    sumSq += s * s;
+                }
+                rms[w] = Mathf.Sqrt(sumSq / windowSize);
+                if (rms[w] > maxRms) maxRms = rms[w];
+            }
+
+            int minSpacing = (int)(0.25f * sampleRate / windowSize);
+            float thresh = maxRms * 0.15f;
+            var peakWindows = new System.Collections.Generic.List<int>();
+            for (int w = 1; w < numWindows - 1; w++)
+            {
+                if (rms[w] > thresh && rms[w] >= rms[w - 1] && rms[w] >= rms[w + 1])
+                {
+                    if (peakWindows.Count == 0 || (w - peakWindows[peakWindows.Count - 1]) >= minSpacing)
+                        peakWindows.Add(w);
+                    else if (rms[w] > rms[peakWindows[peakWindows.Count - 1]])
+                        peakWindows[peakWindows.Count - 1] = w;
+                }
+            }
+
+            int countToExtract = Mathf.Clamp(peakWindows.Count, 1, maxSlices);
+            var result = new System.Collections.Generic.List<AudioClip>();
+
+            int stepDurationFrames = (int)(0.35f * sampleRate);
+            int leadInFrames = (int)(0.03f * sampleRate);
+            int fadeInFrames = (int)(0.005f * sampleRate);
+            int fadeOutFrames = (int)(0.05f * sampleRate);
+
+            for (int s = 0; s < countToExtract; s++)
+            {
+                int peakFrame = peakWindows[s] * windowSize;
+                int startFrame = Mathf.Max(0, peakFrame - leadInFrames);
+                int endFrame = Mathf.Min(totalFrames, startFrame + stepDurationFrames);
+                int length = endFrame - startFrame;
+
+                float[] slice = new float[length];
+                float sliceMax = 0f;
+                for (int i = 0; i < length; i++)
+                {
+                    float val = mono[startFrame + i];
+                    if (i < fadeInFrames) val *= (float)i / fadeInFrames;
+                    int fromEnd = length - 1 - i;
+                    if (fromEnd < fadeOutFrames) val *= (float)fromEnd / fadeOutFrames;
+                    slice[i] = val;
+                    float abs = Mathf.Abs(val);
+                    if (abs > sliceMax) sliceMax = abs;
+                }
+
+                if (sliceMax > 0.01f)
+                {
+                    float norm = 0.85f / sliceMax;
+                    for (int i = 0; i < length; i++) slice[i] *= norm;
+                }
+
+                var clip = AudioClip.Create($"Recorded_Footstep_0{s + 1}", length, 1, sampleRate, false);
+                clip.SetData(slice, 0);
+                result.Add(clip);
+            }
+
+            return result.ToArray();
+        }
+
+        public static AudioClip GetFootstepClip(int variant)
+        {
+            var recorded = LoadRecordedFootstepClips();
+            if (recorded != null && recorded.Length > 0)
+            {
+                int idx = Mathf.Abs(variant) % recorded.Length;
+                if (recorded[idx] != null)
+                {
+                    return recorded[idx];
+                }
+            }
+
+            // Procedural fallback strictly if recorded clips cannot be loaded
+            return FacilityAudioSynthesizer.GetOrCreateFootstepClip(variant);
+        }
+
         /// <summary>
         /// Emits a single natural footstep audio event with speed scaling and subtle variant alternating.
+        /// Uses real recorded footstep audio as DEFAULT, falling back to procedural audio only if missing.
         /// </summary>
         private void EmitFootstep(float speed)
         {
-            int variant = stepVariantCounter % 3;
+            int variant = stepVariantCounter;
             stepVariantCounter++;
             totalStepsEmitted++;
 
-            AudioClip clip = FacilityAudioSynthesizer.GetOrCreateFootstepClip(variant);
+            AudioClip clip = GetFootstepClip(variant);
             if (clip == null) return;
 
             if (footstepAudioSource == null)
@@ -257,7 +429,7 @@ namespace FacilityBreach.Player
 
             if (totalStepsEmitted == 1 || (totalStepsEmitted % 15 == 0))
             {
-                Debug.Log($"[FpsFootstepController] Emitted footstep #{totalStepsEmitted} on '{gameObject.name}' (Speed: {speed:F2}m/s, Volume: {volume:F2})");
+                Debug.Log($"[FpsFootstepController] Emitted recorded footstep #{totalStepsEmitted} on '{gameObject.name}' ({clip.name}, Speed: {speed:F2}m/s, Volume: {volume:F2})");
             }
         }
 
