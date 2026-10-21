@@ -740,10 +740,27 @@ Executed in Unity 6000.6.2f1 headless batch mode with **ExitCode 0**:
        - Dedicated 2D non-looping AudioSource child `[FpsFootstepAudioSource]` with volume 0.26 and priority 110.
      - **STRICT AI ISOLATION INVARIANT**: Footsteps and ambience are local player audio only. Never emits events to `FacilityNoiseHub` or `SoundEventBus`. Zero effect on AI patrol guards or noise scoring.
 
+### Phase 10: Runtime Footstep Motion & In-Game Pause Synchronization Repair
+
+#### Root Cause Analysis & Resolution
+- **User-Reported Defects**:
+  1. *Failure A*: Player walks with W/S/A/D but NO audible footsteps are heard.
+  2. *Failure B*: Background facility ambience continues playing after in-game pause action (Escape key).
+- **Failure A Diagnosis & Fixes**:
+  - *Volume Squaring & Peak Normalization*: ootstepAudioSource.volume was set to .26$, and PlayOneShot(clip, volumeScale) multiplied source volume by .26$, yielding .0676$ attenuation. Combined with .52$ peak synthesis, effective amplitude was .035$ (inaudible on laptop speakers). Resolved by setting ootstepAudioSource.volume = 1.0f, using PlayOneShot with calibrated .50$ volume, boosting synthesized heel thud to \,\text{Hz}$ and sole contact to \,\text{Hz}$, and normalizing clip peak to .72$.
+  - *Grounded State Polygon Flickering*: In Unity, CharacterController.isGrounded flickers to false across polygon seams or before Move() ticks. Resolved by implementing CheckGrounded() combining isGrounded with a .45\,\text{m}$ downward raycast fallback.
+  - *Distance Accumulator Wiping*: Accumulator was wiped to 0 on any frame with momentary speed dip or pause. Resolved by preserving accumulated distance during stationary pauses and wall blockage, priming initial stride accumulator (.35 \times \text{stride}$) on movement start, and gating airborne reset with a .10\,\text{s}$ timer.
+- **Failure B Diagnosis & Fixes**:
+  - *Rogue Auto-Restart*: FacilityAmbiencePlayer.Update() contained an auto-resume block (else if (Time.timeScale > 0f && isPaused && !isFadingOut) Resume();) that actively restarted audio during frame timing transitions. Resolved by removing the auto-restart block and binding directly to FacilityBreachRuntime.Instance pause state.
+  - *Buffer Bleed*: In Pause(), immediately zeroed udioSource.volume = 0f alongside udioSource.Pause(). Added OnGameplayPaused() on FpsFootstepController.
+- **Behavioral Regression Tests**:
+  - Added Test_InGamePause_AmbienceAndFootstepSynchronization in KickablePhysicsAudioTests.cs verifying immediate pause volume zeroing, footstep gating during pause, and OnGameplayPaused() callback state.
+  - Updated footstep clip peak normalization check to $[0.65, 0.80]$ (.72$ nominal).
+
 #### Verification Summary
 - Baseline automated regression checks: 374/374 PASSED across 10 baseline suites.
-- Kickable physics & audio automated checks: 488/488 PASSED across 29 comprehensive test methods in KickablePhysicsAudioTests.cs (covering clank-based rolling rattles, speed-driven tick scheduling, organic mechanical friction, audible mid-range facility ambience, ambience lifecycle/pause gating, procedural footsteps and motion gating, dedicated child AudioSource, priority 64, and zero AI noise emission invariant).
-- Cumulative project test total: 862/862 checks PASSED (100% Green across all 11 suites, ExitCode 0).
+- Kickable physics & audio automated checks: 495/495 PASSED across 30 comprehensive test methods in KickablePhysicsAudioTests.cs.
+- Cumulative project test total: 869/869 checks PASSED (100% Green across all 11 suites, ExitCode 0).
 - Total active kickable props: 40 props (13 authored + 27 converted scene props).
 - Visual evidence screenshots: 28 high-resolution captures preserved unchanged.
 - Unity Editor closed during development; consolidated headless batch run executed with ExitCode 0.
