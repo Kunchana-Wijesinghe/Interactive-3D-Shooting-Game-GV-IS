@@ -70,6 +70,7 @@ namespace FacilityBreach.Editor
             RunTest("TeammateSoundHunterIsolation_NoCoupling", Test_TeammateSoundHunterIsolation_NoCoupling);
             RunTest("ExistingVfxAndAudioIntegration_Preserved", Test_ExistingVfxAndAudioIntegration_Preserved);
             RunTest("InGamePause_AmbienceAndFootstepSynchronization", Test_InGamePause_AmbienceAndFootstepSynchronization);
+            RunTest("RecordedFootstepAudio_ClipsLoadedAndDefaultSelection", Test_RecordedFootstepAudio_ClipsLoadedAndDefaultSelection);
 
             if (failedCount == 0)
             {
@@ -94,6 +95,7 @@ namespace FacilityBreach.Editor
         public static void RunAll11SuitesBatch()
         {
             Log("<color=yellow>=== RUNNING ALL 11 TEST SUITES (374 Baseline + Kickable Physics & Audio) ===</color>");
+            FootstepAudioImporter.ProcessFootstepAudio();
             FpsArmsTests.RunAll();
             FpsViewModelObstructionTests.RunAll();
             FacilityInteractionDispatcherTests.RunAll();
@@ -822,6 +824,49 @@ namespace FacilityBreach.Editor
             {
                 Perera.Core.SoundEventBus.Emitted -= listener;
             }
+        }
+
+        private static void Test_RecordedFootstepAudio_ClipsLoadedAndDefaultSelection()
+        {
+            // 1. Verify recorded footstep MP3 file exists in project
+            string mp3Path = "Assets/Audio/Footsteps/foot_Steps_sound.mp3";
+            Assert(System.IO.File.Exists(mp3Path), "Recorded footstep MP3 file exists at 'Assets/Audio/Footsteps/foot_Steps_sound.mp3'");
+
+            // 2. Load recorded footstep clips
+            FpsFootstepController.ClearClipsCache();
+            AudioClip[] recordedClips = FpsFootstepController.LoadRecordedFootstepClips();
+            Assert(recordedClips != null && recordedClips.Length > 0, "FpsFootstepController loads real recorded footstep clips", $"Count={recordedClips?.Length}");
+
+            for (int i = 0; i < recordedClips.Length; i++)
+            {
+                AudioClip c = recordedClips[i];
+                Assert(c != null, $"Recorded footstep clip {i} is non-null");
+                Assert(c.length >= 0.05f && c.length <= 2.50f, $"Recorded footstep clip {i} duration is appropriate for a single stride", $"Length={c.length:F3}s");
+                Assert(c.channels >= 1 && c.channels <= 2, $"Recorded footstep clip {i} channels valid", $"Channels={c.channels}");
+                Assert(c.frequency >= 22050, $"Recorded footstep clip {i} frequency valid", $"Freq={c.frequency}");
+
+                float[] data = new float[c.samples * c.channels];
+                c.GetData(data, 0);
+                float peak = 0f;
+                bool hasNaN = false;
+                for (int j = 0; j < data.Length; j++)
+                {
+                    if (float.IsNaN(data[j]) || float.IsInfinity(data[j])) hasNaN = true;
+                    float abs = Mathf.Abs(data[j]);
+                    if (abs > peak) peak = abs;
+                }
+                Assert(!hasNaN, $"Recorded footstep clip {i} has zero NaN/Infinity");
+                Assert(peak > 0.05f, $"Recorded footstep clip {i} has audible non-zero amplitude", $"Peak={peak:F3}");
+            }
+
+            // 3. Verify DEFAULT selection is recorded audio (not procedural)
+            AudioClip defaultClip = FpsFootstepController.GetFootstepClip(0);
+            Assert(defaultClip != null, "Default footstep clip is non-null");
+            Assert(!defaultClip.name.Contains("Procedural_Footstep"), "Default footstep clip is genuine recorded audio, not procedural pum-pum", $"Name={defaultClip.name}");
+
+            // 4. Procedural fallback contract verification:
+            AudioClip fallbackClip = FacilityAudioSynthesizer.GetOrCreateFootstepClip(0);
+            Assert(fallbackClip != null, "Procedural footstep clip retained as fallback");
         }
 
         private static void Test_InGamePause_AmbienceAndFootstepSynchronization()

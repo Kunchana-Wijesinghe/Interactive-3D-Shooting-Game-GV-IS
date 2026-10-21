@@ -1108,8 +1108,28 @@ To provide robust, zero-dependency audio feedback without missing asset GUIDs, b
   - Added OnGameplayPaused() notification on FpsFootstepController clearing stride accumulator and halting active footstep voices.
 - **STRICT AI ISOLATION INVARIANT**: Footstep and ambience systems strictly emit 0 noise events and 0 sound stimuli to FacilityNoiseHub or SoundEventBus.
 
+### 14.11 Real Recorded Footstep Audio Replacement & Provenance
+- **Replacement of Procedural Footsteps**:
+  - Replaced the procedural synthetic combat boot footsteps with genuine real recorded footstep audio provided directly by the user (`foot_Steps_sound.mp3`).
+  - **Asset Provenance & License**:
+    - **Original Filename**: `foot_Steps_sound.mp3` (157,920 bytes, 7.90s, stereo 24kHz, 160kbps).
+    - **Source / License**: Pending user disclosure (provided directly by user to local Downloads folder `C:\Users\Kunchana Wijesinghe\Downloads\foot_Steps_sound.mp3`).
+  - **Automated Slicing & Variant Extraction ([FootstepAudioImporter.cs](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Editor/FacilityBreach/FootstepAudioImporter.cs))**:
+    - Analyzed RMS energy over 20ms windows to detect distinct footstep impact peaks.
+    - Extracted 4 distinct, trimmed individual footstep clips with 5ms anti-click fade-in and 50ms exponential decay fade-out, peak normalized to 0.85:
+      1. `footstep_01.wav` (0.350s, 8399 samples)
+      2. `footstep_02.wav` (0.350s, 8399 samples)
+      3. `footstep_03.wav` (0.350s, 8399 samples)
+      4. `footstep_04.wav` (0.126s, 3023 samples)
+    - Deployed to both `Assets/Audio/Footsteps/` and `Assets/Resources/Audio/Footsteps/` with valid Unity `.meta` files.
+  - **Default Runtime Playback Integration ([FpsFootstepController.cs](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/Player/FpsFootstepController.cs), [FacilityAudioPlayer.cs](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/Audio/FacilityAudioPlayer.cs))**:
+    - `FpsFootstepController.GetFootstepClip(variant)` loads and selects the recorded clips as the DEFAULT walking audio, cycling variants per stride.
+    - Procedural footstep clips are retained strictly as an optional fallback in case recorded clips cannot be loaded.
+    - Preserved all motion gating: zero footsteps when stationary, zero footsteps when wall-blocked, zero footsteps when airborne, zero footsteps when paused, and preserved stride cadence on diagonal movement.
+- **STRICT AI ISOLATION INVARIANT**: Footstep audio remains pure player-facing immersion audio. Strictly zero events emitted to `FacilityNoiseHub` or `SoundEventBus`.
+
 - **Verification Summary:**
   - Baseline checks: 374/374 passed across 10 baseline suites.
-  - Kickable physics and audio checks: 495/495 passed across 30 comprehensive test methods in KickablePhysicsAudioTests.cs.
-  - Master Regression Total: 869/869 automated checks (374 baseline + 495 kickable physics & audio, 100% green batch verification across all 11 suites with ExitCode 0).
+  - Kickable physics and audio checks: 524/524 passed across 31 comprehensive test methods in KickablePhysicsAudioTests.cs.
+  - Master Regression Total: 898/898 automated checks (374 baseline + 524 kickable physics & audio, 100% green batch verification across all 11 suites with ExitCode 0).
   - Historical evidence: 28 high-resolution screenshots preserved intact.

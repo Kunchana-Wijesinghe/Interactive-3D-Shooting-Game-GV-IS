@@ -757,10 +757,29 @@ Executed in Unity 6000.6.2f1 headless batch mode with **ExitCode 0**:
   - Added Test_InGamePause_AmbienceAndFootstepSynchronization in KickablePhysicsAudioTests.cs verifying immediate pause volume zeroing, footstep gating during pause, and OnGameplayPaused() callback state.
   - Updated footstep clip peak normalization check to $[0.65, 0.80]$ (.72$ nominal).
 
+### Phase 11: Real Recorded Footstep Audio Replacement & Slice Extraction
+
+#### Implementation Overview
+- **User Request**: Replace unrealistic procedural footsteps ("pum-pum") with the user's downloaded real footstep recording (`foot_Steps_sound.mp3`).
+- **File Ingestion & Provenance**:
+  - Imported `C:\Users\Kunchana Wijesinghe\Downloads\foot_Steps_sound.mp3` into `Assets/Audio/Footsteps/` and `Assets/Resources/Audio/Footsteps/`.
+  - Provenance: Pending user disclosure (provided directly by user to local Downloads folder).
+- **Audio Slicing & Variant Extraction**:
+  - Implemented `FootstepAudioImporter.cs` analyzing 20ms RMS windows across the 7.90s recording to identify distinct footstep peaks.
+  - Sliced and exported 4 clean footstep variants (`footstep_01.wav` through `footstep_04.wav`) with 5ms anti-click fade-in and 50ms exponential decay fade-out, peak normalized to 0.85.
+- **Runtime Default Wiring**:
+  - Updated `FpsFootstepController.cs` and `FacilityAudioPlayer.cs` to use the real recorded clips as the DEFAULT walking audio.
+  - Retained procedural synthesis as an optional fallback only if recorded clips cannot be loaded.
+  - Preserved all approved motion gating (stationary = 0, wall-block = 0, airborne = 0, pause = 0, diagonal cadence preserved).
+  - Strict AI isolation invariant: zero noise events to `FacilityNoiseHub` or `SoundEventBus`.
+- **Automated Regression**:
+  - Added `Test_RecordedFootstepAudio_ClipsLoadedAndDefaultSelection` in `KickablePhysicsAudioTests.cs`.
+  - Batch verified: 898/898 checks passed across all 11 suites with ExitCode 0.
+
 #### Verification Summary
 - Baseline automated regression checks: 374/374 PASSED across 10 baseline suites.
-- Kickable physics & audio automated checks: 495/495 PASSED across 30 comprehensive test methods in KickablePhysicsAudioTests.cs.
-- Cumulative project test total: 869/869 checks PASSED (100% Green across all 11 suites, ExitCode 0).
+- Kickable physics & audio automated checks: 524/524 PASSED across 31 comprehensive test methods in KickablePhysicsAudioTests.cs.
+- Cumulative project test total: 898/898 checks PASSED (100% Green across all 11 suites, ExitCode 0).
 - Total active kickable props: 40 props (13 authored + 27 converted scene props).
 - Visual evidence screenshots: 28 high-resolution captures preserved unchanged.
 - Unity Editor closed during development; consolidated headless batch run executed with ExitCode 0.
