@@ -95,12 +95,13 @@ namespace FacilityBreach.Combat
             if (landed) SuccessfulHits++;
             GameplayDiagnostics.Trace($"enemy shot id={Identity} resolved={ResolvedShots} hit={landed} magazine={Magazine} playerHP={runtime.Resources.Health}", this);
             SoundEventBus.Emit(transform.position, 40, SoundCategory.Gunshot, GetEntityId().GetHashCode());
-            if (Identity == "SH-01")
-            {
-                var gear = GetComponent<SoundHunterTacticalGear>();
-                FacilityAudioPlayer.Instance.PlayEnemyGunshot(gear && gear.Muzzle ? gear.Muzzle.position : transform.position + Vector3.up * 1.2f);
-                if (gear) gear.NotifyShot();
-            }
+            // Every enemy's resolved shot is audible and shows a muzzle flash at its rifle.
+            var gear = GetComponent<SoundHunterTacticalGear>();
+            var effects = GetComponent<EnemyWeaponEffects>();
+            Transform tip = gear && gear.Muzzle ? gear.Muzzle : effects ? effects.Muzzle : null;
+            FacilityAudioPlayer.Instance.PlayEnemyGunshot(tip ? tip.position : transform.position + Vector3.up * 1.2f);
+            if (gear) gear.NotifyShot();
+            if (effects) effects.NotifyShot();
         }
         private void Synchronize()
         {
