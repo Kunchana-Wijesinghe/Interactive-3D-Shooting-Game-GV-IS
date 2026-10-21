@@ -25,7 +25,7 @@ namespace FacilityBreach.Noise
                 case FacilityNoiseType.Footstep: category = SoundCategory.Footstep; break;
                 default: return;
             }
-            SoundEventBus.Emit(noise.Position, noise.Radius, category, noise.Source ? noise.Source.GetInstanceID() : 0);
+            SoundEventBus.Emit(noise.Position, noise.Radius, category, noise.Source ? noise.Source.GetEntityId().GetHashCode() : 0);
         }
     }
 }
