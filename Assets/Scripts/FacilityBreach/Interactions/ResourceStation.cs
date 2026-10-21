@@ -109,7 +109,7 @@ namespace FacilityBreach.Interactions
             if (rotation.HasValue) part.transform.localRotation = rotation.Value;
             part.GetComponent<Renderer>().sharedMaterial = material;
         }
-        // Gold keycard: yellow body and rim, black inset panel, gold "ACCESS KEYCARD" lettering and a tower emblem.
+        // Gold keycard: yellow body and rim, black inset panel and a tower emblem (no text).
         private void BuildAccessKeycard()
         {
             crossMarks = new GameObject("Access keycard details");
@@ -130,15 +130,6 @@ namespace FacilityBreach.Interactions
             DevicePart(PrimitiveType.Cube, new Vector3(.115f, top + .008f, .005f), new Vector3(.012f, .006f, .12f), gold, Quaternion.Euler(0, -14, 0));
             DevicePart(PrimitiveType.Cube, new Vector3(.145f, top + .008f, .005f), new Vector3(.012f, .006f, .12f), gold, Quaternion.Euler(0, 14, 0));
             DevicePart(PrimitiveType.Cube, new Vector3(.13f, top + .008f, -.05f), new Vector3(.08f, .006f, .014f), gold);
-            var text = new GameObject("Keycard lettering");
-            text.transform.SetParent(crossMarks.transform, false);
-            text.transform.localPosition = new Vector3(-.075f, top + .0075f, -.02f);
-            text.transform.localRotation = Quaternion.LookRotation(Vector3.down, Vector3.forward);
-            var mesh = text.AddComponent<TextMesh>();
-            mesh.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf"); mesh.text = "ACCESS KEYCARD";
-            mesh.anchor = TextAnchor.MiddleCenter; mesh.alignment = TextAlignment.Center;
-            mesh.characterSize = .017f; mesh.fontSize = 60; mesh.fontStyle = FontStyle.Bold; mesh.color = GoldCard;
-            text.GetComponent<MeshRenderer>().sharedMaterial = mesh.font.material;
         }
         // Olive-green military ammo can: carry handle, lid rim and front latch (no text).
         private void BuildAmmoCrateDetails()
