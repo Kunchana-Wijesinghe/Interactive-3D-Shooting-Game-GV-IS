@@ -767,8 +767,9 @@ Executed in Unity 6000.6.2f1 headless batch mode with **ExitCode 0**:
 - **Audio Slicing & Variant Extraction**:
   - Implemented `FootstepAudioImporter.cs` analyzing 20ms RMS windows across the 7.90s recording to identify distinct footstep peaks.
   - Sliced and exported 4 clean footstep variants (`footstep_01.wav` through `footstep_04.wav`) with 5ms anti-click fade-in and 50ms exponential decay fade-out, peak normalized to 0.85.
-- **Runtime Default Wiring**:
+- **Runtime Default Wiring & Volume Calibration**:
   - Updated `FpsFootstepController.cs` and `FacilityAudioPlayer.cs` to use the real recorded clips as the DEFAULT walking audio.
+  - Calibrated `stepVolume` from `0.50f` to `0.20f` (60% volume reduction, retaining 40% gain) to avoid excessive presence while keeping master AudioSource volume at `1.0f`.
   - Retained procedural synthesis as an optional fallback only if recorded clips cannot be loaded.
   - Preserved all approved motion gating (stationary = 0, wall-block = 0, airborne = 0, pause = 0, diagonal cadence preserved).
   - Strict AI isolation invariant: zero noise events to `FacilityNoiseHub` or `SoundEventBus`.

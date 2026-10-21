@@ -35,7 +35,7 @@ namespace FacilityBreach.Player
 
         [Tooltip("Master volume scale for footstep audio (comfortable presence on laptop speakers).")]
         [Range(0f, 1f)]
-        [SerializeField] private float stepVolume = 0.50f;
+        [SerializeField] private float stepVolume = 0.20f;
 
         private CharacterController characterController;
         private FacilityBreachRuntime runtime;

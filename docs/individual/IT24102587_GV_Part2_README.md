@@ -1126,6 +1126,7 @@ To provide robust, zero-dependency audio feedback without missing asset GUIDs, b
     - `FpsFootstepController.GetFootstepClip(variant)` loads and selects the recorded clips as the DEFAULT walking audio, cycling variants per stride.
     - Procedural footstep clips are retained strictly as an optional fallback in case recorded clips cannot be loaded.
     - Preserved all motion gating: zero footsteps when stationary, zero footsteps when wall-blocked, zero footsteps when airborne, zero footsteps when paused, and preserved stride cadence on diagonal movement.
+    - **Volume Calibration**: Calibrated `stepVolume` from `0.50f` to `0.20f` (60% volume reduction, retaining 40% gain) for natural, subtle recorded footstep audio balance, maintaining master `footstepAudioSource.volume = 1.0f` to avoid double attenuation.
 - **STRICT AI ISOLATION INVARIANT**: Footstep audio remains pure player-facing immersion audio. Strictly zero events emitted to `FacilityNoiseHub` or `SoundEventBus`.
 
 - **Verification Summary:**
