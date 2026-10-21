@@ -71,6 +71,14 @@ public class FacilityMaterials : EditorWindow
             agedPlaster,
             "Facility_LightWarmPlaster_RoomWalls"
         );
+        Material corridorRoofMaterial =
+            AssetDatabase.LoadAssetAtPath<Material>(
+                "Assets/Materials/Facility_Roof_Dark.mat"
+            );
+        Material corridorBeamMaterial =
+            AssetDatabase.LoadAssetAtPath<Material>(
+                "Assets/Materials/Facility_Roof_Beams.mat"
+            );
 
         // =====================================================
         // COLORS
@@ -159,11 +167,43 @@ public class FacilityMaterials : EditorWindow
             string objectName =
                 renderer.gameObject.name.ToLower();
 
+            if (IsUnderCorridorLighting(renderer.transform))
+                continue;
+
+            if (objectName.Contains("corridor_roof_beam"))
+            {
+                if (corridorBeamMaterial == null)
+                {
+                    Debug.LogError(
+                        "Could not find Facility_Roof_Beams for corridor ceiling supports."
+                    );
+                    continue;
+                }
+
+                renderer.sharedMaterial = corridorBeamMaterial;
+                continue;
+            }
+
+            if (objectName.Contains("corridor_roof"))
+            {
+                if (corridorRoofMaterial == null)
+                {
+                    Debug.LogError(
+                        "Could not find Facility_Roof_Dark for the corridor ceiling."
+                    );
+                    continue;
+                }
+
+                renderer.sharedMaterial = corridorRoofMaterial;
+                continue;
+            }
+
             // =================================================
             // FLOOR
             // =================================================
 
-            if (objectName.Contains("facility_floor"))
+            if (objectName.Contains("facility_floor") ||
+                objectName.Contains("corridor_floor"))
             {
                 renderer.sharedMaterial = floorMat;
                 floorCount++;
@@ -228,6 +268,19 @@ public class FacilityMaterials : EditorWindow
             " | Light Warm Room Walls: " + roomCount +
             " | Light Blue-Grey Main Walls: " + wallCount
         );
+    }
+
+    private static bool IsUnderCorridorLighting(Transform current)
+    {
+        while (current != null)
+        {
+            if (current.name == "Corridor_Lighting")
+                return true;
+
+            current = current.parent;
+        }
+
+        return false;
     }
 
     // =========================================================

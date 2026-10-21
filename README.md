@@ -34,6 +34,14 @@
 5. Ensure the Editor version is set to **`6000.6.2f1`**.
 6. Open the project and allow Unity to import initial package dependencies.
 
+## Regenerating the Facility and External Corridor
+
+Open `Assets/Scenes/Prototype.unity`, then choose **Facility Breach > Generate Final Facility V4**. The generator replaces `Generated_Facility` and creates its `ExternalCorridor` child with the walkable floor, perimeter walls, roof, beams, corridor lights, and exit access barriers. It also regenerates the interior roof and both interior and corridor lighting. The outer south wall is continuous; the north exit area is protected by two full-depth barriers and is accessible from the existing interior exit doorway.
+
+After generation, use **Generate Interactive Doors**, **Generate Facility Details**, **Generate Facility Props**, **Generate Pushable Barricades**, and **Apply Textured Facility Materials** as needed. The roof and lighting commands also remain available independently. Run **Facility Breach > Setup NavMesh** after geometry and doors are in place; floors and walls retain colliders, while roof sections and beams omit colliders so the existing physics-collider NavMesh collection includes walkable surfaces and barriers.
+
+In Play mode, enter the facility through its existing entrance door, traverse the interior, and approach the exit from inside. Verify that the outside corridor remains enclosed and cannot bypass the two north barriers to reach the protected exit doorway. Check floor continuity, door interactions, NavMesh coverage, lighting, and the Console for unexpected errors or warnings. Designated barricades can be pushed by walking into them; press **E** only for the existing grab/release interaction.
+
 ---
 
 ## Team Roles & Responsibilities

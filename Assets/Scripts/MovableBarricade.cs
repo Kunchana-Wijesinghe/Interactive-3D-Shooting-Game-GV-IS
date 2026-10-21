@@ -26,13 +26,13 @@ public class MovableBarricade : MonoBehaviour
 
     [Header("Physics Tuning")]
     [Tooltip("Mass of the barricade in kg.")]
-    public float mass = 60.0f;
+    public float mass = 8.0f;
 
     [Tooltip("Impulse force applied on discrete push.")]
     public float pushImpulse = 15.0f;
 
     [Tooltip("Linear damping when free-moving.")]
-    public float linearDamping = 5.0f;
+    public float linearDamping = 0.5f;
 
     [Tooltip("Angular damping to prevent unwanted spinning.")]
     public float angularDamping = 8.0f;

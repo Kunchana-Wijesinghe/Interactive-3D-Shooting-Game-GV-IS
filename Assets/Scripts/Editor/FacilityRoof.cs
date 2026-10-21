@@ -154,10 +154,7 @@ public class FacilityRoof : EditorWindow
 
         Selection.activeGameObject = root;
 
-        Debug.Log(
-            "Facility roof generated successfully. " +
-            "Next step: generate hanging yellow lights."
-        );
+        Debug.Log("Facility roof generated successfully.");
     }
 
     // =========================================================
@@ -181,6 +178,7 @@ public class FacilityRoof : EditorWindow
 
         roof.transform.position = position;
         roof.transform.localScale = scale;
+        RemoveCollider(roof);
 
         Renderer renderer =
             roof.GetComponent<Renderer>();
@@ -212,6 +210,7 @@ public class FacilityRoof : EditorWindow
 
         beam.transform.position = position;
         beam.transform.localScale = scale;
+        RemoveCollider(beam);
 
         Renderer renderer =
             beam.GetComponent<Renderer>();
@@ -220,6 +219,13 @@ public class FacilityRoof : EditorWindow
         {
             renderer.sharedMaterial = material;
         }
+    }
+
+    private static void RemoveCollider(GameObject obj)
+    {
+        Collider collider = obj.GetComponent<Collider>();
+        if (collider != null)
+            DestroyImmediate(collider);
     }
 
     // =========================================================

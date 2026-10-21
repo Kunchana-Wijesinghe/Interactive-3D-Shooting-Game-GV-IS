@@ -37,42 +37,42 @@ public class FacilityBarricades : EditorWindow
 
         CreateBarricade(
             "Barricade_Entrance",
-            new Vector3(-7f, 0.65f, -25f),
+            new Vector3(-7f, 0.75f, -25f),
             15f,
             root.transform
         );
 
         CreateBarricade(
             "Barricade_LowerRoute",
-            new Vector3(11f, 0.65f, -18f),
+            new Vector3(11f, 0.75f, -18f),
             -20f,
             root.transform
         );
 
         CreateBarricade(
             "Barricade_Room1Area",
-            new Vector3(-12f, 0.65f, -3.5f),
+            new Vector3(-12f, 0.75f, -3.5f),
             25f,
             root.transform
         );
 
         CreateBarricade(
             "Barricade_Middle",
-            new Vector3(13f, 0.65f, 7f),
+            new Vector3(13f, 0.75f, 7f),
             -15f,
             root.transform
         );
 
         CreateBarricade(
             "Barricade_UpperLeft",
-            new Vector3(-11f, 0.65f, 14f),
+            new Vector3(-11f, 0.75f, 14f),
             20f,
             root.transform
         );
 
         CreateBarricade(
             "Barricade_ExitArea",
-            new Vector3(7f, 0.65f, 25f),
+            new Vector3(7f, 0.75f, 25f),
             -25f,
             root.transform
         );
@@ -83,7 +83,7 @@ public class FacilityBarricades : EditorWindow
 
         CreateCrate(
             "Crate_Entrance_01",
-            new Vector3(-9.5f, 0.6f, -27f),
+            new Vector3(-5.5f, 0.6f, -27f),
             15f,
             1.2f,
             root.transform
@@ -91,14 +91,14 @@ public class FacilityBarricades : EditorWindow
 
         CreateSmallBox(
             "Box_Entrance_01",
-            new Vector3(-15f, 0.4f, -26f),
+            new Vector3(-19f, 0.4f, -25f),
             -12f,
             root.transform
         );
 
         CreateBarrel(
             "Barrel_Entrance_01",
-            new Vector3(-16.5f, 0.75f, -24f),
+            new Vector3(19f, 0.75f, -23f),
             root.transform
         );
 
@@ -258,13 +258,13 @@ public class FacilityBarricades : EditorWindow
 
         CreateBarrel(
             "Barrel_Exit_01",
-            new Vector3(9.5f, 0.75f, 27f),
+            new Vector3(7f, 0.75f, 27f),
             root.transform
         );
 
         CreateSmallBox(
             "Box_Exit_01",
-            new Vector3(16f, 0.4f, 26f),
+            new Vector3(18.5f, 0.4f, 27.5f),
             -20f,
             root.transform
         );
@@ -355,13 +355,13 @@ public class FacilityBarricades : EditorWindow
         BoxCollider collider =
             barricade.AddComponent<BoxCollider>();
 
-        collider.center = Vector3.zero;
-        collider.size = new Vector3(3.4f, 1.85f, 1.15f);
+        collider.center = new Vector3(0f, 0.025f, 0f);
+        collider.size = new Vector3(3.4f, 1.55f, 1.15f);
 
         Rigidbody rb =
             barricade.AddComponent<Rigidbody>();
 
-        SetupRigidbody(rb, 12f, true);
+        SetupRigidbody(rb, 8f, true, 0.5f, 8f);
     }
 
     // =====================================================
@@ -931,12 +931,14 @@ public class FacilityBarricades : EditorWindow
     private static void SetupRigidbody(
         Rigidbody rb,
         float mass,
-        bool keepUpright)
+        bool keepUpright,
+        float linearDamping = 2f,
+        float angularDamping = 2.5f)
     {
         rb.mass = mass;
 
-        rb.linearDamping = 2f;
-        rb.angularDamping = 2.5f;
+        rb.linearDamping = linearDamping;
+        rb.angularDamping = angularDamping;
 
         rb.useGravity = true;
 

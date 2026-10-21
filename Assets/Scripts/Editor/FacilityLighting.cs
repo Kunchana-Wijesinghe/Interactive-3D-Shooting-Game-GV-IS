@@ -122,7 +122,13 @@ public class FacilityLighting : EditorWindow
             new Vector3(-4f, 3.25f, 25f),
 
             // Exit
-            new Vector3(13f, 3.25f, 26f)
+            new Vector3(13f, 3.25f, 26f),
+
+            // Additional coverage for the three rooms and upper junctions
+            new Vector3(-16f, 3.25f, -13f),
+            new Vector3(5f, 3.25f, 6f),
+            new Vector3(-5f, 3.25f, 14f),
+            new Vector3(15f, 3.25f, 22f)
         };
 
         // =====================================================
@@ -138,6 +144,19 @@ public class FacilityLighting : EditorWindow
                 metalMaterial,
                 cableMaterial,
                 yellowGlow
+            );
+        }
+
+        GameObject facility = GameObject.Find("Generated_Facility");
+        Transform corridor = facility != null
+            ? facility.transform.Find("ExternalCorridor")
+            : null;
+        if (corridor != null)
+        {
+            GenerateExternalCorridorLighting(
+                corridor,
+                23.175f,
+                32.0875f
             );
         }
 
@@ -157,6 +176,84 @@ public class FacilityLighting : EditorWindow
         Debug.Log(
             lightPositions.Length +
             " warm yellow hanging lights generated successfully."
+        );
+    }
+
+    public static void GenerateExternalCorridorLighting(
+        Transform corridor,
+        float sideCenterX,
+        float endCenterZ)
+    {
+        if (corridor == null)
+        {
+            Debug.LogError(
+                "Cannot generate corridor lighting because ExternalCorridor is missing."
+            );
+            return;
+        }
+
+        Transform previousLights = corridor.Find("Corridor_Lighting");
+        if (previousLights != null)
+            DestroyImmediate(previousLights.gameObject);
+
+        GameObject root = new GameObject("Corridor_Lighting");
+        root.transform.SetParent(corridor, false);
+
+        Material metalMaterial =
+            CreateMaterial(
+                "Facility_Lamp_Metal",
+                new Color(0.08f, 0.08f, 0.07f, 1f),
+                false
+            );
+        Material cableMaterial =
+            CreateMaterial(
+                "Facility_Lamp_Cable",
+                new Color(0.03f, 0.03f, 0.03f, 1f),
+                false
+            );
+        Material yellowGlow =
+            CreateMaterial(
+                "Facility_Lamp_YellowGlow",
+                new Color(1.0f, 0.65f, 0.15f, 1f),
+                true
+            );
+
+        Vector3[] lightPositions =
+        {
+            new Vector3(-sideCenterX, 3.25f, -endCenterZ),
+            new Vector3(sideCenterX, 3.25f, -endCenterZ),
+            new Vector3(-sideCenterX, 3.25f, endCenterZ),
+            new Vector3(sideCenterX, 3.25f, endCenterZ),
+            new Vector3(-sideCenterX, 3.25f, -16f),
+            new Vector3(-sideCenterX, 3.25f, 0f),
+            new Vector3(-sideCenterX, 3.25f, 16f),
+            new Vector3(sideCenterX, 3.25f, -16f),
+            new Vector3(sideCenterX, 3.25f, 0f),
+            new Vector3(sideCenterX, 3.25f, 16f),
+            new Vector3(-12.5f, 3.25f, -endCenterZ),
+            new Vector3(0f, 3.25f, -endCenterZ),
+            new Vector3(12.5f, 3.25f, -endCenterZ),
+            new Vector3(-12.5f, 3.25f, endCenterZ),
+            new Vector3(0f, 3.25f, endCenterZ),
+            new Vector3(12.5f, 3.25f, endCenterZ)
+        };
+
+        for (int i = 0; i < lightPositions.Length; i++)
+        {
+            CreateHangingLight(
+                root.transform,
+                "Corridor_HangingLight_" + (i + 1),
+                lightPositions[i],
+                metalMaterial,
+                cableMaterial,
+                yellowGlow
+            );
+        }
+
+        AssetDatabase.SaveAssets();
+        Debug.Log(
+            lightPositions.Length +
+            " warm yellow lights generated for the external corridor."
         );
     }
 
