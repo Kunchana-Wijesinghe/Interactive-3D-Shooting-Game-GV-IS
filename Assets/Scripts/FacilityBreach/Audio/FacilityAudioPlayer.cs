@@ -123,6 +123,24 @@ namespace FacilityBreach.Audio
         }
 
         /// <summary>
+        /// Plays an enemy rifle shot in 3D at the shooter's position so it is heard (louder and wider than a prop impact).
+        /// </summary>
+        public void PlayEnemyGunshot(Vector3 worldPosition, float volumeScale = 1.0f)
+        {
+            InitializePool();
+            if (spatialSourcePool == null || spatialSourcePool.Length == 0) return;
+            AudioClip clip = FacilityAudioSynthesizer.GetOrCreateClip(FacilityAudioClipType.GunshotAmmo2);
+            if (clip == null) return;
+
+            AudioSource source = spatialSourcePool[nextSpatialSourceIndex];
+            nextSpatialSourceIndex = (nextSpatialSourceIndex + 1) % spatialSourcePool.Length;
+            source.transform.position = worldPosition;
+            source.maxDistance = 60f;
+            source.pitch = Random.Range(0.95f, 1.05f);
+            source.PlayOneShot(clip, Mathf.Clamp01(volumeScale * masterVolume));
+        }
+
+        /// <summary>
         /// Plays kick contact thud at the targeted physics prop.
         /// </summary>
         public void PlayKick(Vector3 worldPosition, float volumeScale = 1.0f)
