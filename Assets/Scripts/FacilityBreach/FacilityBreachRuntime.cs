@@ -158,7 +158,10 @@ namespace FacilityBreach
                 var anchor = Anchor(door);
                 var gate = Box("Card required — " + door, anchor.position + Vector3.up * 1.5f,
                     door.EndsWith("Left") ? new Vector3(.12f, 3, 2) : new Vector3(2, 3, .12f), new Color(1, .35f, 0));
-                // Player-only card barrier. Robot colliders explicitly ignore it below.
+                // Card barrier: blocks the player physically and every enemy through a carving NavMesh obstacle.
+                // The gate object is deactivated once the player holds the card, which opens the room to everyone.
+                var block = gate.AddComponent<NavMeshObstacle>(); block.carving = true; block.shape = NavMeshObstacleShape.Box;
+                block.size = door.EndsWith("Left") ? new Vector3(10, 1, 1.2f) : new Vector3(1.2f, 1, 10);
                 Label(gate, "CARD REQUIRED"); gates.Add(gate);
             }
             // Add FB_Agents root and all 4 security robots (PG-01, SH-01, CD-03, FL-04)

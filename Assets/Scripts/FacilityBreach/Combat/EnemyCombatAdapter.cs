@@ -28,14 +28,14 @@ namespace FacilityBreach.Combat
         public void CancelPendingAttack() { pending = null; warning = 0; }
         public int Magazine { get; private set; } = 50;
         public int CurrentHealth => record?.Health ?? 0;
-        public Vector3 RevivalPost => post;
+        public Vector3 RevivalPost => IsDead ? deathPoint : post;
         public EnemyLife Life => record?.Life ?? EnemyLife.AwaitingSafeSpawn;
         private int reserve;
         private EnemyRecord record;
         private FacilityBreachRuntime runtime;
         private Transform pending;
         private float warning, reload, cadence, nextReviveAttempt;
-        private Vector3 post;
+        private Vector3 post, deathPoint;
         private Collider[] colliders;
         private EnemyLife lastLife;
         private void Start()
@@ -106,6 +106,7 @@ namespace FacilityBreach.Combat
         {
             if (record.Life == lastLife) return;
             lastLife = record.Life; bool active = !IsDead;
+            if (!active && record.Life == EnemyLife.TemporarilyInactive) deathPoint = transform.position; // revive where it fell
             pending = null; reload = 0; cadence = 0;
             foreach (var collider in colliders) if (collider) collider.enabled = active;
             var nav = GetComponent<NavMeshAgent>(); if (nav && nav.isOnNavMesh) { nav.ResetPath(); nav.isStopped = !active; }
@@ -117,7 +118,7 @@ namespace FacilityBreach.Combat
         {
             for (int i = 0; i < 9; i++)
             {
-                Vector3 candidate = post + (i == 0 ? Vector3.zero : new Vector3(Mathf.Cos(i * Mathf.PI / 4), 0, Mathf.Sin(i * Mathf.PI / 4)) * 1.2f);
+                Vector3 candidate = deathPoint + (i == 0 ? Vector3.zero : new Vector3(Mathf.Cos(i * Mathf.PI / 4), 0, Mathf.Sin(i * Mathf.PI / 4)) * 1.2f);
                 if (!NavMesh.SamplePosition(candidate, out var hit, .6f, NavMesh.AllAreas)) continue;
                 var body = GetComponent<CapsuleCollider>();
                 float radius = body ? body.radius : .35f, halfSegment = body ? body.height * .5f - radius : .55f;
