@@ -196,6 +196,7 @@ namespace FacilityBreach
                 RemoveVisualColliders(visual);
                 obj.GetComponent<Renderer>().enabled = false;
                 if (identity == "SH-01") obj.AddComponent<SoundHunterTacticalGear>().Build(visual);
+                else if (identity == "CD-03") obj.AddComponent<CoverDefenderArmor>().Build(visual);
             }
             else Debug.LogWarning("Missing robot visual: " + identity, obj);
             if (identity == "CD-03")
