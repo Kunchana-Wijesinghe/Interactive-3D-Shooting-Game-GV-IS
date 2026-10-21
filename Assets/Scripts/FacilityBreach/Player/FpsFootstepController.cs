@@ -418,6 +418,9 @@ namespace FacilityBreach.Player
                 if (footstepAudioSource == null) return;
             }
 
+            // Only sprinting is loud enough to be heard by enemies (6 m)
+            if (speed >= 5f) FacilityBreach.Noise.FacilityNoiseHub.Emit(transform.position, 6f, FacilityBreach.Noise.FacilityNoiseType.Footstep, gameObject);
+
             // Dynamic volume scaling based on walking vs sprinting
             float speedScale = Mathf.Clamp(speed / 4.0f, 0.90f, 1.20f);
             float volume = Mathf.Clamp01(stepVolume * speedScale);
