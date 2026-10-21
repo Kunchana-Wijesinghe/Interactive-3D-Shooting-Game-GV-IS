@@ -24,6 +24,7 @@ namespace FacilityBreach.Interactions
         private int shownWeapon = -1;
         private Renderer visual;
         private GameObject ammoPickup;
+        public static readonly Color GoldCard = new Color(.96f, .74f, .08f);
         private GameObject crossMarks;
         private Material lampMaterial;
         private bool? lampActive;
@@ -43,6 +44,7 @@ namespace FacilityBreach.Interactions
             if (Kind == StationKind.Health) BuildFirstAidCrosses();
             else if (Kind == StationKind.AmmoCrate) BuildAmmoCrateDetails();
             else if (Kind == StationKind.Device) BuildBoomDevice();
+            else if (Kind == StationKind.Card) BuildAccessKeycard();
             else return;
             Refresh();
         }
@@ -106,6 +108,28 @@ namespace FacilityBreach.Interactions
             part.transform.localPosition = localPosition; part.transform.localScale = localScale;
             if (rotation.HasValue) part.transform.localRotation = rotation.Value;
             part.GetComponent<Renderer>().sharedMaterial = material;
+        }
+        // Gold keycard: yellow body and rim, black inset panel and a tower emblem (no text).
+        private void BuildAccessKeycard()
+        {
+            crossMarks = new GameObject("Access keycard details");
+            crossMarks.transform.SetParent(transform, false);
+            var scale = transform.lossyScale;
+            crossMarks.transform.localScale = new Vector3(1 / scale.x, 1 / scale.y, 1 / scale.z);
+            float top = .5f * scale.y;
+            var gold = DeviceMaterial(GoldCard, .5f, .55f);
+            gold.EnableKeyword("_EMISSION"); gold.SetColor("_EmissionColor", GoldCard * .25f);
+            var black = DeviceMaterial(new Color(.04f, .05f, .04f), .1f, .3f);
+            if (visual)
+            {
+                visual.sharedMaterial.EnableKeyword("_EMISSION");
+                visual.sharedMaterial.SetColor("_EmissionColor", GoldCard * .25f);
+            }
+            DevicePart(PrimitiveType.Cube, new Vector3(-.01f, top + .003f, -.005f), new Vector3(.33f, .008f, .185f), black);
+            // Emblem: two leaning spires and a base wedge (right side of the card)
+            DevicePart(PrimitiveType.Cube, new Vector3(.115f, top + .008f, .005f), new Vector3(.012f, .006f, .12f), gold, Quaternion.Euler(0, -14, 0));
+            DevicePart(PrimitiveType.Cube, new Vector3(.145f, top + .008f, .005f), new Vector3(.012f, .006f, .12f), gold, Quaternion.Euler(0, 14, 0));
+            DevicePart(PrimitiveType.Cube, new Vector3(.13f, top + .008f, -.05f), new Vector3(.08f, .006f, .014f), gold);
         }
         // Olive-green military ammo can: carry handle, lid rim and front latch (no text).
         private void BuildAmmoCrateDetails()
@@ -254,7 +278,7 @@ namespace FacilityBreach.Interactions
         {
             if (visual) visual.enabled = Available && !Broken && !DisplayVisual && Kind != StationKind.Device;
             if (crossMarks) crossMarks.SetActive(Available && !Broken);
-            if (visual) visual.sharedMaterial.color = Broken ? Color.yellow : Kind == StationKind.Health ? Color.white : Kind == StationKind.AmmoCrate ? new Color(.29f, .40f, .27f) : Kind == StationKind.Card ? Color.cyan : Color.gray;
+            if (visual) visual.sharedMaterial.color = Broken ? Color.yellow : Kind == StationKind.Health ? Color.white : Kind == StationKind.AmmoCrate ? new Color(.29f, .40f, .27f) : Kind == StationKind.Card ? GoldCard : Color.gray;
             if (ammoPickup) ammoPickup.SetActive(Rounds > 0);
             var collider = GetComponent<Collider>(); if (collider) collider.enabled = Available && !Broken;
         }
