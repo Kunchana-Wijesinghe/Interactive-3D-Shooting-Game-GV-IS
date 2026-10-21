@@ -130,6 +130,7 @@ namespace FacilityBreach
             FacilityKickablePropsSetup.EnsurePropsSpawned(transform);
             FacilityKickablePropsSetup.ConvertExistingSceneProps();
             AttachBloodMarksToDoors();
+            ReplaceScaleReferencesWithEntranceProps();
             // The committed scene lacks the waste root despite shipping its generator.
             // Add only an obstacle here; never call the destructive world generators.
             Vector3 waste = new Vector3(-2, 0, 20);
@@ -277,6 +278,40 @@ namespace FacilityBreach
             part.name = drumName; Destroy(part.GetComponent<Collider>());
             part.transform.SetParent(parent); part.transform.position = position; part.transform.localScale = scale;
             part.GetComponent<Renderer>().sharedMaterial = material;
+        }
+        // The generator's white "scale reference" capsules at the entrance are design aids; hide them and put relevant props there.
+        private void ReplaceScaleReferencesWithEntranceProps()
+        {
+            foreach (var reference in new[] { "Player_Scale_Reference", "NPC_Scale_Reference" })
+            {
+                var marker = GameObject.Find(reference);
+                if (marker) marker.SetActive(false);
+            }
+            var holder = new GameObject("FB_EntranceProps"); holder.transform.SetParent(transform);
+            GameObject Prop(string propName, Vector3 position, Vector3 scale, Color color, bool solid = true, float yaw = 0)
+            {
+                var part = Box(propName, position, scale, color);
+                part.transform.SetParent(holder.transform); part.transform.rotation = Quaternion.Euler(0, yaw, 0);
+                if (!solid) Destroy(part.GetComponent<Collider>());
+                return part;
+            }
+            // Supply crates stacked beside the entrance
+            var crate = new Color(.42f, .3f, .18f); var slat = new Color(.24f, .17f, .1f);
+            Vector3 stack = new Vector3(-17, 0, -26.5f); // beside the spawn path (entrance door is at x -12.5)
+            Prop("Entrance crate", stack + Vector3.up * .45f, new Vector3(.95f, .9f, .95f), crate);
+            Prop("Entrance crate slat", stack + new Vector3(0, .45f, -.48f), new Vector3(1f, .12f, .03f), slat, false);
+            Prop("Entrance crate slat", stack + new Vector3(0, .15f, -.48f), new Vector3(1f, .12f, .03f), slat, false);
+            Prop("Entrance crate slat", stack + new Vector3(0, .75f, -.48f), new Vector3(1f, .12f, .03f), slat, false);
+            Prop("Entrance crate top", stack + new Vector3(.05f, 1.25f, 0), new Vector3(.7f, .7f, .7f), new Color(.5f, .36f, .21f), true, 20);
+            // Steel equipment locker with door seam, vents and handle, facing into the facility (+Z)
+            var steel = new Color(.2f, .28f, .34f); var dark = new Color(.06f, .08f, .1f);
+            Vector3 locker = new Vector3(-7.5f, 0, -26);
+            Prop("Entrance locker", locker + Vector3.up * .95f, new Vector3(.8f, 1.9f, .5f), steel);
+            Prop("Locker seam", locker + new Vector3(0, .95f, .255f), new Vector3(.02f, 1.7f, .01f), dark, false);
+            for (int i = 0; i < 3; i++)
+                Prop("Locker vent", locker + new Vector3(-.2f, 1.6f - i * .08f, .255f), new Vector3(.25f, .025f, .01f), dark, false);
+            Prop("Locker handle", locker + new Vector3(.08f, 1.0f, .27f), new Vector3(.04f, .18f, .04f), new Color(.9f, .75f, .15f), false);
+            Prop("Locker base", locker + new Vector3(0, .04f, 0), new Vector3(.86f, .08f, .56f), dark, false);
         }
         // Scene blood marks are loose objects; any mark lying on a door panel must swing with the door instead of hanging in the doorway.
         private void AttachBloodMarksToDoors()
