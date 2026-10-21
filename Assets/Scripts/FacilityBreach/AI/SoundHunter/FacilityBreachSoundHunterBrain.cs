@@ -45,7 +45,7 @@ namespace FacilityBreach.AI.SoundHunter
         public void OnSoundEmitted(SoundStimulus stimulus)
         {
             if(!active||!runtime||!runtime.AcceptsGameplay||combat.IsDead||stimulus.SourceId==combat.GetEntityId().GetHashCode())return;
-            if(stimulus.Category!=SoundCategory.Gunshot&&stimulus.Category!=SoundCategory.Thrown)return;
+            if(stimulus.Category==SoundCategory.Other)return; // gunshots, thrown cans, kicks/prop impacts and sprint footsteps
             if(!float.IsFinite(stimulus.Strength)||!float.IsFinite(stimulus.CreatedTime)||!float.IsFinite(stimulus.Position.x)||!float.IsFinite(stimulus.Position.y)||!float.IsFinite(stimulus.Position.z))return;
             if(!graph.TryMapPoint(stimulus.Position,out int source)||!graph.TryMapPoint(transform.position,out int listener))return;
             if(new HearingEvaluator(graph.Graph).TryHear(stimulus,source,listener,out var heard))

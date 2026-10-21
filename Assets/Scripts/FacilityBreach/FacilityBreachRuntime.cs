@@ -94,6 +94,7 @@ namespace FacilityBreach
             var body = root.AddComponent<CharacterController>(); body.height = 1.8f; body.radius = .3f; body.center = Vector3.up * .9f;
             player = root.AddComponent<TemporaryPlayerAdapter>(); player.View = view;
             root.AddComponent<PlayerDamageAdapter>().Runtime = this;
+            if (!root.GetComponent<FacilityBreach.Noise.FacilityNoiseBridge>()) root.AddComponent<FacilityBreach.Noise.FacilityNoiseBridge>();
             kickController = root.AddComponent<FpsKickController>(); kickController.Initialize(this, view);
             footstepController = root.AddComponent<FpsFootstepController>(); footstepController.Initialize(this, body, player);
             view.transform.SetParent(root.transform); view.transform.localPosition = Vector3.up * 1.6f; view.transform.localRotation = Quaternion.identity;
