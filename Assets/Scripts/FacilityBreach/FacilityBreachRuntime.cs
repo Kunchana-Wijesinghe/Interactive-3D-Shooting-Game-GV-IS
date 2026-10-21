@@ -116,9 +116,9 @@ namespace FacilityBreach
                 if (!barricadeRb.name.StartsWith("Barricade")) continue;
                 var mb = barricadeRb.GetComponent<MovableBarricade>();
                 if (!mb) mb = barricadeRb.gameObject.AddComponent<MovableBarricade>();
-                mb.mass = 12f;
-                mb.linearDamping = 2f;
-                mb.angularDamping = 2.5f;
+                mb.mass = 8f;
+                mb.linearDamping = 0.5f;
+                mb.angularDamping = 8f;
                 mb.interactionDistance = 3.0f;
                 mb.holdDistance = 2.0f;
                 mb.followSpeed = 8.0f;

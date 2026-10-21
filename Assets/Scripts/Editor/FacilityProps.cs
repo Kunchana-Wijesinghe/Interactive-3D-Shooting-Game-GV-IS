@@ -35,7 +35,7 @@ public class FacilityProps : EditorWindow
 
         CreatePallet(
             "Pallet_Entrance",
-            new Vector3(-18.5f, 0.12f, -26f),
+            new Vector3(-10f, 0.12f, -15.5f),
             15f,
             false,
             root.transform
@@ -43,7 +43,7 @@ public class FacilityProps : EditorWindow
 
         CreatePallet(
             "Pallet_LeftWall",
-            new Vector3(-20.45f, 1.0f, -7f),
+            new Vector3(-19.2f, 1.0f, -7f),
             0f,
             true,
             root.transform
@@ -59,7 +59,7 @@ public class FacilityProps : EditorWindow
 
         CreatePallet(
             "Pallet_RightWall",
-            new Vector3(20.4f, 1.0f, -7f),
+            new Vector3(19.2f, 1.0f, -7f),
             0f,
             true,
             root.transform
@@ -71,7 +71,7 @@ public class FacilityProps : EditorWindow
 
         CreateShelf(
             "Shelf_Room1",
-            new Vector3(-17.2f, 1.4f, -10.5f),
+            new Vector3(-17.2f, 1.4f, -14.5f),
             90f,
             root.transform
         );
@@ -103,14 +103,14 @@ public class FacilityProps : EditorWindow
 
         CreatePipeBundle(
             "Pipes_LeftLower",
-            new Vector3(-20.1f, 0.55f, -20f),
+            new Vector3(-18.8f, 0.55f, -20f),
             0f,
             root.transform
         );
 
         CreatePipeBundle(
             "Pipes_RightLower",
-            new Vector3(19.7f, 0.55f, -11f),
+            new Vector3(18.8f, 0.55f, -11f),
             0f,
             root.transform
         );
@@ -143,7 +143,7 @@ public class FacilityProps : EditorWindow
 
         CreateWorkbench(
             "Workbench_Room3",
-            new Vector3(14f, 0f, 20f),
+            new Vector3(12.5f, 0f, 20f),
             90f,
             true,
             root.transform
@@ -151,7 +151,7 @@ public class FacilityProps : EditorWindow
 
         CreateWorkbench(
             "Workbench_UpperLeft",
-            new Vector3(-15.5f, 0f, 24.5f),
+            new Vector3(-12f, 0f, 25f),
             15f,
             false,
             root.transform
@@ -197,28 +197,28 @@ public class FacilityProps : EditorWindow
 
         CreateElectricalCabinet(
             "Electrical_LeftLower",
-            new Vector3(-20.55f, 1.15f, -16f),
+            new Vector3(-20f, 1.15f, -16f),
             90f,
             root.transform
         );
 
         CreateElectricalCabinet(
             "Electrical_RightLower",
-            new Vector3(20.55f, 1.15f, -5f),
+            new Vector3(20f, 1.15f, -5f),
             -90f,
             root.transform
         );
 
         CreateElectricalCabinet(
             "Electrical_UpperLeft",
-            new Vector3(-20.55f, 1.15f, 11f),
+            new Vector3(-20f, 1.15f, 11f),
             90f,
             root.transform
         );
 
         CreateElectricalCabinet(
             "Electrical_UpperRight",
-            new Vector3(20.55f, 1.15f, 18f),
+            new Vector3(20f, 1.15f, 18f),
             -90f,
             root.transform
         );

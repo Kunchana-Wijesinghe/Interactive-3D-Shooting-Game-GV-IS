@@ -448,10 +448,298 @@ public class FacilityGenerator : EditorWindow
             root.transform
         );
 
+        CreateExternalCorridor(root.transform);
+        FacilityRoof.GenerateRoof();
+        FacilityLighting.GenerateLighting();
+
         Selection.activeGameObject = root;
 
         Debug.Log(
-            "Facility generated with all door openings set to 2 units."
+            "Facility and four-sided external corridor generated."
+        );
+    }
+
+    private static void CreateExternalCorridor(Transform facilityRoot)
+    {
+        const float corridorWidth = 4f;
+        const float facilityHalfWidth = 21f;
+        const float facilityHalfLength = 30f;
+        const float exitCenterX = 12.5f;
+        const float exitDoorWidth = 2f;
+        const float corridorFloorY = -0.25f;
+        const float corridorWallHeight = 4.1f;
+        const float corridorRoofY = 4.25f;
+        const float corridorRoofThickness = 0.3f;
+
+        float innerHalfWidth = facilityHalfWidth + T / 2f;
+        float innerHalfLength = facilityHalfLength + T / 2f;
+        float outerHalfWidth = innerHalfWidth + corridorWidth;
+        float outerHalfLength = innerHalfLength + corridorWidth;
+        float sideCenterX = innerHalfWidth + corridorWidth / 2f;
+        float endCenterZ = (facilityHalfLength + outerHalfLength) / 2f;
+        float endSectionDepth = outerHalfLength - facilityHalfLength;
+        float outerWallCenterX = outerHalfWidth + T / 2f;
+        float outerWallCenterZ = outerHalfLength + T / 2f;
+        float sideLength = outerHalfLength * 2f;
+        float endSectionWidth = outerHalfWidth * 2f;
+        float wallCenterY = corridorWallHeight / 2f;
+
+        GameObject corridor = new GameObject("ExternalCorridor");
+        corridor.transform.SetParent(facilityRoot, false);
+
+        Material floorMaterial =
+            AssetDatabase.LoadAssetAtPath<Material>(
+                "Assets/Materials/Facility_RoughConcrete_Floor.mat"
+            );
+        Material wallMaterial =
+            AssetDatabase.LoadAssetAtPath<Material>(
+                "Assets/Materials/Facility_LightBlueGrey_MainWalls.mat"
+            );
+        Material roofMaterial =
+            AssetDatabase.LoadAssetAtPath<Material>(
+                "Assets/Materials/Facility_Roof_Dark.mat"
+            );
+        Material beamMaterial =
+            AssetDatabase.LoadAssetAtPath<Material>(
+                "Assets/Materials/Facility_Roof_Beams.mat"
+            );
+
+        if (floorMaterial == null || wallMaterial == null ||
+            roofMaterial == null || beamMaterial == null)
+        {
+            Debug.LogError(
+                "External corridor material is missing. Check the existing Facility floor, " +
+                "main wall, roof, and roof beam materials in Assets/Materials."
+            );
+        }
+
+        CreateCorridorBlock(
+            "Corridor_Floor_West",
+            new Vector3(-sideCenterX, corridorFloorY, 0f),
+            new Vector3(corridorWidth, 0.5f, sideLength),
+            corridor.transform,
+            floorMaterial,
+            true
+        );
+        CreateCorridorBlock(
+            "Corridor_Floor_East",
+            new Vector3(sideCenterX, corridorFloorY, 0f),
+            new Vector3(corridorWidth, 0.5f, sideLength),
+            corridor.transform,
+            floorMaterial,
+            true
+        );
+        CreateCorridorBlock(
+            "Corridor_Floor_South",
+            new Vector3(0f, corridorFloorY, -endCenterZ),
+            new Vector3(endSectionWidth, 0.5f, endSectionDepth),
+            corridor.transform,
+            floorMaterial,
+            true
+        );
+        CreateCorridorBlock(
+            "Corridor_Floor_North",
+            new Vector3(0f, corridorFloorY, endCenterZ),
+            new Vector3(endSectionWidth, 0.5f, endSectionDepth),
+            corridor.transform,
+            floorMaterial,
+            true
+        );
+
+        CreateCorridorBlock(
+            "Corridor_Outer_Wall_West",
+            new Vector3(-outerWallCenterX, wallCenterY, 0f),
+            new Vector3(T, corridorWallHeight, sideLength + T),
+            corridor.transform,
+            wallMaterial,
+            true
+        );
+        CreateCorridorBlock(
+            "Corridor_Outer_Wall_East",
+            new Vector3(outerWallCenterX, wallCenterY, 0f),
+            new Vector3(T, corridorWallHeight, sideLength + T),
+            corridor.transform,
+            wallMaterial,
+            true
+        );
+        CreateCorridorBlock(
+            "Corridor_Outer_Wall_South",
+            new Vector3(0f, wallCenterY, -outerWallCenterZ),
+            new Vector3(outerWallCenterX * 2f, corridorWallHeight, T),
+            corridor.transform,
+            wallMaterial,
+            true
+        );
+        CreateCorridorBlock(
+            "Corridor_Outer_Wall_North",
+            new Vector3(0f, wallCenterY, outerWallCenterZ),
+            new Vector3(endSectionWidth + T, corridorWallHeight, T),
+            corridor.transform,
+            wallMaterial,
+            true
+        );
+
+        float exitBarrierXOffset = T / 2f;
+        float exitBarrierLength = endSectionDepth;
+        Vector3 exitBarrierScale =
+            new Vector3(T, corridorWallHeight, exitBarrierLength);
+        float exitBarrierCenterZ = endCenterZ;
+
+        CreateCorridorBlock(
+            "Exit_Access_Barrier_Left",
+            new Vector3(
+                exitCenterX - exitDoorWidth / 2f - exitBarrierXOffset,
+                wallCenterY,
+                exitBarrierCenterZ
+            ),
+            exitBarrierScale,
+            corridor.transform,
+            wallMaterial,
+            true
+        );
+        CreateCorridorBlock(
+            "Exit_Access_Barrier_Right",
+            new Vector3(
+                exitCenterX + exitDoorWidth / 2f + exitBarrierXOffset,
+                wallCenterY,
+                exitBarrierCenterZ
+            ),
+            exitBarrierScale,
+            corridor.transform,
+            wallMaterial,
+            true
+        );
+
+        CreateCorridorBlock(
+            "Corridor_Roof_West",
+            new Vector3(-sideCenterX, corridorRoofY, 0f),
+            new Vector3(corridorWidth, corridorRoofThickness, sideLength),
+            corridor.transform,
+            roofMaterial,
+            false
+        );
+        CreateCorridorBlock(
+            "Corridor_Roof_East",
+            new Vector3(sideCenterX, corridorRoofY, 0f),
+            new Vector3(corridorWidth, corridorRoofThickness, sideLength),
+            corridor.transform,
+            roofMaterial,
+            false
+        );
+        CreateCorridorBlock(
+            "Corridor_Roof_South",
+            new Vector3(0f, corridorRoofY, -endCenterZ),
+            new Vector3(endSectionWidth, corridorRoofThickness, endSectionDepth),
+            corridor.transform,
+            roofMaterial,
+            false
+        );
+        CreateCorridorBlock(
+            "Corridor_Roof_North",
+            new Vector3(0f, corridorRoofY, endCenterZ),
+            new Vector3(endSectionWidth, corridorRoofThickness, endSectionDepth),
+            corridor.transform,
+            roofMaterial,
+            false
+        );
+
+        CreateCorridorBeam(
+            "Corridor_Roof_Beam_West_Inner",
+            new Vector3(-innerHalfWidth - 0.8f, 4.02f, 0f),
+            new Vector3(0.22f, 0.22f, sideLength),
+            corridor.transform,
+            beamMaterial
+        );
+        CreateCorridorBeam(
+            "Corridor_Roof_Beam_West_Outer",
+            new Vector3(-outerHalfWidth + 0.8f, 4.02f, 0f),
+            new Vector3(0.22f, 0.22f, sideLength),
+            corridor.transform,
+            beamMaterial
+        );
+        CreateCorridorBeam(
+            "Corridor_Roof_Beam_East_Inner",
+            new Vector3(innerHalfWidth + 0.8f, 4.02f, 0f),
+            new Vector3(0.22f, 0.22f, sideLength),
+            corridor.transform,
+            beamMaterial
+        );
+        CreateCorridorBeam(
+            "Corridor_Roof_Beam_East_Outer",
+            new Vector3(outerHalfWidth - 0.8f, 4.02f, 0f),
+            new Vector3(0.22f, 0.22f, sideLength),
+            corridor.transform,
+            beamMaterial
+        );
+        CreateCorridorBeam(
+            "Corridor_Roof_Beam_South_Inner",
+            new Vector3(0f, 4.02f, -innerHalfLength - 0.8f),
+            new Vector3(endSectionWidth, 0.22f, 0.22f),
+            corridor.transform,
+            beamMaterial
+        );
+        CreateCorridorBeam(
+            "Corridor_Roof_Beam_South_Outer",
+            new Vector3(0f, 4.02f, -outerHalfLength + 0.8f),
+            new Vector3(endSectionWidth, 0.22f, 0.22f),
+            corridor.transform,
+            beamMaterial
+        );
+        CreateCorridorBeam(
+            "Corridor_Roof_Beam_North_Inner",
+            new Vector3(0f, 4.02f, innerHalfLength + 0.8f),
+            new Vector3(endSectionWidth, 0.22f, 0.22f),
+            corridor.transform,
+            beamMaterial
+        );
+        CreateCorridorBeam(
+            "Corridor_Roof_Beam_North_Outer",
+            new Vector3(0f, 4.02f, outerHalfLength - 0.8f),
+            new Vector3(endSectionWidth, 0.22f, 0.22f),
+            corridor.transform,
+            beamMaterial
+        );
+
+    }
+
+    private static GameObject CreateCorridorBlock(
+        string name,
+        Vector3 position,
+        Vector3 scale,
+        Transform parent,
+        Material material,
+        bool keepCollider)
+    {
+        GameObject block = Block(name, position, scale, parent);
+        Renderer renderer = block.GetComponent<Renderer>();
+
+        if (renderer != null && material != null)
+            renderer.sharedMaterial = material;
+
+        if (!keepCollider)
+        {
+            Collider collider = block.GetComponent<Collider>();
+            if (collider != null)
+                DestroyImmediate(collider);
+        }
+
+        return block;
+    }
+
+    private static void CreateCorridorBeam(
+        string name,
+        Vector3 position,
+        Vector3 scale,
+        Transform parent,
+        Material material)
+    {
+        CreateCorridorBlock(
+            name,
+            position,
+            scale,
+            parent,
+            material,
+            false
         );
     }
 

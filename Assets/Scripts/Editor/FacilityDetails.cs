@@ -357,14 +357,14 @@ public class FacilityDetails : EditorWindow
         CreateMachine(
             root.transform,
             "Room3_Machine_A",
-            new Vector3(17f, 0.9f, 16f),
+            new Vector3(16f, 0.9f, 15f),
             new Vector3(2f, 1.8f, 1.5f)
         );
 
         CreateMachine(
             root.transform,
             "Room3_Machine_B",
-            new Vector3(17f, 0.9f, 20f),
+            new Vector3(16f, 0.9f, 19f),
             new Vector3(2f, 1.8f, 1.5f)
         );
 
