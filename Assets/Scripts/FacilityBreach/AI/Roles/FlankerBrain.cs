@@ -32,6 +32,8 @@ namespace FacilityBreach.AI.Roles
             environment.BeginDecision(SeesPlayer, SightRange, FieldOfView);
             var command = Policy.Step(now, transform.position, SeesPlayer, LastKnownPosition,
                 Mover.Status, environment, Post);
+            // If no flank point could be found (all tactical attempts spent), fight from the current spot instead of standing idle.
+            if (command.Action == FlankAction.Hold && SeesPlayer && Policy.Phase == FlankPhase.Holding) command.Action = FlankAction.Attack;
             if (!Policy.HasObservation && !SeesPlayer) HasLastKnown = false;
             var state = Policy.Phase == FlankPhase.Combat ? RoleState.Combat :
                 Policy.Phase == FlankPhase.Flanking ? RoleState.Flank :

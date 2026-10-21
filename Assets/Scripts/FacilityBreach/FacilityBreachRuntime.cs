@@ -182,7 +182,9 @@ namespace FacilityBreach
             // CD-03 Cover Defender (90 HP, Violet)
             CreateAgent(agentsRoot, "FB_Agent_CD03", "CD-03", 90, new Vector3(17.5f, 0, 19.5f), new Color(0.6f, 0.2f, 0.8f), 2).AddComponent<CoverDefenderBrain>();
             // FL-04 Flanker (70 HP, Lime)
-            CreateAgent(agentsRoot, "FB_Agent_FL04", "FL-04", 70, new Vector3(13, 0, 21), new Color(0.7f, 1, 0.2f), 3).AddComponent<FlankerBrain>();
+            var flanker = CreateAgent(agentsRoot, "FB_Agent_FL04", "FL-04", 70, new Vector3(13, 0, 21), new Color(0.7f, 1, 0.2f), 3);
+            flanker.AddComponent<FlankerBrain>();
+            flanker.AddComponent<RestingWallFacing>(); // rests facing the nearest wall; turns to the player on sight
 
             foreach (var collider in FindObjectsByType<BoxCollider>())
                 if (collider.transform.parent && collider.transform.parent.name == "Generated_Facility" && collider.bounds.size.y >= 3) mapWalls.Add(collider);
