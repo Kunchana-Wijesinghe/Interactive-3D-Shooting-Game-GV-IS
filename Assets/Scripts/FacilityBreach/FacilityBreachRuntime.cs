@@ -39,6 +39,7 @@ namespace FacilityBreach
         private GameObject equippedVisual;
         private readonly List<ResourceStation> stations = new List<ResourceStation>();
         private readonly List<GameObject> gates = new List<GameObject>();
+        private readonly List<(GameObject seal, InteractiveDoor door)> doorSeals = new List<(GameObject, InteractiveDoor)>();
         private readonly List<Collider> mapWalls = new List<Collider>();
         private readonly List<Material> ownedMaterials = new List<Material>();
         private TemporaryPlayerAdapter player;
@@ -159,10 +160,14 @@ namespace FacilityBreach
                 var anchor = Anchor(door);
                 var gate = Box("Card required — " + door, anchor.position + Vector3.up * 1.5f,
                     door.EndsWith("Left") ? new Vector3(.12f, 3, 2) : new Vector3(2, 3, .12f), new Color(1, .35f, 0));
-                // Card barrier: blocks the player physically and every enemy through a carving NavMesh obstacle.
-                // The gate object is deactivated once the player holds the card, which opens the room to everyone.
-                var block = gate.AddComponent<NavMeshObstacle>(); block.carving = true; block.shape = NavMeshObstacleShape.Box;
-                block.size = door.EndsWith("Left") ? new Vector3(10, 1, 1.2f) : new Vector3(1.2f, 1, 10);
+                // Card barrier: physically blocks the player until the card is held. The door itself stays closed and
+                // only the player can open it (with the card); a separate seal keeps enemies out while it is closed.
+                var machineDoor = anchor.GetComponentInChildren<InteractiveDoor>();
+                if (machineDoor) { machineDoor.RequiresCard = true; machineDoor.PlayerOnly = true; }
+                var seal = new GameObject("Door seal — " + door); seal.transform.SetParent(transform); seal.transform.position = gate.transform.position;
+                var block = seal.AddComponent<NavMeshObstacle>(); block.carving = true; block.shape = NavMeshObstacleShape.Box;
+                block.size = door.EndsWith("Left") ? new Vector3(1.2f, 3, 2.4f) : new Vector3(2.4f, 3, 1.2f);
+                doorSeals.Add((seal, machineDoor));
                 Label(gate, "CARD REQUIRED"); gates.Add(gate);
             }
             // Add FB_Agents root and all 4 security robots (PG-01, SH-01, CD-03, FL-04)
@@ -381,6 +386,8 @@ namespace FacilityBreach
             foreach (var station in stations) station.Tick(dt);
             if (device) device.SetDeviceActive(Run.State != MissionState.Escape && Run.State != MissionState.Won);
             foreach (var gate in gates) gate.SetActive(!Run.HasCard);
+            // Enemies can only pass a Machinery door the player has opened with the card
+            foreach (var entry in doorSeals) entry.seal.SetActive(!Run.HasCard || !entry.door || !entry.door.IsOpen);
             feedbackTime -= dt; cadence = Mathf.Max(0, cadence - dt);
             if (reload > 0) { reload = Mathf.Max(0, reload - dt); if (reload == 0) Resources.Reload(); }
             if (waitForRelease)

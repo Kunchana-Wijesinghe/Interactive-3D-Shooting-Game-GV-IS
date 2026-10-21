@@ -2,6 +2,12 @@ using UnityEngine;
 
 public class InteractiveDoor : MonoBehaviour
 {
+    [Header("Access")]
+    [Tooltip("The player needs the access card before this door can be opened.")]
+    public bool RequiresCard;
+    [Tooltip("Enemy movement never opens this door on its own; only the player can.")]
+    public bool PlayerOnly;
+
     [Header("Door Settings")]
     public float openAngle = 90f;
     public float openSpeed = 4f;

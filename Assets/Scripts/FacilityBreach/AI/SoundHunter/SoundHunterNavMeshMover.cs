@@ -118,7 +118,7 @@ namespace FacilityBreach.AI.SoundHunter
             foreach (var hit in Physics.OverlapSphere(transform.position + Vector3.up, 1.8f))
             {
                 var door = hit.GetComponentInParent<InteractiveDoor>();
-                if (door && !door.IsOpen && Vector3.Dot(door.transform.position - transform.position, towardGoal) > 0) door.RequestOpen(true);
+                if (door && !door.PlayerOnly && !door.IsOpen && Vector3.Dot(door.transform.position - transform.position, towardGoal) > 0) door.RequestOpen(true);
             }
         }
         private void LateUpdate()
