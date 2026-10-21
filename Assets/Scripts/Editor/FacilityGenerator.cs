@@ -1,20 +1,118 @@
 using UnityEngine;
 using UnityEditor;
+using UnityEditor.SceneManagement;
 
 public class FacilityGenerator : EditorWindow
 {
     private const float H = 4f;
     private const float T = 0.35f;
+    private const string PrototypeScenePath =
+        "Assets/Scenes/Prototype.unity";
+
+    [InitializeOnLoadMethod]
+    private static void RegisterSceneInitialization()
+    {
+        EditorSceneManager.sceneOpened -= OnSceneOpened;
+        EditorSceneManager.sceneOpened += OnSceneOpened;
+        EditorApplication.playModeStateChanged -= OnPlayModeStateChanged;
+        EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
+        EditorApplication.delayCall += EnsureActivePrototypeEnvironment;
+    }
+
+    private static void OnPlayModeStateChanged(PlayModeStateChange state)
+    {
+        if (state == PlayModeStateChange.EnteredEditMode)
+            EditorApplication.delayCall += EnsureActivePrototypeEnvironment;
+    }
+
+    private static void OnSceneOpened(
+        UnityEngine.SceneManagement.Scene scene,
+        OpenSceneMode mode)
+    {
+        if (scene.path == PrototypeScenePath)
+            EditorApplication.delayCall += EnsureActivePrototypeEnvironment;
+    }
+
+    private static void EnsureActivePrototypeEnvironment()
+    {
+        if (EditorApplication.isPlayingOrWillChangePlaymode)
+            return;
+
+        var scene = EditorSceneManager.GetActiveScene();
+
+        if (scene.path != PrototypeScenePath ||
+            GameObject.Find("Generated_Facility") == null)
+        {
+            return;
+        }
+
+        Generate();
+    }
 
     [MenuItem("Facility Breach/Generate Final Facility V4")]
     public static void Generate()
     {
-        GameObject old = GameObject.Find("Generated_Facility");
+        GameObject root = GameObject.Find("Generated_Facility");
 
-        if (old != null)
-            DestroyImmediate(old);
+        if (root != null)
+        {
+            bool changed = false;
+            Transform corridor = root.transform.Find("ExternalCorridor");
 
-        GameObject root = new GameObject("Generated_Facility");
+            if (corridor == null)
+            {
+                CreateExternalCorridor(root.transform);
+                corridor = root.transform.Find("ExternalCorridor");
+                changed = true;
+            }
+
+            if (GameObject.Find("Facility_Roof") == null)
+            {
+                FacilityRoof.GenerateRoof();
+                changed = true;
+            }
+
+            if (GameObject.Find("Facility_Lighting") == null)
+            {
+                FacilityLighting.GenerateLighting();
+                changed = true;
+            }
+            else if (corridor != null &&
+                     corridor.Find("Corridor_Lighting") == null)
+            {
+                FacilityLighting.GenerateExternalCorridorLighting(
+                    corridor,
+                    23.175f,
+                    32.0875f
+                );
+                changed = true;
+            }
+
+            Selection.activeGameObject = root;
+
+            if (changed)
+            {
+                SaveActiveScene();
+                Debug.Log(
+                    "Missing facility components were added without replacing " +
+                    "the existing facility or visual details."
+                );
+            }
+            else
+            {
+                if (EditorSceneManager.GetActiveScene().isDirty)
+                    SaveActiveScene();
+
+                Debug.Log(
+                    "The facility, external corridor, roof, and lighting " +
+                    "are already present; no geometry was replaced."
+                );
+            }
+
+            return;
+        }
+
+        root = new GameObject("Generated_Facility");
 
         // FLOOR
         Block(
@@ -453,10 +551,35 @@ public class FacilityGenerator : EditorWindow
         FacilityLighting.GenerateLighting();
 
         Selection.activeGameObject = root;
+        SaveActiveScene();
 
         Debug.Log(
             "Facility and four-sided external corridor generated."
         );
+    }
+
+    private static void SaveActiveScene()
+    {
+        var scene = EditorSceneManager.GetActiveScene();
+
+        if (!scene.IsValid() || !scene.isLoaded ||
+            string.IsNullOrEmpty(scene.path))
+        {
+            Debug.LogError(
+                "The generated facility cannot be saved because the active " +
+                "scene has no saved asset path."
+            );
+            return;
+        }
+
+        EditorSceneManager.MarkSceneDirty(scene);
+
+        if (!EditorSceneManager.SaveScene(scene))
+        {
+            Debug.LogError(
+                "Failed to save the active scene after generating the facility."
+            );
+        }
     }
 
     private static void CreateExternalCorridor(Transform facilityRoot)
