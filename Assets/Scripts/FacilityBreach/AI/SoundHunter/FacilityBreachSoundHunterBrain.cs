@@ -11,7 +11,7 @@ namespace FacilityBreach.AI.SoundHunter
     public sealed class FacilityBreachSoundHunterBrain : MonoBehaviour,IEnemyActivitySink
     {
         public SoundHunterState CurrentState {get;private set;}=SoundHunterState.Patrol;
-        public float SightRange=16,MemoryExpirySeconds=10,SearchDuration=4;
+        public float SightRange=16,MemoryExpirySeconds=40,SearchDuration=4;
         public Vector3 InvestigationTarget {get;private set;}
         public bool HasSoundTarget=>soundTarget;
         public int HeardCount {get;private set;}
@@ -47,9 +47,20 @@ namespace FacilityBreach.AI.SoundHunter
             if(!active||!runtime||!runtime.AcceptsGameplay||combat.IsDead||stimulus.SourceId==combat.GetEntityId().GetHashCode())return;
             if(stimulus.Category==SoundCategory.Other)return; // gunshots, thrown cans, kicks/prop impacts and sprint footsteps
             if(!float.IsFinite(stimulus.Strength)||!float.IsFinite(stimulus.CreatedTime)||!float.IsFinite(stimulus.Position.x)||!float.IsFinite(stimulus.Position.y)||!float.IsFinite(stimulus.Position.z))return;
+            if(IsPlayerMade(stimulus))
+            {// Noise the player makes is heard from anywhere on the map; the hunter still only walks to where it came from.
+                memory.Remember(new HeardSound(stimulus,0f,stimulus.Strength),runtime.GameplayTime);HeardCount++;
+                GameplayDiagnostics.Trace($"SH heard player noise anywhere origin={stimulus.Position} category={stimulus.Category}",this);return;
+            }
             if(!graph.TryMapPoint(stimulus.Position,out int source)||!graph.TryMapPoint(transform.position,out int listener))return;
             if(new HearingEvaluator(graph.Graph).TryHear(stimulus,source,listener,out var heard))
             {memory.Remember(heard,runtime.GameplayTime);HeardCount++;GameplayDiagnostics.Trace($"SH heard origin={stimulus.Position} cost={heard.Cost} remaining={heard.Remaining}",this);}
+        }
+        // Thrown cans, kicks, prop impacts and footsteps only come from the player; gunshots count when fired at the player's position.
+        private bool IsPlayerMade(in SoundStimulus stimulus)
+        {
+            if(stimulus.Category==SoundCategory.Gunshot)return (stimulus.Position-runtime.PlayerTransform.position).sqrMagnitude<9f;
+            return true;
         }
         private void Update()
         {
