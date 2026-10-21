@@ -85,6 +85,8 @@ namespace FacilityBreach.Interactions
             if (s != null && !stations.Contains(s)) stations.Add(s);
         }
 
+        // A card-locked door stays shut until the player holds the card (it can always be closed again).
+        private bool LockedByCard(InteractiveDoor d) => d.RequiresCard && !d.IsOpen && runtime != null && !runtime.Run.HasCard;
         public void RegisterDoor(InteractiveDoor d)
         {
             if (d != null && !doors.Contains(d)) doors.Add(d);
@@ -132,7 +134,7 @@ namespace FacilityBreach.Interactions
             if (best.Kind == InteractionTargetKind.Station && best.Target is ResourceStation st)
                 return st.Prompt;
             if (best.Kind == InteractionTargetKind.Door && best.Target is InteractiveDoor dr)
-                return dr.IsOpen ? "E: Close door" : "E: Open door";
+                return LockedByCard(dr) ? "Access card required" : dr.IsOpen ? "E: Close door" : "E: Open door";
             if (best.Kind == InteractionTargetKind.Barricade)
                 return "E: Grab barricade";
 
@@ -255,7 +257,7 @@ namespace FacilityBreach.Interactions
                         DotProduct = dot,
                         HasDirectAim = directAim,
                         Score = score,
-                        Prompt = door.IsOpen ? "E: Close door" : "E: Open door"
+                        Prompt = LockedByCard(door) ? "Access card required" : door.IsOpen ? "E: Close door" : "E: Open door"
                     };
                 }
             }
@@ -362,6 +364,7 @@ namespace FacilityBreach.Interactions
                 case InteractionTargetKind.Door:
                     if (candidate.Target is InteractiveDoor door)
                     {
+                        if (LockedByCard(door)) { rejection = "Access card required"; executedKind = InteractionTargetKind.Door; executedTarget = door; return false; }
                         bool toggled = door.RequestOpen(!door.IsOpen);
                         rejection = toggled ? "" : "Door clearance obstructed by character or obstacle";
                         executedKind = InteractionTargetKind.Door;
