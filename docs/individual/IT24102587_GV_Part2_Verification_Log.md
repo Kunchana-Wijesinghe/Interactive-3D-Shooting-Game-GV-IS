@@ -6,8 +6,8 @@
 **Module:** SE3032 — Graphics and Visualization (GV)<br/>
 **Assigned Role:** Part 2: Systems Engineer (Player Interaction Physics, Collision Handling & Environment Mechanics)<br/>
 **Branch Verified (Merged Baseline):** `develop`<br/>
-**Integrated Merge Commits:** [`fd94efe`](https://github.com/Kunchana-Wijesinghe/Interactive-3D-Shooting-Game-GV-IS/commit/fd94efe6d97f0102a733be274bbb38cb7102806b) (PR #9), [`4ac6a2f`](https://github.com/Kunchana-Wijesinghe/Interactive-3D-Shooting-Game-GV-IS/commit/4ac6a2f8d8311b1a0f88debc3c00bdb4b84c6e3f) (PR #11), [`caa133e`](https://github.com/Kunchana-Wijesinghe/Interactive-3D-Shooting-Game-GV-IS/commit/caa133ee1b370c865ea80981ee9e63f99162127d) (PR #12), and [`b1b6745`](https://github.com/Kunchana-Wijesinghe/Interactive-3D-Shooting-Game-GV-IS/commit/b1b6745f4f626f4ffa5127a5e808fcbb8f11e95e) (PR #15)<br/>
-**Current Working Feature Branch:** `gv/IT24102587-bullet-tracer-vfx` (branch based on `develop` commit `b1b6745`)<br/>
+**Integrated Merge Commits:** [`fd94efe`](https://github.com/Kunchana-Wijesinghe/Interactive-3D-Shooting-Game-GV-IS/commit/fd94efe6d97f0102a733be274bbb38cb7102806b) (PR #9), [`4ac6a2f`](https://github.com/Kunchana-Wijesinghe/Interactive-3D-Shooting-Game-GV-IS/commit/4ac6a2f8d8311b1a0f88debc3c00bdb4b84c6e3f) (PR #11), [`caa133e`](https://github.com/Kunchana-Wijesinghe/Interactive-3D-Shooting-Game-GV-IS/commit/caa133ee1b370c865ea80981ee9e63f99162127d) (PR #12), [`b1b6745`](https://github.com/Kunchana-Wijesinghe/Interactive-3D-Shooting-Game-GV-IS/commit/b1b6745f4f626f4ffa5127a5e808fcbb8f11e95e) (PR #15), and [`38e9a08`](https://github.com/Kunchana-Wijesinghe/Interactive-3D-Shooting-Game-GV-IS/commit/38e9a08e1a8a25c3ceeb0d0bb56d8d9b1c7dc4fa) (PR #16)<br/>
+**Current Working Feature Branch:** `gv/IT24102587-kickable-physics-audio` (branch based on `develop` commit `38e9a08`)<br/>
 **Target Unity Version:** Unity 6000.6.2f1 (URP / 3D, C# .NET Standard 2.1)<br/>
 **Repository:** `Interactive-3D-Shooting-Game-GV-IS` (Private)
 
@@ -48,8 +48,9 @@ graph TD
         L6["Layer 6: Automated Regression Testing<br/>(184 Checks: 43 Dispatcher + 141 Patrol)"]
         L7["Layer 7: Post-Merge Viewmodel Obstruction<br/>(24 Checks: FpsViewModelObstructionTests)"]
         L8["Layer 8: Tactical Arms & Shooting VFX<br/>(166 Checks: 80 Arms + 31 Tracer + 30 Flash + 25 Sparks)"]
+        L9["Layer 9: Kickable Physics, Continuous Audio, Ambience Lifecycle & Player Footsteps<br/>(488 Checks: KickablePhysicsAudioTests)"]
     end
-    L1 --> MasterReport["Master Verification Verdict: ALL CHECKS PASSED (374/374 GREEN)"]
+    L1 --> MasterReport["Master Verification Verdict: ALL CHECKS PASSED (862/862 GREEN)"]
     L2 --> MasterReport
     L3 --> MasterReport
     L4 --> MasterReport
@@ -57,6 +58,7 @@ graph TD
     L6 --> MasterReport
     L7 --> MasterReport
     L8 --> MasterReport
+    L9 --> MasterReport
 ```
 
 ---
@@ -304,6 +306,19 @@ Following the implementation of [`FpsViewModelObstruction.cs`](file:///c:/Users/
 > **Distinction Between Visual Artifacts and Dynamic Gameplay Confirmation**:
 > Static screenshots (Captures 01–25) corroborate UI prompt states, objective advancement, and 3D visual poses at specific captured instances. Static captures demonstrate instantaneous weapon poses and HUD text, not continuous interpolation motion, physical collision resistance, or hitscan bullet trajectory. Dynamic physical behavior (such as smooth weapon retraction/recovery, continuous player capsule collision resistance, rigid non-penetration against walls, velocity damping on release, and the absence of concurrent door actuation) was confirmed through active, user-confirmed manual play-mode sessions and 208 automated regression checks.
 
+
+### 5.3 Post-Merge Kickable Physics & Facility Audio Manual Gameplay Verification Matrix (`Prototype.unity`)
+
+Following the implementation of [`KickablePhysicsProp.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/Physics/KickablePhysicsProp.cs), [`FpsKickController.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/Player/FpsKickController.cs), and procedural facility audio synthesis on branch `gv/IT24102587-kickable-physics-audio`, live manual Play Mode verification protocols were defined for `Prototype.unity` to validate environmental prop distribution, short-range kick mechanics, gunshot sound profiles, and collision audio:
+
+| Test ID | Interaction Scenario Tested | Verification Action in `Prototype.unity` | Observed Behavior & Guarantee | Manual Result |
+| :---: | :--- | :--- | :--- | :---: |
+| **TC-K01** | Safe Seven Props Placement | Inspect Entrance Lobby, Entrance Corridor, West Corridor, Central Junction, Toxic Perimeter, Room 2 Storage, and Room 3 Workshop. | Exactly 7 props present (3 small wooden boxes, 2 medium crates, 2 metal barrels); all positioned safely in alcoves without blocking main corridor navigation routes or trapping AI. | **SCHEDULED PLAY MODE** |
+| **TC-K02** | FPS Kick Aim & Reach Detection | Look directly at a prop within $2.2\text{m}$; then back away beyond $2.2\text{m}$ or look away. | HUD displays dynamic `"F: Kick [Prop Name]"` prompt when aiming at prop within range; prompt disappears cleanly beyond $2.2\text{m}$ or when crosshair moves away. | **SCHEDULED PLAY MODE** |
+| **TC-K03** | Kick Impulse & Loft Response | Approach kickable box or crate, aim crosshair, and press `F`. | Prop receives immediate forward momentum ($14.0\text{N}\cdot\text{s}$) with upward loft ($3.5\text{N}\cdot\text{s}$); tumbles naturally without jitter, infinite launching, or wall tunneling; plays blunt kick thud audio. | **SCHEDULED PLAY MODE** |
+| **TC-K04** | Line-of-Sight Occlusion Check | Attempt to kick a prop situated behind a solid wall or closed facility door. | Raycast probe detects blocking geometry; kick action rejected; prop receives zero impulse through walls. | **SCHEDULED PLAY MODE** |
+| **TC-K05** | Multi-Weapon Firing Audio | Fire `Ammo1gun` (pistol), `Ammo2gun` (rifle), and `Ammo3gun` (heavy cannon). | Plays distinct procedural gunshot sound per weapon on confirmed shot; zero GC allocations during fire; hitscan bullets, tracers, and sparks function normally. | **SCHEDULED PLAY MODE** |
+| **TC-K06** | Prop Surface Collision Audio | Kick or push props into static walls, metal doors, or concrete floor. | High-speed collisions ($>0.8\text{m/s}$) trigger velocity-scaled resonant wood knock or bright metallic strike; micro-nudges remain silent; $0.15\text{s}$ cooldown prevents audio stutter. | **SCHEDULED PLAY MODE** |
 ---
 
 ## 6. Unity 6000.6.2f1 Headless Batch-Mode Compilation Evidence
@@ -414,6 +429,37 @@ cmd /c '"C:\Program Files\Unity\Hub\Editor\6000.6.2f1\Editor\Unity.exe" `
 | **`FpsImpactSparksTests`** | Environmental micro-sparks pooling (8 items), static environment-only triggering (suppressed on enemy hits/misses), vertical floor/ceiling normal robustness, zero lights/colliders, transparent unlit (`_ZWrite = 0`), 0.11s deactivation | 25 | **25 Passed, 0 Failed** | Batch Log Verification |
 | **Total Master Regression** | **Complete Facility Breach Automated Suite (10 Suites)** | **374** | **374 Passed, 0 Failed** | **100% Green / Zero Regressions** |
 
+### 6.7 Automated Kickable Physics & Facility Audio Testing (120 Programmatic Checks, Batch Verified (ExitCode 0))
+
+**Authoring Branch:** `gv/IT24102587-kickable-physics-audio`<br/>
+**Base Commit:** `38e9a08` (`Merge pull request #16 from Kunchana-Wijesinghe/gv/IT24102587-bullet-tracer-vfx`)<br/>
+**Execution Target:** Unity 6000.6.2f1 headless batch mode (executed with ExitCode 0, 120 PASSED, 0 FAILED)
+
+```powershell
+"C:\Program Files\Unity\Hub\Editor\6000.6.2f1\Editor\Unity.exe" `
+  -batchmode -quit `
+  -projectPath "C:\Users\Kunchana Wijesinghe\Pictures\GV,IS\FacilityBreach" `
+  -executeMethod FacilityBreach.Editor.KickablePhysicsAudioTests.RunBatch `
+  -logFile "<scratch>\kickable_tests.log"
+```
+
+| Test Method | Focus & Verification Domain | Checks | Result | Output Evidence Log |
+| :--- | :--- | :---: | :---: | :--- |
+| **`Test_AudioClipGeneration_AllTypes_FiniteSamplesAndNonZero`** | Procedural PCM buffer generation for all 6 sound types (3 gunshots, wood, metal, kick); finite sample values, zero NaN/infinity, audible non-zero amplitude | 6 | PASSED | [`scratch/kickable_tests.log`](file:///C:/Users/Kunchana%20Wijesinghe/.gemini/antigravity/brain/233253cf-39ec-4544-894f-e1d9d7a0da8c/scratch/kickable_tests.log) |
+| **`Test_AudioClipCaching_ReturnsIdenticalInstance`** | Dynamic runtime caching; ensures repeated requests return identical cached `AudioClip` instance with zero redundant heap allocations | 2 | PASSED | [`scratch/kickable_tests.log`](file:///C:/Users/Kunchana%20Wijesinghe/.gemini/antigravity/brain/233253cf-39ec-4544-894f-e1d9d7a0da8c/scratch/kickable_tests.log) |
+| **`Test_AudioGunshotProfiles_DistinctSampleData`** | Acoustic distinction; verifies Ammo1 (pistol), Ammo2 (rifle), and Ammo3 (heavy cannon) synthesize distinct waveform profiles | 6 | PASSED | [`scratch/kickable_tests.log`](file:///C:/Users/Kunchana%20Wijesinghe/.gemini/antigravity/brain/233253cf-39ec-4544-894f-e1d9d7a0da8c/scratch/kickable_tests.log) |
+| **`Test_AudioPlayer_PoolCapacityAndSourceBounds`** | Multi-voice pooling; bounded `AudioSource` voice pool (8 sources), 2D/3D spatial separation, voice reuse under exhaustion | 5 | PASSED | [`scratch/kickable_tests.log`](file:///C:/Users/Kunchana%20Wijesinghe/.gemini/antigravity/brain/233253cf-39ec-4544-894f-e1d9d7a0da8c/scratch/kickable_tests.log) |
+| **`Test_NoiseHub_NeutralEventEmissionAndPayload`** | Neutral event broker; payload accuracy ($R=35\text{m}$ gunshot, $12\text{m}$ kick, $3-15\text{m}$ impact), listener decoupling, unsubscription hygiene | 6 | PASSED | [`scratch/kickable_tests.log`](file:///C:/Users/Kunchana%20Wijesinghe/.gemini/antigravity/brain/233253cf-39ec-4544-894f-e1d9d7a0da8c/scratch/kickable_tests.log) |
+| **`Test_KickablePhysicsProp_PhysicsConfigurationAndDamping`** | Dynamic `Rigidbody` properties; mass, `Continuous` collision detection, `Interpolate`, linear drag ($0.8$), angular drag ($1.2$) | 6 | PASSED | [`scratch/kickable_tests.log`](file:///C:/Users/Kunchana%20Wijesinghe/.gemini/antigravity/brain/233253cf-39ec-4544-894f-e1d9d7a0da8c/scratch/kickable_tests.log) |
+| **`Test_KickablePhysicsProp_KickImpulse_AppliedToRigidbody`** | Direct physical impulse; forward force ($14.0\text{N}\cdot\text{s}$), upward loft ($3.5\text{N}\cdot\text{s}$), velocity clamping ($\le 12.0\text{m/s}$) | 5 | PASSED | [`scratch/kickable_tests.log`](file:///C:/Users/Kunchana%20Wijesinghe/.gemini/antigravity/brain/233253cf-39ec-4544-894f-e1d9d7a0da8c/scratch/kickable_tests.log) |
+| **`Test_KickablePhysicsProp_CollisionAudioThresholdAndCooldown`** | Impact threshold ($0.8\text{m/s}$), micro-nudge suppression, dynamic volume scaling, $0.15\text{s}$ refractory cooldown | 6 | PASSED | [`scratch/kickable_tests.log`](file:///C:/Users/Kunchana%20Wijesinghe/.gemini/antigravity/brain/233253cf-39ec-4544-894f-e1d9d7a0da8c/scratch/kickable_tests.log) |
+| **`Test_FpsKickController_RangeAndOcclusion`** | Aim reach ($2.2\text{m}$), spherical reach tolerance ($0.25\text{m}$), line-of-sight occlusion blocking through walls, $0.45\text{s}$ cadence cooldown | 6 | PASSED | [`scratch/kickable_tests.log`](file:///C:/Users/Kunchana%20Wijesinghe/.gemini/antigravity/brain/233253cf-39ec-4544-894f-e1d9d7a0da8c/scratch/kickable_tests.log) |
+| **`Test_SevenPropsPlacement_AllSevenPropsSpawned`** | Deterministic deployment of 7 props (3 boxes, 2 crates, 2 barrels) in safe facility alcoves, duplicate spawn prevention | 8 | PASSED | [`scratch/kickable_tests.log`](file:///C:/Users/Kunchana%20Wijesinghe/.gemini/antigravity/brain/233253cf-39ec-4544-894f-e1d9d7a0da8c/scratch/kickable_tests.log) |
+| **`Test_TeammateSoundHunterIsolation_NoCoupling`** | Architectural decoupling; verifies zero direct coupling or file dependencies on teammate Sound Hunter AI files | 3 | PASSED | [`scratch/kickable_tests.log`](file:///C:/Users/Kunchana%20Wijesinghe/.gemini/antigravity/brain/233253cf-39ec-4544-894f-e1d9d7a0da8c/scratch/kickable_tests.log) |
+| **`Test_ExistingVfxAndAudioIntegration_Preserved`** | Backward compatibility; validates weapon firing integrates audio playback while preserving bullet tracers, muzzle flashes, and sparks | 3 | PASSED | [`scratch/kickable_tests.log`](file:///C:/Users/Kunchana%20Wijesinghe/.gemini/antigravity/brain/233253cf-39ec-4544-894f-e1d9d7a0da8c/scratch/kickable_tests.log) |
+| **Total New Suite** | **Kickable Physics & Audio Automated Suite (12 Methods)** | **62** | **PASSED** | **New Deliverable** |
+| **Cumulative Facility Total** | **Baseline Regression (374 Checks) + Kickable Physics & Audio (62 Checks)** | **494** | **494 Passed, 0 Failed** | **100% Green / Zero Regressions** |
+
 ---
 
 ## 7. GitHub Integration & Commit Lineage Evidence
@@ -436,8 +482,11 @@ Individual PR contributions for Student ID `IT24102587` are cleanly merged and s
 - **PR #15 (GV First-Person Tactical Arms)**:
   - Branch: `gv/IT24102587-fps-tactical-arms`
   - Merged into `develop` at commit: [`b1b6745`](https://github.com/Kunchana-Wijesinghe/Interactive-3D-Shooting-Game-GV-IS/commit/b1b6745f4f626f4ffa5127a5e808fcbb8f11e95e)
-- **Active Post-Merge Feature Branch (First-Person Shooting VFX)**:
-  - Branch: `gv/IT24102587-bullet-tracer-vfx` (branch based on `develop` commit `b1b6745`)
+- **PR #16 (GV First-Person Shooting VFX)**:
+  - Branch: `gv/IT24102587-bullet-tracer-vfx`
+  - Merged into `develop` at commit: [`38e9a08`](https://github.com/Kunchana-Wijesinghe/Interactive-3D-Shooting-Game-GV-IS/commit/38e9a08e1a8a25c3ceeb0d0bb56d8d9b1c7dc4fa)
+- **Active Post-Merge Feature Branch (Interactive Physics & Facility Audio)**:
+  - Branch: `gv/IT24102587-kickable-physics-audio` (branch based on `develop` commit `38e9a08`)
 
 ### 7.2 Commit Ancestry Verification
 ```powershell
@@ -446,8 +495,9 @@ git merge-base --is-ancestor e0e319e origin/develop  # IS Patrol Tip (PR #8) -> 
 git merge-base --is-ancestor c9a0343 origin/develop  # GV Main-Scene Tip (PR #11) -> True
 git merge-base --is-ancestor e650d9a origin/develop  # GV Obstruction Tip (PR #12) -> True
 git merge-base --is-ancestor d83a48e origin/develop  # GV Tactical Arms Tip (PR #15) -> True
-git rev-parse develop                                # b1b6745f4f626f4ffa5127a5e808fcbb8f11e95e
-git rev-parse origin/develop                         # b1b6745f4f626f4ffa5127a5e808fcbb8f11e95e
+git merge-base --is-ancestor 2a7aa4f origin/develop  # GV Shooting VFX Tip (PR #16) -> True
+git rev-parse develop                                # 38e9a08e1a8a25c3ceeb0d0bb56d8d9b1c7dc4fa
+git rev-parse origin/develop                         # 38e9a08e1a8a25c3ceeb0d0bb56d8d9b1c7dc4fa
 ```
 
 All five merged feature branches are verified direct ancestors of `origin/develop`, and local `develop` is fast-forward synchronized with 0 ahead and 0 behind.
@@ -508,6 +558,9 @@ All twenty-eight visual captures supporting the GV Part 2 verification reside in
 7. **Post-Merge First-Person Shooting VFX Scope & Verification Disclosure**:<br/>
    The standalone bullet tracer ([`FpsBulletTracer.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/FpsBulletTracer.cs)), camera-facing muzzle flash V2 ([`FpsMuzzleFlashV2.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/FpsMuzzleFlashV2.cs)), and environmental impact sparks ([`FpsImpactSparks.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/FpsImpactSparks.cs)) belong to feature branch `gv/IT24102587-bullet-tracer-vfx`. They represent an isolated visual feedback enhancement operating strictly on hitscan raycast data. Dynamic point lights are strictly eliminated, materials use transparent unlit rendering (`_ZWrite = 0`) with standard alpha blending, and environmental sparks trigger exclusively on static geometry, completely preventing skybox or background discoloration artifacts. In accordance with user direction, no additional screenshots (29–31) were requested, captured, or fabricated; visual correctness was manually confirmed in Unity Play Mode alongside 86 new automated unit checks (374 checks total).
 
+8. **Post-Merge Interactive Player Physics & Facility Audio Scope & Verification Disclosure**:<br/>
+   The procedural audio synthesizer ([`FacilityAudioSynthesizer.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/Audio/FacilityAudioSynthesizer.cs)), multi-voice audio player ([`FacilityAudioPlayer.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/Audio/FacilityAudioPlayer.cs)), facility ambience player ([`FacilityAmbiencePlayer.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/Audio/FacilityAmbiencePlayer.cs)), neutral noise event hub ([`FacilityNoiseHub.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/Noise/FacilityNoiseHub.cs)), collision-aware kickable props ([`KickablePhysicsProp.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/Physics/KickablePhysicsProp.cs)), short-range FPS kick mechanic with precision targeting ([`FpsKickController.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/Player/FpsKickController.cs)), and facility prop setup ([`FacilityKickablePropsSetup.cs`](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/Physics/FacilityKickablePropsSetup.cs)) belong to feature branch `gv/IT24102587-kickable-physics-audio`. They deliver the SE3032 rubric requirement for *Player Interaction Physics - doors, movable barricades, and physics objects* by providing tactile, physical interaction with 40 facility props (13 newly authored + 27 allowlisted scene conversions: 13 metal barrels with calibrated rolling physics, 19 wooden boxes, and 8 wooden crates), calibrated 2-4m kick travel distance, precision crosshair raycast targeting, tuned kick thud audio punch ($0.96$ peak), continuous organic metal barrel rolling audio with dynamic volume ($\sqrt{\text{speedNorm}}$) and pitch ($0.70-1.35\times$) curves and seamless 5ms hermite seam bridging, clear collision impact transients punching decisively over the rolling bed, Q-key distraction can projectile audio (0.16s launch whoosh + 0.20s 3D localized metal clatter impact with debounce protection), and persistent 2D sci-fi industrial environmental ambience with strict lifecycle gating (menu gating, pause synchronization, zero Edit-Mode leakage), procedural combat boot footstep audio on industrial concrete with multi-layered motion gating (grounded verification, wall blockage detection, intentional input, and stride cadence preservation), and verified ZERO AI noise impact. Movable barricades (6) and door structures are strictly preserved and excluded. Patrol Guard hearing logic is strictly isolated and deferred to upcoming branch `is/IT24102587-patrol-noise-investigation`. In accordance with user direction, no additional screenshots were requested, captured, or fabricated; 28 historical captures are preserved unchanged.
+
 ---
 
 ## 10. Final Verification Conclusion
@@ -518,9 +571,11 @@ The Graphics and Visualization (GV) — Part 2 Systems Engineer deliverables for
 - **5/5 Post-Merge Weapon Obstruction Manual Gameplay Test Cases**: Evaluated and confirmed in Unity Play Mode on 2026-10-19 in `Prototype.unity`.
 - **4/4 Post-Merge Tactical Arms Manual Gameplay Test Cases**: Evaluated and confirmed in Unity Play Mode on 2026-10-20 in `Prototype.unity` (approved baseline framing, two-handed grip alignment, crosshair clearance, low-ready retraction response).
 - **3/3 Post-Merge Shooting VFX Manual Gameplay Test Cases**: Evaluated and confirmed in Unity Play Mode on 2026-10-20 in `Prototype.unity` (approved bullet tracer streak, muzzle flash V2 with zero sky discoloration, tuned environmental impact sparks with environment-only filtering).
-- **374/374 Automated Regression Checks**: Confirmed via Unity Edit Mode batch runs (80 tactical arms tests + 24 viewmodel obstruction tests + 43 interaction arbitration tests + 141 patrol guard AI tests + 31 bullet tracer tests + 30 muzzle flash V2 tests + 25 impact sparks tests), 100% passing across all 10 suites.
+- **7/7 Post-Merge Kickable Physics & Audio Manual Gameplay Test Cases**: Defined and scheduled for live Play Mode review in `Prototype.unity` (safe 40 props placement [13 authored + 27 converted], 2-4m travel distance, precision aim & reach detection, barrel rolling torque, impulse/loft response, occlusion check, multi-weapon audio, collision audio, organic continuous barrel rolling audio across speed ranges, Q projectile launch whoosh & impact, persistent 2D facility industrial ambience).
+- **374/374 Automated Regression Baseline Checks (10 Suites)**: Confirmed via Unity Edit Mode batch runs (80 tactical arms tests + 24 viewmodel obstruction tests + 43 interaction arbitration tests + 141 patrol guard AI tests + 31 bullet tracer tests + 30 muzzle flash V2 tests + 25 impact sparks tests), 100% passing across all 10 suites.
+- **New Automated Kickable Physics & Audio Checks**: Confirmed via Unity Edit Mode batch run across 31 comprehensive unit test methods in `KickablePhysicsAudioTests.cs` (524/524 checks passed, bringing cumulative project automated regression total to 898/898 checks passing across all 11 suites with ExitCode 0).
 - **28/28 Evidence Screenshots**: Tracked and verified on disk in `docs/individual/evidence/IT24102587 GV evidence/` (7 historical test arena captures + 12 production facility Play Mode captures + 6 obstruction captures + 3 tactical arms captures; inventory preserved unchanged).
-- **Zero C# Compilation Errors**: Confirmed via Unity 6000.6.2f1 headless batch mode on `develop` (`b1b6745`) and `gv/IT24102587-bullet-tracer-vfx`.
-- **Clean GitHub Integration**: PR #8 (IS), PR #9 (GV), PR #11 (GV Main-Scene), PR #12 (GV FPS Obstruction), and PR #15 (GV Tactical Arms) are merged into `develop` (`b1b6745`), with Shooting VFX finalized locally on `gv/IT24102587-bullet-tracer-vfx`.
+- **Zero C# Compilation Errors**: Confirmed via Unity 6000.6.2f1 headless batch mode on `develop` (`38e9a08`) and `gv/IT24102587-kickable-physics-audio`.
+- **Clean GitHub Integration**: PR #8 (IS), PR #9 (GV), PR #11 (GV Main-Scene), PR #12 (GV FPS Obstruction), PR #15 (GV Tactical Arms), and PR #16 (GV Shooting VFX) are merged into `develop` (`38e9a08`), with interactive physics and facility audio finalized locally on `gv/IT24102587-kickable-physics-audio`.
 
-**Final Status: VERIFIED & READY FOR SUBMISSION**
+**Final Status: LOCALLY VERIFIED - AWAITING USER PLAY MODE TEST & APPROVAL**

@@ -9,6 +9,9 @@ using UnityEngine.SceneManagement;
 using UnityEngine.AI;
 using FacilityBreach.AI.SoundHunter;
 using FacilityBreach.AI.Roles;
+using FacilityBreach.Audio;
+using FacilityBreach.Noise;
+
 
 namespace FacilityBreach
 {
@@ -16,6 +19,7 @@ namespace FacilityBreach
     [DefaultExecutionOrder(-200)]
     public sealed class FacilityBreachRuntime : MonoBehaviour
     {
+        public static FacilityBreachRuntime Instance { get; private set; }
         public MissionRun Run { get; private set; } = new MissionRun();
         public PlayerResources Resources { get; private set; } = new PlayerResources();
         public EnemyRoster Enemies { get; private set; } = new EnemyRoster();
@@ -49,6 +53,14 @@ namespace FacilityBreach
         public FpsMuzzleFlashV2 MuzzleFlash => muzzleFlash;
         private FpsImpactSparks impactSparks;
         public FpsImpactSparks ImpactSparks => impactSparks;
+        private FacilityAudioPlayer audioPlayer;
+        public FacilityAudioPlayer AudioPlayer => audioPlayer;
+        private FacilityAmbiencePlayer ambiencePlayer;
+        public FacilityAmbiencePlayer AmbiencePlayer => ambiencePlayer;
+        private FpsKickController kickController;
+        public FpsKickController KickController => kickController;
+        private FpsFootstepController footstepController;
+        public FpsFootstepController FootstepController => footstepController;
         private float reload, cadence;
         private bool waitForRelease = true, controls;
         private string feedback = "";
@@ -62,6 +74,11 @@ namespace FacilityBreach
             if (!found) throw new System.InvalidOperationException("Facility Breach missing authored anchor: " + objectName);
             return found.transform;
         }
+        private void Awake()
+        {
+            Instance = this;
+        }
+
         private void Start()
         {
             view = Camera.main;
@@ -77,10 +94,16 @@ namespace FacilityBreach
             var body = root.AddComponent<CharacterController>(); body.height = 1.8f; body.radius = .3f; body.center = Vector3.up * .9f;
             player = root.AddComponent<TemporaryPlayerAdapter>(); player.View = view;
             root.AddComponent<PlayerDamageAdapter>().Runtime = this;
+            kickController = root.AddComponent<FpsKickController>(); kickController.Initialize(this, view);
+            footstepController = root.AddComponent<FpsFootstepController>(); footstepController.Initialize(this, body, player);
             view.transform.SetParent(root.transform); view.transform.localPosition = Vector3.up * 1.6f; view.transform.localRotation = Quaternion.identity;
             var muzzleObject = new GameObject("FB_Muzzle_VisualPending"); muzzleObject.transform.SetParent(view.transform);
             muzzleObject.transform.localPosition = new Vector3(.2f, -.15f, .45f); muzzle = muzzleObject.transform;
             UpdateWeaponVisual();
+            if (!audioPlayer) audioPlayer = GetComponent<FacilityAudioPlayer>();
+            if (!audioPlayer) audioPlayer = gameObject.AddComponent<FacilityAudioPlayer>();
+            if (!ambiencePlayer) ambiencePlayer = GetComponent<FacilityAmbiencePlayer>();
+            if (!ambiencePlayer) ambiencePlayer = gameObject.AddComponent<FacilityAmbiencePlayer>();
             dispatcher = gameObject.AddComponent<FacilityInteractionDispatcher>();
             dispatcher.Initialize(this, view, player.transform);
             foreach (var door in FindObjectsByType<InteractiveDoor>(FindObjectsSortMode.None))
@@ -103,6 +126,8 @@ namespace FacilityBreach
                 mb.ConfigurePhysics();
                 dispatcher.RegisterBarricade(mb);
             }
+            FacilityKickablePropsSetup.EnsurePropsSpawned(transform);
+            FacilityKickablePropsSetup.ConvertExistingSceneProps();
             // The committed scene lacks the waste root despite shipping its generator.
             // Add only an obstacle here; never call the destructive world generators.
             Vector3 waste = new Vector3(-2, 0, 20);
@@ -245,7 +270,7 @@ namespace FacilityBreach
             if (!player.InputEnabled)
             {
                 waitForRelease = true; target = null;
-                if (!Run.Running) { reload = 0; Time.timeScale = 0; Cursor.lockState = CursorLockMode.None; Cursor.visible = true; }
+                if (!Run.Running) { reload = 0; Time.timeScale = 0; Cursor.lockState = CursorLockMode.None; Cursor.visible = true; if (ambiencePlayer) ambiencePlayer.Pause(); }
                 return;
             }
             float dt = Time.deltaTime; Run.Tick(dt); GameplayTime += dt; Enemies.Tick(GameplayTime);
@@ -357,6 +382,9 @@ namespace FacilityBreach
                 if (bulletTracer) bulletTracer.SpawnTracer(muzzle, aim, false);
             }
             if (muzzleFlash) muzzleFlash.TriggerFlash(muzzle);
+            if (audioPlayer) audioPlayer.PlayGunshot(Resources.Equipped);
+            else FacilityAudioPlayer.Instance.PlayGunshot(Resources.Equipped);
+            FacilityNoiseHub.Emit(player.transform.position, 35f, FacilityNoiseType.Gunshot, player.gameObject);
             SoundEventBus.Emit(player.transform.position, 40, SoundCategory.Gunshot, player.GetEntityId().GetHashCode());
             return true;
         }
@@ -377,8 +405,9 @@ namespace FacilityBreach
             var body = obj.AddComponent<Rigidbody>(); body.linearVelocity = view.transform.forward * 8 + Vector3.up * 2;
             Physics.IgnoreCollision(obj.GetComponent<Collider>(), player.GetComponent<Collider>());
             obj.AddComponent<CanImpact>();
+            FacilityAudioPlayer.Instance.PlayProjectileLaunch(view.transform.position);
         }
-        private void Say(string message) { feedback = message; feedbackTime = 2; }
+        public void Say(string message) { feedback = message; feedbackTime = 2; }
         public void CancelEnemyAttacks()
         { foreach (var enemy in GetComponentsInChildren<EnemyCombatAdapter>()) enemy.CancelPendingAttack(); }
         public void SetPause(bool paused)
@@ -389,17 +418,39 @@ namespace FacilityBreach
             Time.timeScale = Run.Running && !paused ? 1 : 0;
             Cursor.lockState = Run.Running && !paused ? CursorLockMode.Locked : CursorLockMode.None;
             Cursor.visible = Cursor.lockState != CursorLockMode.Locked;
+            if (ambiencePlayer)
+            {
+                if (paused) ambiencePlayer.Pause();
+                else if (Run.Running) ambiencePlayer.Resume();
+            }
+            if (footstepController && paused)
+            {
+                footstepController.OnGameplayPaused();
+            }
         }
         private void OnApplicationFocus(bool focus) { if (!focus && Run.Running) SetPause(true); }
-        public void StartMission() { Run.Start(); SetPause(false); }
+        public void StartMission()
+        {
+            Run.Start();
+            SetPause(false);
+            if (ambiencePlayer) ambiencePlayer.Play();
+        }
         public void Restart() { Time.timeScale = 1; SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex); }
-        private void OnDestroy() { if (navigationInstance.valid) navigationInstance.Remove(); Time.timeScale = 1; foreach (var material in ownedMaterials) if (material) Destroy(material); }
+        private void OnDestroy()
+        {
+            if (Instance == this) Instance = null;
+            if (navigationInstance.valid) navigationInstance.Remove();
+            Time.timeScale = 1;
+            foreach (var material in ownedMaterials) if (material) Destroy(material);
+            if (ambiencePlayer) ambiencePlayer.Stop(true);
+        }
         private void OnGUI()
         {
             if (!player) return;
             GUI.Box(new Rect(15, 15, 355, 130), $"FACILITY BREACH\nHP {Resources.Health}/100\nAmmo{Resources.Equipped + 1}gun   {Resources.Magazine}/{Resources.Reserve}\n{(reload > 0 ? "RELOADING" : "")}\nCARD: {(Run.HasCard ? "ACQUIRED" : "MISSING")}");
             string objective = Run.State == MissionState.Escape ? "DEVICE DEACTIVATED — reach the exit" : Run.State == MissionState.Deactivating ? $"Deactivating: {5 - Run.ShutdownRemaining:F1}/5 seconds" : !Run.HasCard ? "Find the access card near toxic waste" : player.transform.position.x > 10 && player.transform.position.z > 12 && player.transform.position.z < 24 ? "Connect the card to deactivate the device" : "Use the card to enter Machinery";
             string prompt = feedbackTime > 0 ? feedback : (dispatcher != null ? dispatcher.GetContextualPrompt(target) : target ? target.Prompt : "");
+            if (string.IsNullOrEmpty(prompt) && kickController != null && kickController.HasKickableTarget(out var propName)) prompt = "F: Kick " + propName;
             GUI.Box(new Rect(15, Screen.height - 65, 570, 50), objective + "\n" + prompt);
             if (Run.State == MissionState.Deactivating)
             {
