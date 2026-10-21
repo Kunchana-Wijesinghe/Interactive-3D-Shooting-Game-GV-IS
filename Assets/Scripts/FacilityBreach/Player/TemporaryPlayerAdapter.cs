@@ -8,7 +8,7 @@ namespace FacilityBreach.Player
     {
         public Camera View;
         public bool InputEnabled;
-        public float WalkSpeed = 4, SprintSpeed = 6, Sensitivity = 2;
+        public float WalkSpeed = 4, SprintSpeed = 6, Sensitivity = 2, JumpSpeed = 4.5f; // jump apex about 1 m
         private CharacterController body;
         private float pitch, vertical;
         private bool releaseInputs = true;
@@ -26,7 +26,8 @@ namespace FacilityBreach.Player
             pitch = Mathf.Clamp(pitch - Input.GetAxis("Mouse Y") * Sensitivity, -80, 80);
             View.transform.localRotation = Quaternion.Euler(pitch, 0, 0);
             Vector3 move = Vector3.ClampMagnitude(transform.right * Input.GetAxisRaw("Horizontal") + transform.forward * Input.GetAxisRaw("Vertical"), 1);
-            vertical = body.isGrounded ? -2 : vertical + Physics.gravity.y * Time.deltaTime;
+            if (body.isGrounded) vertical = Input.GetKeyDown(KeyCode.Space) ? JumpSpeed : -2;
+            else vertical += Physics.gravity.y * Time.deltaTime;
             body.Move((move * (Input.GetKey(KeyCode.LeftShift) ? SprintSpeed : WalkSpeed) + Vector3.up * vertical) * Time.deltaTime);
         }
         private void OnControllerColliderHit(ControllerColliderHit hit)
