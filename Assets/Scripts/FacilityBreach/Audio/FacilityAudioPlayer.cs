@@ -243,9 +243,9 @@ namespace FacilityBreach.Audio
         }
 
         /// <summary>
-        /// Plays repeating high-volume emergency alarm audio throughout the facility during countdown alerts.
+        /// Plays repeating calibrated emergency alarm audio throughout the facility during countdown alerts.
         /// </summary>
-        public void StartEmergencyAlarm(AudioClip customClip = null, float volumeScale = 1.0f)
+        public void StartEmergencyAlarm(AudioClip customClip = null, float volumeScale = 0.50f)
         {
             InitializePool();
             if (emergencySirenSource == null) return;
