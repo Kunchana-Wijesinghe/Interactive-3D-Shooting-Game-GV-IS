@@ -1134,3 +1134,93 @@ To provide robust, zero-dependency audio feedback without missing asset GUIDs, b
   - Kickable physics and audio checks: 524/524 passed across 31 comprehensive test methods in KickablePhysicsAudioTests.cs.
   - Master Regression Total: 898/898 automated checks (374 baseline + 524 kickable physics & audio, 100% green batch verification across all 11 suites with ExitCode 0).
   - Historical evidence: 28 high-resolution screenshots preserved intact.
+
+---
+
+## 15. Facility Structural Height Upgrade (5.0m), Wall Sconces & Up/Down Lighting System
+
+### 15.1 Architectural Height Calibration (5.0m Concrete Walls & Beams)
+- **Problem Formulation**: The baseline facility possessed 3.0m ceiling clearances, which constrained third-person diagnostics, restricted vertical grenade/distraction trajectories, and produced cramped claustrophobic camera frustums during tactical sprints and vaulting.
+- **Architectural Modification ([FacilityGenerator.cs](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/Editor/FacilityGenerator.cs), [FacilityRoof.cs](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/Editor/FacilityRoof.cs))**:
+  - Elevated all interior facility concrete walls, partition barriers, and external security perimeter walls from $3.0\text{m}$ to $5.0\text{m}$ height ($Y_{\text{center}} = 2.5\text{m}$, $\text{scale}_Y = 5.0\text{m}$).
+  - Repositioned structural cross-beams and ceiling truss geometry at $Y = 4.95\text{m}$ to maintain clean architectural joins without z-fighting.
+  - Raised roof slab geometry to $Y = 5.05\text{m}$, preserving all NavMesh exclusion contracts (roof and beams omit physics colliders so NavMesh surfaces remain clean and unobstructed).
+
+### 15.2 Industrial Wall Sconce Lighting Architecture ([FacilityWallSconces.cs](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/Environment/FacilityWallSconces.cs))
+- **Fixture Design**: Authored procedural industrial wall sconce fixtures placed along perimeter corridors and room partitions. Each sconce features a matte dark gunmetal housing with upper and lower emissive light slits.
+- **Up/Down Dual Directional Spotlight Beacons**:
+  - Each sconce houses two synchronized point/spot illumination sources: an upward wall-wash light cone ($45^\circ$, $4.5\text{m}$ range) and a downward floor-wash light cone ($55^\circ$, $5.5\text{m}$ range).
+  - Warm tactical industrial amber color grading ($\text{RGB} = [1.0, 0.78, 0.45]$) providing high-fidelity ambient bounce lighting and shadow contrast along concrete corridors.
+  - Authored 20 verified fixture anchor positions covering Sector A Corridors, Machinery Approach, Toxic Waste Containment, and Security Airflow Junctions.
+
+---
+
+## 16. Tactical High-Definition UI Engine, Typography & Contrast Architecture
+
+### 16.1 Root-Cause Resolution of Font Blurring & Scaling Distortion
+- **Root-Cause Analysis**: Custom imported fonts (such as static `.otf`/`.ttf` assets like Pricedown or Chalet) bake into fixed-resolution rasterized font texture atlases (e.g. 16px/48px) during Unity asset import. When rendered in IMGUI with Game View scaling (e.g., standard 1.3x zoom or 4K/retina scaling), bilinear texture magnification produces noticeable letter blurring, stroke degradation, and severe glyph crowding at button font sizes (11px–14px).
+- **Dynamic High-DPI Vector Typography Resolution ([FacilityBreachRuntime.cs](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/FacilityBreachRuntime.cs))**:
+  - Switched UI rendering to Unity's native dynamic vector typography engine (`GUI.skin.font`).
+  - Native dynamic font generation renders glyphs on-demand with hardware anti-aliasing and subpixel precision at any resolution and scale factor (1.0x, 1.3x, 2.0x, and 4K displays).
+  - Restored crisp, razor-sharp HUD labels, timer readouts, objective banners, and modal dialog text matching initial baseline clarity.
+
+### 16.2 High-Contrast Button Styling & Pause Menu Ergonomics
+- **Root-Cause Resolution of Dark-on-Dark Button Illegibility**:
+  - In dark Unity editor themes or customized IMGUI skins, secondary buttons previously lacked explicit border geometry and suffered from dark text color fallbacks, rendering buttons like `RESTART` and `MAIN MENU` virtually invisible against dark facility backdrops.
+- **Tactical High-Contrast Button Engine**:
+  - **Bordered Texture Generator (`MakeBorderedTex`)**: Generates custom 9-sliced style button textures featuring a dedicated 1px bright tactical amber border (`Color(0.85f, 0.60f, 0.12f, 0.75f)`) and rich industrial charcoal fill (`Color(0.16f, 0.14f, 0.10f, 0.95f)`).
+  - **Secondary Buttons (`RESTART`, `MAIN MENU`, `VIEW CONTROLS`, `< BRIEFING`)**:
+    - Normal State: Crisp 1px amber border, bright white text (`Color.white`), bold typography.
+    - Hover State: Bright gold border (`Color(1.00f, 0.80f, 0.25f)`), warm amber text (`Color(1.00f, 0.82f, 0.25f)`), highlighted fill.
+    - Active & Focused States: Explicitly locked to `Color.white` to prevent skin color override.
+  - **Primary Buttons (`START MISSION`, `RESUME MISSION`, `REPLAY MISSION`)**:
+    - Normal State: Solid tactical amber fill (`Color(0.85f, 0.55f, 0.08f)`), bright white bold text.
+    - Hover State: Luminous amber-gold fill (`Color(1.00f, 0.70f, 0.15f)`), contrasting dark charcoal text (`Color(0.08f, 0.05f, 0.02f)`).
+  - **Mission Briefing Formatting**: Structured objective cards with bold bracket tags (`[OBJECTIVE]`, `[TARGET]`, `[TIME LIMIT]`, `[ENGAGEMENT]`) and centered warning alert strip (`ALERT: Hostile patrols active...`) with dedicated margins preventing text overflow or clipping.
+
+---
+
+## 17. Facility Meltdown Emergency Alert & 30-Second High-Gain Looping Klaxon Audio System
+
+### 17.1 System Overview & Architecture
+The Facility Meltdown Emergency Alert System provides an intense, multi-sensory countdown climax during the final phase of a mission run. When the countdown timer approaches zero, the facility transitions from standard security patrol mode to an escalating catastrophic emergency state.
+
+```mermaid
+graph TD
+    Timer["Mission Run Timer<br/>(Run.Remaining)"] --> Check60{"Remaining <= 60s?"}
+    Check60 -- Yes --> RedStrobe["Emergency Lighting Controller<br/>- Red Flashing Strobe (2.5 Hz)<br/>- Ambient Red Pulsing<br/>- HUD Meltdown Warning"]
+    Check60 -- No --> NormalState["Normal Facility State"]
+
+    Timer --> Check30{"Remaining <= 30s?"}
+    Check30 -- Yes --> KlaxonTrigger["Emergency Alarm Trigger<br/>- soundAlertTriggered = true<br/>- AudioPlayer.StartEmergencyAlarm()"]
+    Check30 -- No --> SilentAlarm["Klaxon Idle"]
+
+    KlaxonTrigger --> AudioPlayer["FacilityAudioPlayer<br/>- emergencySirenSource<br/>- Loop = true<br/>- Gain Boosted = 1.0f<br/>- 2D Full Facility Coverage"]
+
+    EscKey["Player Presses ESC / Pauses"] --> PauseSync["FacilityBreachRuntime.SetPause(true)"]
+    PauseSync --> AlertPause["AlertController.PauseSiren(true)<br/>- AudioSource Paused Immediately"]
+    ResumeKey["Player Resumes Mission"] --> AlertResume["AlertController.PauseSiren(false)<br/>- AudioSource Resumed Seamlessly"]
+```
+
+### 17.2 Emergency Lighting & Visual Strobe ([FacilityEmergencyAlertController.cs](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/Core/FacilityEmergencyAlertController.cs))
+- **Trigger Threshold**: Activates when `Run.Remaining <= 60.0f` during an active running mission.
+- **Dynamic Red Strobe**: Synchronizes facility emergency red lights with sinusoidal oscillation ($\sin(2\pi \cdot 2.5 \cdot t)$), driving intensity between $0.2\times$ and $2.8\times$.
+- **Camera Trauma & Environmental Shake**: Subtle Perlin camera trauma ($\text{trauma} = 0.18$) applied to the player camera pivot, evoking imminent structural collapse without inducing motion sickness.
+- **HUD Alarm Indication**: HUD timer banner pulses red at 3.0 Hz with a glowing `MELTDOWN WARNING` status badge.
+
+### 17.3 30-Second High-Gain Repeating Klaxon Alarm Audio Pipeline
+- **Asset Provenance & Specification**:
+  - **Source Clip**: Provided by user (`uploaded_media_1795428625921.mp3`, 17,280 bytes, authentic tactical alarm / klaxon buzzer burst).
+  - **Asset Location**: Placed at both `Assets/Resources/Audio/Emergency/facility_emergency_alarm.mp3` and `Assets/Audio/Emergency/facility_emergency_alarm.mp3`.
+  - **Import Configuration (`.meta`)**: Configured with `3D: 0` (2D non-spatialized for crisp facility-wide emergency broadcast), `loadType: 0` (DecompressOnLoad for zero-latency instant playback), `preloadAudioData: 1`, and `normalize: 1`.
+- **Audio Pipeline Integration ([FacilityAudioPlayer.cs](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/Audio/FacilityAudioPlayer.cs))**:
+  - **Dedicated AudioSource (`[FacilityEmergencySirenSource]`)**: Dedicated child GameObject attached to `FacilityAudioPlayer`, isolated from standard SFX and footstep sources.
+  - **Seamless Repeating Loop**: Configured with `loop = true`, repeating the 1.5-second emergency klaxon burst continuously throughout the final 30 seconds of the mission.
+  - **Gain Amplification**: Configured with target volume $1.0f$ (`sirenVolumeTarget = 1.0f`), providing maximum clean audible punch across laptop and external speakers without distortion or clipping.
+  - **Full 2D Broadcast**: `spatialBlend = 0.0` ensures the siren remains equally loud throughout all corridors, machinery rooms, and airlocks.
+- **Strict Lifecycle & Pause Synchronization**:
+  - **Pause Integration**: Controlled via `SetEmergencyAlarmPause(bool paused)`. When the player pauses the game or opens the menu, `FacilityBreachRuntime.SetPause` immediately halts the siren so loud alarm audio does not blast while reading controls or settings.
+  - **Deactivation**: Stops cleanly upon mission victory (`Run.State == Won`), mission loss (`Run.State == Lost`), or mission restart (`Restart()`).
+- **Automated Unit Test Verification ([FacilityEmergencyAlertTests.cs](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Editor/FacilityBreach/FacilityEmergencyAlertTests.cs))**:
+  - `AudioPlayer_EmergencyAlarmPlaybackAndPauseLifecycle`: Verifies initialization, 1.0f volume assignment, pause/unpause state consistency, and clean stop.
+  - `AlertController_EmergencyAlarm30sThresholdAndVolumeTarget`: Verifies `SoundAlertRemainingSeconds == 30f` and `LightAlertRemainingSeconds == 60f`.
