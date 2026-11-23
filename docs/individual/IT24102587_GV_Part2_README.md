@@ -1192,7 +1192,7 @@ graph TD
     Check60 -- No --> NormalState["Normal Facility State"]
 
     Timer --> Check30{"Remaining <= 30s & > 10s?"}
-    Check30 -- Yes --> KlaxonInterval["Staggered Alarm Bursts<br/>- Plays single klaxon burst (~1.5s)<br/>- 4-Second Silence Interval<br/>- Repeats until last 10 seconds"]
+    Check30 -- Yes --> KlaxonInterval["Staggered Alarm Bursts<br/>- Plays single klaxon burst (~1.5s)<br/>- 2-Second Silence Interval<br/>- Repeats until last 10 seconds"]
 
     Timer --> Check10{"Remaining <= 10s & > 0s?"}
     Check10 -- Yes --> KlaxonContinuous["Continuous Meltdown Klaxon<br/>- Repeating seamless loop<br/>- Pitch escalates towards 1.15x<br/>- Rapid Red Strobe"]
@@ -1222,7 +1222,7 @@ graph TD
 - **Dynamic Countdown Cadence**:
   1. **Final 30s to 10s Window ($30\text{s} \ge \text{Remaining} > 10\text{s}$)**:
      - Non-looping single burst playback (`sirenSource.loop = false`).
-     - Enforces a strict 4.0-second silence interval between successive alarm bursts (`nextSirenPlayTime = Time.time + clipDuration + 4.0f`), creating an authentic military warning pulse.
+     - Enforces a strict 2.0-second silence interval between successive alarm bursts (`nextSirenPlayTime = Time.time + clipDuration + 2.0f`), creating a rhythmic military warning pulse.
   2. **Final 10 Seconds Climax ($10\text{s} \ge \text{Remaining} > 0\text{s}$)**:
      - Shifts dynamically into seamless continuous looping (`sirenSource.loop = true`), building urgency as time runs out.
   3. **3-Minute Mission Expiration Cutoff ($\text{Remaining} \le 0\text{s}$)**:
@@ -1232,4 +1232,4 @@ graph TD
   - **Deactivation**: Stops cleanly upon mission victory (`Run.State == Won`), mission loss (`Run.State == Lost`), or mission restart (`Restart()`).
 - **Automated Unit Test Verification ([FacilityEmergencyAlertTests.cs](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Editor/FacilityBreach/FacilityEmergencyAlertTests.cs))**:
   - `AudioPlayer_EmergencyAlarmPlaybackAndPauseLifecycle`: Verifies initialization, 0.50f volume assignment, pause/unpause state consistency, and clean stop.
-  - `AlertController_EmergencyAlarm30sThresholdAndVolumeTarget`: Verifies `SoundAlertRemainingSeconds == 30f`, `LightAlertRemainingSeconds == 60f`, and `ClimaxRemainingSeconds == 10f`.
+  - `AlertController_EmergencyAlarm30sThresholdAndVolumeTarget`: Verifies `SoundAlertRemainingSeconds == 30f`, `LightAlertRemainingSeconds == 60f`, `ClimaxRemainingSeconds == 10f`, and `SirenStaggerIntervalSeconds == 2.0f`.
