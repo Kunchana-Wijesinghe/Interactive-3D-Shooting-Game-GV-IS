@@ -28,6 +28,9 @@ namespace FacilityBreach.Core
         [Tooltip("Remaining seconds when meltdown urgency reaches climax (Default: 10s).")]
         [SerializeField] private float climaxRemainingSeconds = 10f;
 
+        [Tooltip("Silence gap between alarm bursts before the final 10 seconds (Default: 2s).")]
+        [SerializeField] private float sirenStaggerIntervalSeconds = 2.0f;
+
         [Header("Custom Audio Hook")]
         [Tooltip("Assign your chosen alarm sound file (.wav/.mp3) here. If unassigned, audio remains safely muted until your sound is ready.")]
         [SerializeField] private AudioClip customAlarmClip;
@@ -72,6 +75,7 @@ namespace FacilityBreach.Core
         public float LightAlertRemainingSeconds => lightAlertRemainingSeconds;
         public float SoundAlertRemainingSeconds => soundAlertRemainingSeconds;
         public float ClimaxRemainingSeconds => climaxRemainingSeconds;
+        public float SirenStaggerIntervalSeconds => sirenStaggerIntervalSeconds;
 
         private FacilityBreachRuntime runtime;
         private AudioSource sirenSource;
@@ -300,7 +304,7 @@ namespace FacilityBreach.Core
                     sirenSource.Play();
                 }
             }
-            // Between 30s and 10s: Play once, then 4s interval before next play
+            // Between 30s and 10s: Play once, then 2s interval before next play
             else
             {
                 sirenSource.loop = false;
@@ -308,7 +312,7 @@ namespace FacilityBreach.Core
                 {
                     sirenSource.Play();
                     float clipDuration = sirenSource.clip != null ? sirenSource.clip.length : 1.5f;
-                    nextSirenPlayTime = Time.time + clipDuration + 4.0f; // 4 second interval after play
+                    nextSirenPlayTime = Time.time + clipDuration + sirenStaggerIntervalSeconds; // 2 second interval after play
                 }
             }
         }
