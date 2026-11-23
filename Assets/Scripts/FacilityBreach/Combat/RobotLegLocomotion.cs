@@ -9,8 +9,9 @@ namespace FacilityBreach.Combat
     /// <summary>
     /// Procedural leg locomotion system for robot enemies (Flanker, Sound Hunter, Patrol Guard, Cover Defender).
     /// Drives leg bones (Lleg, Rleg) with velocity-synchronized alternating pitch cycles to eliminate foot sliding,
-    /// smooth idle recovery, in-place turn shuffling, subtle torso bobbing, and clean defeat reset.
-    /// Operates purely on visual presentation transforms without interfering with authoritative AI or navigation.
+    /// smooth idle recovery, in-place turn shuffling, and clean defeat reset.
+    /// Operates exclusively on leg bone transforms (Lleg, Rleg) so the torso, head, and arms remain 100% stable and visible.
+    /// Configures all SkinnedMeshRenderers with updateWhenOffscreen=true to prevent unintended frustum-culling during movement.
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class RobotLegLocomotion : MonoBehaviour
@@ -31,26 +32,17 @@ namespace FacilityBreach.Combat
         [Tooltip("How quickly legs blend back to neutral standing pose when stopping.")]
         [SerializeField] private float stopDampingSpeed = 8f;
 
-        [Tooltip("Subtle vertical torso/hip bobbing amplitude in meters.")]
-        [SerializeField] private float torsoBobAmount = 0.025f;
-
-        [Tooltip("Subtle lateral torso sway angle in degrees.")]
-        [SerializeField] private float torsoSwayAngle = 1.5f;
-
         [Tooltip("Leg swing angle (degrees) during in-place turning.")]
         [SerializeField] private float turnShuffleSwingAngle = 10f;
 
-        // Bone references
+        // Bone references: ONLY legitimate leg pivots are driven
         private Transform leftLegBone;
         private Transform rightLegBone;
-        private Transform torsoBone;
         private Transform modelVisual;
 
         // Resting poses
         private Quaternion leftLegRestRot = Quaternion.Euler(180f, 0f, 0f);
         private Quaternion rightLegRestRot = Quaternion.Euler(180f, 0f, 0f);
-        private Vector3 torsoRestPos = Vector3.zero;
-        private Quaternion torsoRestRot = Quaternion.identity;
 
         // Subsystems
         private EnemyCombatAdapter combat;
@@ -97,6 +89,7 @@ namespace FacilityBreach.Combat
 
         /// <summary>
         /// Discovers and caches bone transforms from the ModelVisual hierarchy.
+        /// Also configures all SkinnedMeshRenderers with updateWhenOffscreen=true to prevent camera culling.
         /// Can be safely invoked externally or multiple times.
         /// </summary>
         public bool InitializeBones()
@@ -122,12 +115,12 @@ namespace FacilityBreach.Combat
                     rightLegBone = t;
                     rightLegRestRot = t.localRotation;
                 }
-                else if (nameLower == "torso")
-                {
-                    torsoBone = t;
-                    torsoRestPos = t.localPosition;
-                    torsoRestRot = t.localRotation;
-                }
+            }
+
+            // Ensure all SkinnedMeshRenderers remain visible during animation and locomotion without frustum culling
+            foreach (var smr in searchRoot.GetComponentsInChildren<SkinnedMeshRenderer>(true))
+            {
+                smr.updateWhenOffscreen = true;
             }
 
             initialized = leftLegBone != null && rightLegBone != null;
@@ -147,8 +140,6 @@ namespace FacilityBreach.Combat
                     maxWalkSwingAngle = 26f;
                     maxRunSwingAngle = 34f;
                     runSpeedThreshold = 3.0f;
-                    torsoBobAmount = 0.022f;
-                    torsoSwayAngle = 1.8f;
                     break;
 
                 case "SH-01": // Sound Hunter: predatory stalker, long calculated strides
@@ -156,8 +147,6 @@ namespace FacilityBreach.Combat
                     maxWalkSwingAngle = 24f;
                     maxRunSwingAngle = 32f;
                     runSpeedThreshold = 3.2f;
-                    torsoBobAmount = 0.026f;
-                    torsoSwayAngle = 1.4f;
                     break;
 
                 case "PG-01": // Patrol Guard: disciplined steady military march
@@ -165,8 +154,6 @@ namespace FacilityBreach.Combat
                     maxWalkSwingAngle = 24f;
                     maxRunSwingAngle = 30f;
                     runSpeedThreshold = 3.2f;
-                    torsoBobAmount = 0.024f;
-                    torsoSwayAngle = 1.2f;
                     break;
 
                 case "CD-03": // Cover Defender: heavy armor, sturdy grounded steps
@@ -174,8 +161,6 @@ namespace FacilityBreach.Combat
                     maxWalkSwingAngle = 22f;
                     maxRunSwingAngle = 28f;
                     runSpeedThreshold = 2.8f;
-                    torsoBobAmount = 0.032f;
-                    torsoSwayAngle = 1.6f;
                     break;
             }
         }
@@ -184,7 +169,7 @@ namespace FacilityBreach.Combat
         {
             if (!initialized && !InitializeBones()) return;
 
-            // Handle death state: instantly restore neutral leg and torso pose so defeat presentation tilts cleanly
+            // Handle death state: instantly restore neutral leg pose so defeat presentation tilts cleanly
             if (IsDead)
             {
                 ResetToRestPose();
@@ -214,6 +199,7 @@ namespace FacilityBreach.Combat
 
         /// <summary>
         /// Explicit simulation step for deterministic locomotion calculation and testing.
+        /// Animates ONLY Lleg and Rleg bones. Upper body, torso, and head transforms are never modified.
         /// </summary>
         public void SimulateStep(float dt, Vector3 worldPos, float currentYaw, float moverSpeed = 0f)
         {
@@ -267,7 +253,7 @@ namespace FacilityBreach.Combat
                 turnPhase = (turnPhase + turnPhaseDelta) % (2f * Mathf.PI);
             }
 
-            // Compute leg pitch angles
+            // Compute leg pitch angles:
             // Model orientation audit established:
             // Negative pitch around local X swings leg FORWARD (+Z)
             // Positive pitch around local X swings leg BACKWARD (-Z)
@@ -284,35 +270,19 @@ namespace FacilityBreach.Combat
             LeftLegPitch = -totalSwing;
             RightLegPitch = +totalSwing;
 
-            // Apply bone rotations relative to rest pose
+            // Apply bone rotations relative to rest pose strictly to leg bones
             if (leftLegBone != null) leftLegBone.localRotation = leftLegRestRot * Quaternion.Euler(LeftLegPitch, 0f, 0f);
             if (rightLegBone != null) rightLegBone.localRotation = rightLegRestRot * Quaternion.Euler(RightLegPitch, 0f, 0f);
-
-            // Apply subtle mechanical torso bob and sway if torso bone exists
-            if (torsoBone != null)
-            {
-                // Vertical bob: dips twice per cycle (at left/right foot plant)
-                float bob = -Mathf.Abs(Mathf.Sin(stridePhase)) * torsoBobAmount * movementWeight;
-                torsoBone.localPosition = torsoRestPos + new Vector3(0f, bob, 0f);
-
-                // Lateral sway: subtle roll tilting towards stance leg
-                float sway = Mathf.Cos(stridePhase) * torsoSwayAngle * movementWeight;
-                torsoBone.localRotation = torsoRestRot * Quaternion.Euler(0f, 0f, sway);
-            }
         }
 
         /// <summary>
-        /// Resets all driven bones to their neutral resting poses.
+        /// Resets all driven leg bones to their neutral resting poses.
         /// </summary>
         public void ResetToRestPose()
         {
             if (leftLegBone != null) leftLegBone.localRotation = leftLegRestRot;
             if (rightLegBone != null) rightLegBone.localRotation = rightLegRestRot;
-            if (torsoBone != null)
-            {
-                torsoBone.localPosition = torsoRestPos;
-                torsoBone.localRotation = torsoRestRot;
-            }
+
             LeftLegPitch = 0f;
             RightLegPitch = 0f;
             CurrentSpeed = 0f;
