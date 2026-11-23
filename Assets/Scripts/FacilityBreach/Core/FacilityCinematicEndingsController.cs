@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using FacilityBreach.Audio;
-using FacilityBreach.Physics;
+using FacilityBreach;
 
 namespace FacilityBreach.Core
 {
