@@ -38,6 +38,7 @@ namespace FacilityBreach.EditorTests
             RunTest("ExtractionLockdown_TriggerAndStatusTransition", Test_ExtractionLockdown_TriggerAndStatusTransition);
             RunTest("ResetSequence_RestoresCameraAndFlags", Test_ResetSequence_RestoresCameraAndFlags);
             RunTest("ToxicBarrelMeltdown_SmokeVentingThresholdAndDetonationLifecycle", Test_ToxicBarrelMeltdown_SmokeVentingThresholdAndDetonationLifecycle);
+            RunTest("ProceduralSmokePuffTexture_ValidAlphaGradient", Test_ProceduralSmokePuffTexture_ValidAlphaGradient);
             RunTest("AudioPlayer_EndingHelperMethodsSafeExecution", Test_AudioPlayer_EndingHelperMethodsSafeExecution);
 
             string summary = $"<color={(failedCount == 0 ? "green" : "red")}>=== CINEMATIC ENDINGS TESTS COMPLETE: {passedCount} PASSED, {failedCount} FAILED ===</color>";
@@ -328,6 +329,45 @@ namespace FacilityBreach.EditorTests
             finally
             {
                 UnityEngine.Object.DestroyImmediate(root);
+            }
+        }
+
+        private static void Test_ProceduralSmokePuffTexture_ValidAlphaGradient()
+        {
+            Texture2D tex = FacilityBreach.Environment.FacilityToxicBarrelMeltdownVfx.GetOrCreateSmokePuffTexture();
+            Assert(tex != null, "Smoke puff texture must not be null");
+            Assert(tex.width == 256 && tex.height == 256, $"Smoke puff texture dimensions must be 256x256, got {tex.width}x{tex.height}");
+            Assert(tex.wrapMode == TextureWrapMode.Clamp, "Texture wrap mode must be Clamp");
+
+            Color centerPixel = tex.GetPixel(128, 128);
+            Assert(centerPixel.a > 0.4f, $"Center pixel alpha should be prominent (>0.4f), got {centerPixel.a}");
+
+            Color cornerPixel = tex.GetPixel(0, 0);
+            Assert(cornerPixel.a == 0.0f, $"Corner pixel alpha must be 0.0f (no square quad clipping), got {cornerPixel.a}");
+
+            Color edgeMidPixel = tex.GetPixel(128, 0);
+            Assert(edgeMidPixel.a == 0.0f, $"Edge pixel alpha at perimeter must be 0.0f, got {edgeMidPixel.a}");
+        }
+
+        [MenuItem("Facility Breach/Preview Toxic Smoke VFX (Toggle)")]
+        public static void TogglePreviewSmokeVfx()
+        {
+            var vfx = UnityEngine.Object.FindAnyObjectByType<FacilityBreach.Environment.FacilityToxicBarrelMeltdownVfx>();
+            if (vfx == null)
+            {
+                Debug.LogWarning("[Facility Breach] No active FacilityToxicBarrelMeltdownVfx in scene! Enter Play Mode or ensure toxic barrels are initialized.");
+                return;
+            }
+
+            if (vfx.IsVentingSmoke)
+            {
+                vfx.ResetVfx();
+                Debug.Log("<color=yellow>[Facility Breach] Toxic Smoke VFX stopped.</color>");
+            }
+            else
+            {
+                vfx.StartSmokeVenting();
+                Debug.Log("<color=green>[Facility Breach] Toxic Smoke VFX preview started! Billowing soft organic plumes active.</color>");
             }
         }
 
