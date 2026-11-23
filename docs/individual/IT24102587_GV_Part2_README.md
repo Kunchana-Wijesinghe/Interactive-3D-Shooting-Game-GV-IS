@@ -1176,6 +1176,14 @@ To provide robust, zero-dependency audio feedback without missing asset GUIDs, b
   - **Primary Buttons (`START MISSION`, `RESUME MISSION`, `REPLAY MISSION`)**:
     - Normal State: Solid rich tactical amber fill (`Color(0.85f, 0.54f, 0.08f, 0.92f)`), 1px gold border, crisp white bold text.
     - Hover State: Luminous golden glow fill (`Color(1.00f, 0.68f, 0.12f, 0.98f)`), bright gold border, contrasting dark charcoal text (`Color(0.06f, 0.04f, 0.02f)`).
+  - **Tactical Electric Cyan & Complementary Contrast Palette Overhaul**:
+    - Replaced the warm amber/gold UI accent palette with **Electric Cyan / Sci-Fi Ice Blue** (`#00E5FF` / `Color(0.00f, 0.88f, 1.00f)`) to solve visual contamination and color bleed against the game world's warm yellow stone wall spotlights.
+    - Employs **Complementary Color Theory**: Electric Cyan sits directly opposite warm amber on the color spectrum, providing 100% complementary contrast and razor-sharp separation from ambient 3D scene lighting.
+    - **Buttons**:
+      - Primary (`START MISSION`): Solid vibrant Electric Cyan fill (`Color(0.00f, 0.72f, 0.90f, 0.95f)`), luminous ice border (`Color(0.70f, 0.98f, 1.00f)`), deep contrasting charcoal text (`Color(0.02f, 0.05f, 0.08f)`).
+      - Secondary (`VIEW CONTROLS`, `< BRIEFING`): Deep cyan-slate fill (`Color(0.04f, 0.10f, 0.14f, 0.92f)`), crisp cyan border (`Color(0.00f, 0.75f, 0.95f, 0.60f)`), bright ice-white text.
+    - **Tags & Highlights**: High-visibility Electric Cyan tags (`<color=#00E5FF><b>[TAG]</b></color>`) across `[OBJECTIVE]`, `[TARGET]`, `[TIME LIMIT]`, `[ENGAGEMENT]`, and operational controls (`[W][A][S][D]`, `[SHIFT]`, `[L-CLICK]`, etc.).
+    - **Emergency Transition**: Non-alert gameplay displays cool Tactical Cyan; upon reaching the final 60s/30s emergency meltdown, the timer and alert systems flash in high-intensity **Warning Red** (`#FF1744`), generating dramatic visual panic.
   - **Mission Briefing Typography & Vertical Line Spacing**:
     - Disaggregated multi-line IMGUI label blocks into discrete, individually calculated label rows with 23px row spacing (`rowH = 23f`) and 20px label heights to completely eliminate line clumping ("eka godee") caused by tight custom font leading.
     - Upgraded body typography from 12pt to **13pt** (`fontSize = 13`) with full pure white text (`Color.white`) and increased stroke weight for razor-sharp legibility on high-DPI displays.
