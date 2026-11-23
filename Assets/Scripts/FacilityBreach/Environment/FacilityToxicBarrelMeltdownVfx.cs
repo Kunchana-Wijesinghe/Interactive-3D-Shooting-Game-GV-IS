@@ -37,6 +37,97 @@ namespace FacilityBreach.Environment
         private ParticleSystem explosionParticleSystem;
         private AudioSource ventingHissSource;
 
+        private static Texture2D cachedSmokePuffTexture;
+
+        /// <summary>
+        /// Procedurally synthesizes a soft, organic Gaussian-feathered smoke puff texture with
+        /// multi-frequency Perlin noise billowing contours. Eliminates untextured square quad artifacts.
+        /// </summary>
+        public static Texture2D GetOrCreateSmokePuffTexture()
+        {
+            if (cachedSmokePuffTexture != null) return cachedSmokePuffTexture;
+
+            const int size = 128;
+            var tex = new Texture2D(size, size, TextureFormat.RGBA32, false);
+            tex.name = "Procedural_Realistic_SmokePuff_Alpha";
+            tex.wrapMode = TextureWrapMode.Clamp;
+            tex.filterMode = FilterMode.Bilinear;
+
+            float invSize = 1.0f / (size - 1);
+            Color[] pixels = new Color[size * size];
+
+            for (int y = 0; y < size; y++)
+            {
+                float ny = y * invSize;
+                float dy = (ny - 0.5f) * 2.0f; // [-1, 1]
+
+                for (int x = 0; x < size; x++)
+                {
+                    float nx = x * invSize;
+                    float dx = (nx - 0.5f) * 2.0f; // [-1, 1]
+
+                    float dist = Mathf.Sqrt(dx * dx + dy * dy);
+                    float alpha = 0.0f;
+
+                    if (dist < 1.0f)
+                    {
+                        // Gaussian core falloff
+                        float gaussian = Mathf.Exp(-3.2f * dist * dist);
+
+                        // Organic noise octaves to produce billowing smoke puff lobes
+                        float noise1 = Mathf.PerlinNoise(nx * 3.8f + 1.25f, ny * 3.8f + 2.73f);
+                        float noise2 = Mathf.PerlinNoise(nx * 7.6f + 4.19f, ny * 7.6f + 6.31f) * 0.35f;
+                        float organicPuff = gaussian * (0.65f + 0.35f * noise1 + 0.15f * noise2);
+
+                        // Feathered outer boundary fade ensuring 0 alpha at perimeter
+                        float edgeFade = Mathf.SmoothStep(1.0f, 0.0f, dist);
+                        alpha = Mathf.Clamp01(organicPuff * edgeFade);
+                    }
+
+                    // Pure white with modulated alpha for particle shader tinting
+                    pixels[y * size + x] = new Color(1f, 1f, 1f, alpha);
+                }
+            }
+
+            tex.SetPixels(pixels);
+            tex.Apply(false, true);
+            cachedSmokePuffTexture = tex;
+            return cachedSmokePuffTexture;
+        }
+
+        private static Material CreateParticleMaterial(string name, Color baseColor)
+        {
+            Shader shader = Shader.Find("Particles/Standard Unlit")
+                         ?? Shader.Find("Legacy Shaders/Particles/Alpha Blended")
+                         ?? Shader.Find("Mobile/Particles/Alpha Blended")
+                         ?? Shader.Find("Sprites/Default")
+                         ?? Shader.Find("Standard");
+
+            var mat = new Material(shader)
+            {
+                name = name,
+                mainTexture = GetOrCreateSmokePuffTexture(),
+                color = baseColor,
+                renderQueue = 3000
+            };
+
+            // Configure Standard / Unlit particle material keywords for alpha blending
+            if (mat.HasProperty("_Mode"))
+            {
+                mat.SetFloat("_Mode", 2); // 2 = Fade (Alpha Blended)
+            }
+            if (mat.HasProperty("_BlendMode"))
+            {
+                mat.SetFloat("_BlendMode", 0); // 0 = Alpha
+            }
+
+            mat.EnableKeyword("_ALPHABLEND_ON");
+            mat.DisableKeyword("_ALPHAPREMULTIPLY_ON");
+            mat.DisableKeyword("_ALPHAMODULATE_ON");
+
+            return mat;
+        }
+
         private bool isVentingSmoke = false;
         private bool hasDetonated = false;
         private float ventingTimer = 0f;
@@ -88,55 +179,55 @@ namespace FacilityBreach.Environment
             var main = smokeParticleSystem.main;
             main.playOnAwake = false;
             main.loop = true;
-            main.startLifetime = new ParticleSystem.MinMaxCurve(2.8f, 4.2f);
-            main.startSpeed = new ParticleSystem.MinMaxCurve(1.2f, 2.6f);
-            main.startSize = new ParticleSystem.MinMaxCurve(0.6f, 1.3f);
+            main.startLifetime = new ParticleSystem.MinMaxCurve(3.2f, 4.8f);
+            main.startSpeed = new ParticleSystem.MinMaxCurve(1.0f, 2.4f);
+            main.startSize = new ParticleSystem.MinMaxCurve(0.9f, 1.8f);
             main.startRotation = new ParticleSystem.MinMaxCurve(0f, 360f * Mathf.Deg2Rad);
-            main.startColor = new Color(0.18f, 0.22f, 0.16f, 0.78f); // Dark toxic soot/green
+            main.startColor = new Color(0.20f, 0.26f, 0.18f, 0.70f); // Soft toxic soot/olive-gray
             main.simulationSpace = ParticleSystemSimulationSpace.World;
-            main.gravityModifier = -0.18f; // Naturally buoyant, rises upward
+            main.gravityModifier = -0.16f; // Naturally buoyant, rises smoothly
 
             var emission = smokeParticleSystem.emission;
             emission.enabled = true;
-            emission.rateOverTime = 30f;
+            emission.rateOverTime = 32f;
 
             // Wide Cone shape to billow outward in 360-degree radial dispersion
             var shape = smokeParticleSystem.shape;
             shape.enabled = true;
             shape.shapeType = ParticleSystemShapeType.Cone;
-            shape.angle = 38f;
-            shape.radius = 1.9f;
+            shape.angle = 45f;
+            shape.radius = 2.0f;
             shape.radiusThickness = 1.0f;
 
             // Multidirectional dispersion velocity: spreading out across X and Z while rising in Y
             var velocityOverLifetime = smokeParticleSystem.velocityOverLifetime;
             velocityOverLifetime.enabled = true;
             velocityOverLifetime.space = ParticleSystemSimulationSpace.World;
-            velocityOverLifetime.x = new ParticleSystem.MinMaxCurve(-1.6f, 1.6f);
-            velocityOverLifetime.y = new ParticleSystem.MinMaxCurve(0.8f, 2.4f);
-            velocityOverLifetime.z = new ParticleSystem.MinMaxCurve(-1.6f, 1.6f);
+            velocityOverLifetime.x = new ParticleSystem.MinMaxCurve(-1.8f, 1.8f);
+            velocityOverLifetime.y = new ParticleSystem.MinMaxCurve(0.9f, 2.5f);
+            velocityOverLifetime.z = new ParticleSystem.MinMaxCurve(-1.8f, 1.8f);
 
             // Realistic Perlin noise turbulence for swirling eddies and organic smoke curls
             var noise = smokeParticleSystem.noise;
             noise.enabled = true;
-            noise.strength = 0.85f;
-            noise.frequency = 0.45f;
-            noise.scrollSpeed = 0.55f;
+            noise.strength = 0.90f;
+            noise.frequency = 0.40f;
+            noise.scrollSpeed = 0.50f;
             noise.damping = true;
             noise.octaveCount = 2;
 
             // Angular rotation over lifetime to swirl while expanding
             var rotationOverLifetime = smokeParticleSystem.rotationOverLifetime;
             rotationOverLifetime.enabled = true;
-            rotationOverLifetime.z = new ParticleSystem.MinMaxCurve(-45f * Mathf.Deg2Rad, 45f * Mathf.Deg2Rad);
+            rotationOverLifetime.z = new ParticleSystem.MinMaxCurve(-35f * Mathf.Deg2Rad, 35f * Mathf.Deg2Rad);
 
-            // Size expansion curve: starts compact at barrel vent (0.6x), expands to 4.5x at full dispersion
+            // Size expansion curve: starts compact at barrel vent (0.7x), expands to 4.8x as it dissipates
             var sizeOverLifetime = smokeParticleSystem.sizeOverLifetime;
             sizeOverLifetime.enabled = true;
             var curve = new AnimationCurve();
-            curve.AddKey(0.0f, 0.6f);
-            curve.AddKey(0.35f, 2.2f);
-            curve.AddKey(1.0f, 4.5f);
+            curve.AddKey(0.0f, 0.7f);
+            curve.AddKey(0.35f, 2.4f);
+            curve.AddKey(1.0f, 4.8f);
             sizeOverLifetime.size = new ParticleSystem.MinMaxCurve(1.0f, curve);
 
             var colorOverLifetime = smokeParticleSystem.colorOverLifetime;
@@ -144,27 +235,25 @@ namespace FacilityBreach.Environment
             var grad = new Gradient();
             grad.SetKeys(
                 new GradientColorKey[] {
-                    new GradientColorKey(new Color(0.22f, 0.32f, 0.18f), 0.0f),
-                    new GradientColorKey(new Color(0.12f, 0.15f, 0.10f), 0.5f),
-                    new GradientColorKey(new Color(0.06f, 0.06f, 0.06f), 1.0f)
+                    new GradientColorKey(new Color(0.24f, 0.32f, 0.20f), 0.0f),
+                    new GradientColorKey(new Color(0.15f, 0.18f, 0.14f), 0.5f),
+                    new GradientColorKey(new Color(0.08f, 0.09f, 0.08f), 1.0f)
                 },
                 new GradientAlphaKey[] {
-                    new GradientAlphaKey(0.15f, 0.0f),
-                    new GradientAlphaKey(0.85f, 0.20f),
-                    new GradientAlphaKey(0.40f, 0.70f),
+                    new GradientAlphaKey(0.0f, 0.0f),
+                    new GradientAlphaKey(0.70f, 0.15f),
+                    new GradientAlphaKey(0.45f, 0.65f),
                     new GradientAlphaKey(0.0f, 1.0f)
                 }
             );
             colorOverLifetime.color = grad;
 
-            // Renderer setup
+            // Renderer setup with soft organic puff material (eliminates square quads)
             var rend = smokeGo.GetComponent<ParticleSystemRenderer>();
-            Shader shader = Shader.Find("Particles/Standard Unlit")
-                         ?? Shader.Find("Sprites/Default")
-                         ?? Shader.Find("Standard");
-            var mat = new Material(shader);
-            mat.color = new Color(0.22f, 0.32f, 0.18f, 0.75f);
-            rend.material = mat;
+            rend.renderMode = ParticleSystemRenderMode.Billboard;
+            rend.alignment = ParticleSystemRenderSpace.View;
+            rend.sortMode = ParticleSystemSortMode.Distance;
+            rend.material = CreateParticleMaterial("Mat_ToxicSmoke_SoftPuff", new Color(0.22f, 0.30f, 0.19f, 0.70f));
 
             smokeParticleSystem.Stop();
         }
@@ -203,12 +292,10 @@ namespace FacilityBreach.Environment
             shape.radius = 1.5f;
 
             var rend = expGo.GetComponent<ParticleSystemRenderer>();
-            Shader shader = Shader.Find("Particles/Standard Unlit")
-                         ?? Shader.Find("Sprites/Default")
-                         ?? Shader.Find("Standard");
-            var mat = new Material(shader);
-            mat.color = new Color(1.0f, 0.65f, 0.20f, 0.95f);
-            rend.material = mat;
+            rend.renderMode = ParticleSystemRenderMode.Billboard;
+            rend.alignment = ParticleSystemRenderSpace.View;
+            rend.sortMode = ParticleSystemSortMode.Distance;
+            rend.material = CreateParticleMaterial("Mat_MeltdownExplosion_SoftFire", new Color(1.0f, 0.65f, 0.20f, 0.95f));
 
             explosionParticleSystem.Stop();
         }

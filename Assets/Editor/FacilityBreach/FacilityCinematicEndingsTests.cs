@@ -38,6 +38,7 @@ namespace FacilityBreach.EditorTests
             RunTest("ExtractionLockdown_TriggerAndStatusTransition", Test_ExtractionLockdown_TriggerAndStatusTransition);
             RunTest("ResetSequence_RestoresCameraAndFlags", Test_ResetSequence_RestoresCameraAndFlags);
             RunTest("ToxicBarrelMeltdown_SmokeVentingThresholdAndDetonationLifecycle", Test_ToxicBarrelMeltdown_SmokeVentingThresholdAndDetonationLifecycle);
+            RunTest("ProceduralSmokePuffTexture_ValidAlphaGradient", Test_ProceduralSmokePuffTexture_ValidAlphaGradient);
             RunTest("AudioPlayer_EndingHelperMethodsSafeExecution", Test_AudioPlayer_EndingHelperMethodsSafeExecution);
 
             string summary = $"<color={(failedCount == 0 ? "green" : "red")}>=== CINEMATIC ENDINGS TESTS COMPLETE: {passedCount} PASSED, {failedCount} FAILED ===</color>";
@@ -329,6 +330,23 @@ namespace FacilityBreach.EditorTests
             {
                 UnityEngine.Object.DestroyImmediate(root);
             }
+        }
+
+        private static void Test_ProceduralSmokePuffTexture_ValidAlphaGradient()
+        {
+            Texture2D tex = FacilityBreach.Environment.FacilityToxicBarrelMeltdownVfx.GetOrCreateSmokePuffTexture();
+            Assert(tex != null, "Smoke puff texture must not be null");
+            Assert(tex.width == 128 && tex.height == 128, $"Smoke puff texture dimensions must be 128x128, got {tex.width}x{tex.height}");
+            Assert(tex.wrapMode == TextureWrapMode.Clamp, "Texture wrap mode must be Clamp");
+
+            Color centerPixel = tex.GetPixel(64, 64);
+            Assert(centerPixel.a > 0.4f, $"Center pixel alpha should be prominent (>0.4f), got {centerPixel.a}");
+
+            Color cornerPixel = tex.GetPixel(0, 0);
+            Assert(cornerPixel.a == 0.0f, $"Corner pixel alpha must be 0.0f (no square quad clipping), got {cornerPixel.a}");
+
+            Color edgeMidPixel = tex.GetPixel(64, 0);
+            Assert(edgeMidPixel.a == 0.0f, $"Edge pixel alpha at perimeter must be 0.0f, got {edgeMidPixel.a}");
         }
 
         private static void Test_AudioPlayer_EndingHelperMethodsSafeExecution()
