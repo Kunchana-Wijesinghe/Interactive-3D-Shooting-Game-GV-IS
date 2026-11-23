@@ -680,21 +680,24 @@ namespace FacilityBreach
             if (_btnTransparentTex == null)
                 _btnTransparentTex = MakeSolidTex(2, 2, Color.clear);
 
-            // Dynamic High-DPI System Font (zero blur, vector crispness at any scale)
-            Font uiFont = GUI.skin.font;
+            // Real GTA Fonts: Pricedown for Display Titles/Timer/Headers, Chalet-London for clean HUD, Text & Buttons (as in GTA V)
+            Font gtaTitleFont = UnityEngine.Resources.Load<Font>("Fonts/Pricedown");
+            Font gtaBodyFont = UnityEngine.Resources.Load<Font>("Fonts/Chalet-London");
+            if (gtaTitleFont == null) gtaTitleFont = GUI.skin.font;
+            if (gtaBodyFont == null) gtaBodyFont = GUI.skin.font;
 
             _hudTitleStyle = new GUIStyle(GUI.skin.label)
             {
-                font = uiFont,
-                fontSize = 15,
-                fontStyle = FontStyle.Bold,
+                font = gtaTitleFont,
+                fontSize = 17,
+                fontStyle = FontStyle.Normal,
                 alignment = TextAnchor.MiddleLeft
             };
             _hudTitleStyle.normal.textColor = new Color(1.00f, 0.76f, 0.18f, 1f); // Warm Tactical Amber / Gold
 
             _hudLabelStyle = new GUIStyle(GUI.skin.label)
             {
-                font = uiFont,
+                font = gtaBodyFont,
                 fontSize = 12,
                 fontStyle = FontStyle.Normal,
                 alignment = TextAnchor.MiddleLeft
@@ -703,7 +706,7 @@ namespace FacilityBreach
 
             _hudValueStyle = new GUIStyle(GUI.skin.label)
             {
-                font = uiFont,
+                font = gtaBodyFont,
                 fontSize = 13,
                 fontStyle = FontStyle.Bold,
                 alignment = TextAnchor.MiddleRight
@@ -712,7 +715,7 @@ namespace FacilityBreach
 
             _hudBadgeStyle = new GUIStyle(GUI.skin.label)
             {
-                font = uiFont,
+                font = gtaBodyFont,
                 fontSize = 11,
                 fontStyle = FontStyle.Bold,
                 alignment = TextAnchor.MiddleCenter
@@ -720,16 +723,16 @@ namespace FacilityBreach
 
             _briefingHeaderStyle = new GUIStyle(GUI.skin.label)
             {
-                font = uiFont,
-                fontSize = 15,
-                fontStyle = FontStyle.Bold,
+                font = gtaTitleFont,
+                fontSize = 17,
+                fontStyle = FontStyle.Normal,
                 alignment = TextAnchor.MiddleCenter
             };
             _briefingHeaderStyle.normal.textColor = new Color(1.00f, 0.76f, 0.18f, 1f);
 
             _briefingBodyStyle = new GUIStyle(GUI.skin.label)
             {
-                font = uiFont,
+                font = gtaBodyFont,
                 fontSize = 12,
                 wordWrap = false,
                 richText = true,
@@ -739,7 +742,7 @@ namespace FacilityBreach
 
             _briefingAlertStyle = new GUIStyle(GUI.skin.label)
             {
-                font = uiFont,
+                font = gtaBodyFont,
                 fontSize = 11,
                 fontStyle = FontStyle.Bold,
                 alignment = TextAnchor.MiddleLeft
@@ -748,7 +751,7 @@ namespace FacilityBreach
 
             _objectiveStyle = new GUIStyle(GUI.skin.label)
             {
-                font = uiFont,
+                font = gtaBodyFont,
                 fontSize = 13,
                 fontStyle = FontStyle.Bold,
                 alignment = TextAnchor.MiddleLeft
@@ -757,9 +760,9 @@ namespace FacilityBreach
 
             _timerStyle = new GUIStyle(GUI.skin.label)
             {
-                font = uiFont,
-                fontSize = 22,
-                fontStyle = FontStyle.Bold,
+                font = gtaTitleFont,
+                fontSize = 24,
+                fontStyle = FontStyle.Normal,
                 alignment = TextAnchor.MiddleCenter
             };
             _timerStyle.normal.textColor = new Color(1.00f, 0.76f, 0.18f, 1f);
@@ -767,7 +770,7 @@ namespace FacilityBreach
             // Primary Button style with transparent background (rendered with crisp geometry via DrawTacticalButton)
             _btnPrimaryStyle = new GUIStyle(GUI.skin.button)
             {
-                font = uiFont,
+                font = gtaBodyFont,
                 fontSize = 14,
                 fontStyle = FontStyle.Bold,
                 alignment = TextAnchor.MiddleCenter
@@ -780,7 +783,7 @@ namespace FacilityBreach
             // Secondary Button style with transparent background
             _btnSecondaryStyle = new GUIStyle(GUI.skin.button)
             {
-                font = uiFont,
+                font = gtaBodyFont,
                 fontSize = 13,
                 fontStyle = FontStyle.Bold,
                 alignment = TextAnchor.MiddleCenter
@@ -788,6 +791,7 @@ namespace FacilityBreach
             _btnSecondaryStyle.normal.background = _btnTransparentTex;
             _btnSecondaryStyle.hover.background = _btnTransparentTex;
             _btnSecondaryStyle.active.background = _btnTransparentTex;
+            _btnSecondaryStyle.focused.background = _btnTransparentTex;
             _btnSecondaryStyle.focused.background = _btnTransparentTex;
 
             _uiStylesReady = true;
