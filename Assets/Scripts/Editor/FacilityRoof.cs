@@ -35,7 +35,7 @@ public class FacilityRoof : EditorWindow
         // This gives the ceiling more visible structure.
         // =====================================================
 
-        float roofY = 4.25f;
+        float roofY = 5.25f;
         float thickness = 0.30f;
 
         CreateRoofSection(
@@ -96,7 +96,7 @@ public class FacilityRoof : EditorWindow
             new Color(0.08f, 0.09f, 0.10f)
         );
 
-        float beamY = 4.02f;
+        float beamY = 5.02f;
 
         CreateBeam(
             root.transform,
