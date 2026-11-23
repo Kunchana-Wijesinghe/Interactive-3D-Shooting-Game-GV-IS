@@ -83,7 +83,7 @@ namespace FacilityBreach.Core
         private float colorTransitionProgress;
         private float nextExplosionTime;
         private float cameraTrauma;
-        private float sirenVolumeTarget = 0.85f;
+        private float sirenVolumeTarget = 1.0f; // High-volume repeating alarm
         private Vector3 originalCameraLocalPos;
         private Quaternion originalCameraLocalRot;
         private bool cameraTransformCached;
@@ -131,7 +131,12 @@ namespace FacilityBreach.Core
                 sirenSource.loop = true;
                 sirenSource.playOnAwake = false;
                 sirenSource.spatialBlend = 0f; // 2D omnidirectional facility announcement
-                sirenSource.volume = 0f;
+                sirenSource.volume = sirenVolumeTarget;
+
+                if (customAlarmClip == null)
+                {
+                    customAlarmClip = UnityEngine.Resources.Load<AudioClip>("Audio/Emergency/facility_emergency_alarm");
+                }
 
                 if (customAlarmClip != null)
                 {
@@ -207,11 +212,10 @@ namespace FacilityBreach.Core
                 UpdateLighting();
             }
 
-            // Fade in siren audio if sound alert is active and an audio clip is assigned
+            // Maintain maximum punchy volume if sound alert is active
             if (IsSoundAlertActive && sirenSource != null && sirenSource.isPlaying)
             {
-                float targetVol = IsClimaxActive ? 1.0f : sirenVolumeTarget;
-                sirenSource.volume = Mathf.MoveTowards(sirenSource.volume, targetVol, Time.deltaTime * 0.5f);
+                sirenSource.volume = sirenVolumeTarget;
                 if (IsClimaxActive)
                 {
                     sirenSource.pitch = Mathf.MoveTowards(sirenSource.pitch, 1.15f, Time.deltaTime * 0.1f);
@@ -245,11 +249,33 @@ namespace FacilityBreach.Core
             if (IsSoundAlertActive) return;
             IsSoundAlertActive = true;
 
-            if (sirenSource != null && sirenSource.clip != null)
+            if (sirenSource != null)
             {
-                sirenSource.volume = 0f;
-                sirenSource.pitch = 1.0f;
-                sirenSource.Play();
+                if (sirenSource.clip == null && customAlarmClip != null)
+                {
+                    sirenSource.clip = customAlarmClip;
+                }
+                if (sirenSource.clip == null)
+                {
+                    customAlarmClip = UnityEngine.Resources.Load<AudioClip>("Audio/Emergency/facility_emergency_alarm");
+                    sirenSource.clip = customAlarmClip;
+                }
+
+                if (sirenSource.clip != null)
+                {
+                    sirenSource.loop = true;
+                    sirenSource.volume = sirenVolumeTarget;
+                    sirenSource.pitch = 1.0f;
+                    if (!sirenSource.isPlaying)
+                    {
+                        sirenSource.Play();
+                    }
+                }
+            }
+
+            if (FacilityBreach.Audio.FacilityAudioPlayer.Instance != null && !FacilityBreach.Audio.FacilityAudioPlayer.Instance.IsEmergencyAlarmPlaying)
+            {
+                FacilityBreach.Audio.FacilityAudioPlayer.Instance.StartEmergencyAlarm(customAlarmClip, sirenVolumeTarget);
             }
         }
 
@@ -274,8 +300,27 @@ namespace FacilityBreach.Core
                 sirenSource.Stop();
             }
 
+            if (FacilityBreach.Audio.FacilityAudioPlayer.Instance != null)
+            {
+                FacilityBreach.Audio.FacilityAudioPlayer.Instance.StopEmergencyAlarm();
+            }
+
             RestoreNormalLighting();
             cameraTrauma = 0f;
+        }
+
+        public void PauseSiren(bool pause)
+        {
+            if (sirenSource != null)
+            {
+                if (pause && sirenSource.isPlaying) sirenSource.Pause();
+                else if (!pause && IsSoundAlertActive && !sirenSource.isPlaying) sirenSource.UnPause();
+            }
+
+            if (FacilityBreach.Audio.FacilityAudioPlayer.Instance != null)
+            {
+                FacilityBreach.Audio.FacilityAudioPlayer.Instance.SetEmergencyAlarmPause(pause);
+            }
         }
 
         private void UpdateLighting()
