@@ -20,7 +20,9 @@ namespace FacilityBreach.Audio
         FootstepConcrete,
         CrateDestroyed,
         EmergencySirenLoop,
-        ExplosionBlast
+        ExplosionBlast,
+        PlayerDeathVitals,
+        BlastDoorLock
     }
 
     /// <summary>
@@ -68,6 +70,8 @@ namespace FacilityBreach.Audio
                 FacilityAudioClipType.CrateDestroyed    => SynthesizeCrateDestroyed(),
                 FacilityAudioClipType.EmergencySirenLoop=> SynthesizeEmergencySiren(),
                 FacilityAudioClipType.ExplosionBlast    => SynthesizeExplosionBlast(),
+                FacilityAudioClipType.PlayerDeathVitals => SynthesizePlayerDeathVitals(),
+                FacilityAudioClipType.BlastDoorLock     => SynthesizeBlastDoorLock(),
                 _                                       => SynthesizeGunshotAmmo1()
             };
 
@@ -734,6 +738,91 @@ namespace FacilityBreach.Audio
 
             NormalizeSamples(samples, 0.90f);
             AudioClip clip = AudioClip.Create("Procedural_Explosion_Blast", totalSamples, 1, SampleRate, false);
+            clip.SetData(samples, 0);
+            return clip;
+        }
+
+        private static AudioClip SynthesizePlayerDeathVitals()
+        {
+            float duration = 2.8f;
+            int totalSamples = Mathf.CeilToInt(SampleRate * duration);
+            float[] samples = new float[totalSamples];
+
+            // 3 Heartbeat thumps at slowing intervals (t=0.15s, t=0.85s, t=1.85s), followed by soft flatline drone
+            float[] beatTimes = new float[] { 0.15f, 0.85f, 1.85f };
+            float[] beatAmplitudes = new float[] { 0.90f, 0.65f, 0.35f };
+
+            for (int i = 0; i < totalSamples; i++)
+            {
+                float t = (float)i / SampleRate;
+                float sampleVal = 0f;
+
+                // Cardiac thump waveform (sub-55Hz damped acoustic wave)
+                for (int b = 0; b < beatTimes.Length; b++)
+                {
+                    float dt = t - beatTimes[b];
+                    if (dt >= 0f && dt < 0.35f)
+                    {
+                        float env = Mathf.Sin(dt / 0.35f * Mathf.PI) * Mathf.Exp(-7.5f * dt);
+                        sampleVal += Mathf.Sin(2f * Mathf.PI * 55f * dt) * env * beatAmplitudes[b];
+                    }
+                }
+
+                // Soft flatline / vitals monitor tone starting after last heartbeat (t > 2.0s)
+                if (t > 2.0f)
+                {
+                    float flatlineEnv = Mathf.Clamp01((t - 2.0f) / 0.3f) * Mathf.Exp(-1.2f * (t - 2.0f)) * 0.18f;
+                    sampleVal += Mathf.Sin(2f * Mathf.PI * 880f * (t - 2.0f)) * flatlineEnv;
+                }
+
+                samples[i] = sampleVal;
+            }
+
+            NormalizeSamples(samples, 0.85f);
+            AudioClip clip = AudioClip.Create("Procedural_PlayerDeath_Vitals", totalSamples, 1, SampleRate, false);
+            clip.SetData(samples, 0);
+            return clip;
+        }
+
+        private static AudioClip SynthesizeBlastDoorLock()
+        {
+            float duration = 1.8f;
+            int totalSamples = Mathf.CeilToInt(SampleRate * duration);
+            float[] samples = new float[totalSamples];
+            var rng = new System.Random(9402);
+
+            for (int i = 0; i < totalSamples; i++)
+            {
+                float t = (float)i / SampleRate;
+
+                // 1. Initial heavy steel blast door impact (t=0 to 0.5s)
+                float steelThud = Mathf.Sin(2f * Mathf.PI * 140f * t) * Mathf.Exp(-12f * t) * 0.85f;
+                float metallicRing = Mathf.Sin(2f * Mathf.PI * 420f * t) * Mathf.Exp(-8f * t) * 0.40f;
+
+                // 2. High-pressure pneumatic air decompression hiss (t=0.08 to 0.75s)
+                float hiss = 0f;
+                if (t >= 0.08f && t < 0.75f)
+                {
+                    float hissEnv = Mathf.Sin((t - 0.08f) / 0.67f * Mathf.PI);
+                    float noise = (float)rng.NextDouble() * 2f - 1f;
+                    hiss = noise * hissEnv * 0.22f;
+                }
+
+                // 3. Mechanical deadbolt locking clink (t=0.85s to 1.3s)
+                float lockClick = 0f;
+                if (t >= 0.85f)
+                {
+                    float dtLock = t - 0.85f;
+                    float clickEnv = Mathf.Exp(-28f * dtLock);
+                    lockClick = Mathf.Sin(2f * Mathf.PI * 1150f * dtLock) * clickEnv * 0.55f +
+                                Mathf.Sin(2f * Mathf.PI * 2400f * dtLock) * clickEnv * 0.35f;
+                }
+
+                samples[i] = steelThud + metallicRing + hiss + lockClick;
+            }
+
+            NormalizeSamples(samples, 0.88f);
+            AudioClip clip = AudioClip.Create("Procedural_BlastDoor_Lock", totalSamples, 1, SampleRate, false);
             clip.SetData(samples, 0);
             return clip;
         }
