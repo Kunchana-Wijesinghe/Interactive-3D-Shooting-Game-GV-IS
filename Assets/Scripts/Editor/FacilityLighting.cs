@@ -93,42 +93,42 @@ public class FacilityLighting : EditorWindow
         Vector3[] lightPositions =
         {
             // Entrance
-            new Vector3(-13f, 3.25f, -25f),
+            new Vector3(-13f, 4.25f, -25f),
 
             // Southern corridor
-            new Vector3(-4f, 3.25f, -20f),
-            new Vector3(7f, 3.25f, -20f),
+            new Vector3(-4f, 4.25f, -20f),
+            new Vector3(7f, 4.25f, -20f),
 
             // Room 1
-            new Vector3(-13f, 3.25f, -11f),
+            new Vector3(-13f, 4.25f, -11f),
 
             // Central area
-            new Vector3(1f, 3.25f, -5f),
-            new Vector3(1f, 3.25f, 4f),
+            new Vector3(1f, 4.25f, -5f),
+            new Vector3(1f, 4.25f, 4f),
 
             // Left middle corridor
-            new Vector3(-13f, 3.25f, 5f),
+            new Vector3(-13f, 4.25f, 5f),
 
             // Right middle corridor
-            new Vector3(14f, 3.25f, 5f),
+            new Vector3(14f, 4.25f, 5f),
 
             // Upper-left
-            new Vector3(-11f, 3.25f, 16f),
+            new Vector3(-11f, 4.25f, 16f),
 
             // Room 3 / upper-right
-            new Vector3(14f, 3.25f, 17f),
+            new Vector3(14f, 4.25f, 17f),
 
             // Northern corridor
-            new Vector3(-4f, 3.25f, 25f),
+            new Vector3(-4f, 4.25f, 25f),
 
             // Exit
-            new Vector3(13f, 3.25f, 26f),
+            new Vector3(13f, 4.25f, 26f),
 
             // Additional coverage for the three rooms and upper junctions
-            new Vector3(-16f, 3.25f, -13f),
-            new Vector3(5f, 3.25f, 6f),
-            new Vector3(-5f, 3.25f, 14f),
-            new Vector3(15f, 3.25f, 22f)
+            new Vector3(-16f, 4.25f, -13f),
+            new Vector3(5f, 4.25f, 6f),
+            new Vector3(-5f, 4.25f, 14f),
+            new Vector3(15f, 4.25f, 22f)
         };
 
         // =====================================================
@@ -220,22 +220,22 @@ public class FacilityLighting : EditorWindow
 
         Vector3[] lightPositions =
         {
-            new Vector3(-sideCenterX, 3.25f, -endCenterZ),
-            new Vector3(sideCenterX, 3.25f, -endCenterZ),
-            new Vector3(-sideCenterX, 3.25f, endCenterZ),
-            new Vector3(sideCenterX, 3.25f, endCenterZ),
-            new Vector3(-sideCenterX, 3.25f, -16f),
-            new Vector3(-sideCenterX, 3.25f, 0f),
-            new Vector3(-sideCenterX, 3.25f, 16f),
-            new Vector3(sideCenterX, 3.25f, -16f),
-            new Vector3(sideCenterX, 3.25f, 0f),
-            new Vector3(sideCenterX, 3.25f, 16f),
-            new Vector3(-12.5f, 3.25f, -endCenterZ),
-            new Vector3(0f, 3.25f, -endCenterZ),
-            new Vector3(12.5f, 3.25f, -endCenterZ),
-            new Vector3(-12.5f, 3.25f, endCenterZ),
-            new Vector3(0f, 3.25f, endCenterZ),
-            new Vector3(12.5f, 3.25f, endCenterZ)
+            new Vector3(-sideCenterX, 4.25f, -endCenterZ),
+            new Vector3(sideCenterX, 4.25f, -endCenterZ),
+            new Vector3(-sideCenterX, 4.25f, endCenterZ),
+            new Vector3(sideCenterX, 4.25f, endCenterZ),
+            new Vector3(-sideCenterX, 4.25f, -16f),
+            new Vector3(-sideCenterX, 4.25f, 0f),
+            new Vector3(-sideCenterX, 4.25f, 16f),
+            new Vector3(sideCenterX, 4.25f, -16f),
+            new Vector3(sideCenterX, 4.25f, 0f),
+            new Vector3(sideCenterX, 4.25f, 16f),
+            new Vector3(-12.5f, 4.25f, -endCenterZ),
+            new Vector3(0f, 4.25f, -endCenterZ),
+            new Vector3(12.5f, 4.25f, -endCenterZ),
+            new Vector3(-12.5f, 4.25f, endCenterZ),
+            new Vector3(0f, 4.25f, endCenterZ),
+            new Vector3(12.5f, 4.25f, endCenterZ)
         };
 
         for (int i = 0; i < lightPositions.Length; i++)
@@ -460,9 +460,9 @@ public class FacilityLighting : EditorWindow
                 0.28f
             );
 
-        pointLight.intensity = 3.2f;
+        pointLight.intensity = 2.4f;
 
-        pointLight.range = 10f;
+        pointLight.range = 11.5f;
 
         pointLight.shadows =
             LightShadows.Soft;

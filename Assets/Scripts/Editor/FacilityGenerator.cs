@@ -4,7 +4,7 @@ using UnityEditor.SceneManagement;
 
 public class FacilityGenerator : EditorWindow
 {
-    private const float H = 4f;
+    private const float H = 5f;
     private const float T = 0.35f;
     private const string PrototypeScenePath =
         "Assets/Scenes/Prototype.unity";
@@ -46,7 +46,121 @@ public class FacilityGenerator : EditorWindow
             return;
         }
 
-        Generate();
+        // Automatically synchronizes full facility environment without requiring manual menu clicks:
+        // Automatically applies 5m walls, 5.25m roof, balanced lighting (2.4f), and 4.2f architectural sconce lights
+        ApplyHeightAndLightingUpdate();
+    }
+
+    [MenuItem("Facility Breach/Apply Height Increase (+1m) and Refresh All Lights")]
+    public static void ApplyHeightAndLightingUpdate()
+    {
+        bool changed = false;
+
+        // 1. Update walls in Generated_Facility
+        GameObject facility = GameObject.Find("Generated_Facility");
+        if (facility != null)
+        {
+            var allTransforms = facility.GetComponentsInChildren<Transform>(true);
+            foreach (var t in allTransforms)
+            {
+                if (t == null || t == facility.transform) continue;
+
+                // Main facility walls: scale Y was 4f -> 5f, pos Y was 2f -> 2.5f
+                if (Mathf.Abs(t.localScale.y - 4.0f) < 0.05f)
+                {
+                    t.localScale = new Vector3(t.localScale.x, 5.0f, t.localScale.z);
+                    t.position = new Vector3(t.position.x, 2.5f, t.position.z);
+                    changed = true;
+                }
+                // External corridor walls: scale Y was 4.1f -> 5.1f, pos Y was 2.05f -> 2.55f
+                else if (Mathf.Abs(t.localScale.y - 4.1f) < 0.05f)
+                {
+                    t.localScale = new Vector3(t.localScale.x, 5.1f, t.localScale.z);
+                    t.position = new Vector3(t.position.x, 2.55f, t.position.z);
+                    changed = true;
+                }
+                // External corridor roof: pos Y was 4.25f -> 5.25f
+                else if (t.name.Contains("Roof") && Mathf.Abs(t.position.y - 4.25f) < 0.05f)
+                {
+                    t.position = new Vector3(t.position.x, 5.25f, t.position.z);
+                    changed = true;
+                }
+                // External corridor beams: pos Y was 4.02f -> 5.02f
+                else if (t.name.Contains("Beam") && Mathf.Abs(t.position.y - 4.02f) < 0.05f)
+                {
+                    t.position = new Vector3(t.position.x, 5.02f, t.position.z);
+                    changed = true;
+                }
+            }
+        }
+
+        // 2. Update Facility_Roof
+        GameObject roof = GameObject.Find("Facility_Roof");
+        if (roof != null)
+        {
+            var roofTransforms = roof.GetComponentsInChildren<Transform>(true);
+            foreach (var t in roofTransforms)
+            {
+                if (t == null || t == roof.transform) continue;
+
+                if (Mathf.Abs(t.position.y - 4.25f) < 0.05f)
+                {
+                    t.position = new Vector3(t.position.x, 5.25f, t.position.z);
+                    changed = true;
+                }
+                else if (Mathf.Abs(t.position.y - 4.02f) < 0.05f)
+                {
+                    t.position = new Vector3(t.position.x, 5.02f, t.position.z);
+                    changed = true;
+                }
+                else if (Mathf.Abs(t.position.y - 3.99f) < 0.05f)
+                {
+                    t.position = new Vector3(t.position.x, 4.99f, t.position.z);
+                    changed = true;
+                }
+            }
+        }
+
+        // 3. Update Facility_Lighting hanging lights & brightness
+        GameObject lighting = GameObject.Find("Facility_Lighting");
+        if (lighting != null)
+        {
+            var lightTransforms = lighting.GetComponentsInChildren<Transform>(true);
+            foreach (var t in lightTransforms)
+            {
+                if (t == null || t == lighting.transform) continue;
+
+                if (t.name.Contains("HangingLight") && Mathf.Abs(t.position.y - 3.25f) < 0.1f)
+                {
+                    t.position = new Vector3(t.position.x, 4.25f, t.position.z);
+                    changed = true;
+                }
+            }
+
+            var lights = lighting.GetComponentsInChildren<Light>(true);
+            foreach (var l in lights)
+            {
+                if (l != null && l.type == LightType.Point)
+                {
+                    l.intensity = 2.4f;
+                    l.range = 11.5f;
+                    changed = true;
+                }
+            }
+        }
+
+        // 4. Force QualitySettings.pixelLightCount = 64
+        QualitySettings.pixelLightCount = 64;
+
+        // 5. Regenerate wall sconces with the updated 5.0m positions & angled dual SpotLights
+        FacilityBreach.Environment.FacilityWallSconces.GenerateAllSconces();
+        changed = true;
+
+        if (changed)
+        {
+            SaveActiveScene();
+            Debug.Log("<color=green>[Facility Breach]</color> Walls raised to 5m, roof to 5.25m, hanging lights boosted, and 36 dual-beam architectural wall sconces refreshed successfully!");
+        }
     }
 
     [MenuItem("Facility Breach/Generate Final Facility V4")]
@@ -590,8 +704,8 @@ public class FacilityGenerator : EditorWindow
         const float exitCenterX = 12.5f;
         const float exitDoorWidth = 2f;
         const float corridorFloorY = -0.25f;
-        const float corridorWallHeight = 4.1f;
-        const float corridorRoofY = 4.25f;
+        const float corridorWallHeight = 5.1f;
+        const float corridorRoofY = 5.25f;
         const float corridorRoofThickness = 0.3f;
 
         float innerHalfWidth = facilityHalfWidth + T / 2f;
@@ -768,56 +882,56 @@ public class FacilityGenerator : EditorWindow
 
         CreateCorridorBeam(
             "Corridor_Roof_Beam_West_Inner",
-            new Vector3(-innerHalfWidth - 0.8f, 4.02f, 0f),
+            new Vector3(-innerHalfWidth - 0.8f, 5.02f, 0f),
             new Vector3(0.22f, 0.22f, sideLength),
             corridor.transform,
             beamMaterial
         );
         CreateCorridorBeam(
             "Corridor_Roof_Beam_West_Outer",
-            new Vector3(-outerHalfWidth + 0.8f, 4.02f, 0f),
+            new Vector3(-outerHalfWidth + 0.8f, 5.02f, 0f),
             new Vector3(0.22f, 0.22f, sideLength),
             corridor.transform,
             beamMaterial
         );
         CreateCorridorBeam(
             "Corridor_Roof_Beam_East_Inner",
-            new Vector3(innerHalfWidth + 0.8f, 4.02f, 0f),
+            new Vector3(innerHalfWidth + 0.8f, 5.02f, 0f),
             new Vector3(0.22f, 0.22f, sideLength),
             corridor.transform,
             beamMaterial
         );
         CreateCorridorBeam(
             "Corridor_Roof_Beam_East_Outer",
-            new Vector3(outerHalfWidth - 0.8f, 4.02f, 0f),
+            new Vector3(outerHalfWidth - 0.8f, 5.02f, 0f),
             new Vector3(0.22f, 0.22f, sideLength),
             corridor.transform,
             beamMaterial
         );
         CreateCorridorBeam(
             "Corridor_Roof_Beam_South_Inner",
-            new Vector3(0f, 4.02f, -innerHalfLength - 0.8f),
+            new Vector3(0f, 5.02f, -innerHalfLength - 0.8f),
             new Vector3(endSectionWidth, 0.22f, 0.22f),
             corridor.transform,
             beamMaterial
         );
         CreateCorridorBeam(
             "Corridor_Roof_Beam_South_Outer",
-            new Vector3(0f, 4.02f, -outerHalfLength + 0.8f),
+            new Vector3(0f, 5.02f, -outerHalfLength + 0.8f),
             new Vector3(endSectionWidth, 0.22f, 0.22f),
             corridor.transform,
             beamMaterial
         );
         CreateCorridorBeam(
             "Corridor_Roof_Beam_North_Inner",
-            new Vector3(0f, 4.02f, innerHalfLength + 0.8f),
+            new Vector3(0f, 5.02f, innerHalfLength + 0.8f),
             new Vector3(endSectionWidth, 0.22f, 0.22f),
             corridor.transform,
             beamMaterial
         );
         CreateCorridorBeam(
             "Corridor_Roof_Beam_North_Outer",
-            new Vector3(0f, 4.02f, outerHalfLength - 0.8f),
+            new Vector3(0f, 5.02f, outerHalfLength - 0.8f),
             new Vector3(endSectionWidth, 0.22f, 0.22f),
             corridor.transform,
             beamMaterial
@@ -872,6 +986,10 @@ public class FacilityGenerator : EditorWindow
         Vector3 scale,
         Transform parent)
     {
+        if (Mathf.Approximately(scale.y, H))
+        {
+            position.y = H / 2f;
+        }
         Block(name, position, scale, parent);
     }
 

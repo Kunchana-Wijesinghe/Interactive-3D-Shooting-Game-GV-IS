@@ -9,6 +9,7 @@ namespace FacilityBreach.Core
     {
         public MissionState State { get; private set; } = MissionState.Menu;
         public double Remaining { get; private set; } = 300;
+        public double InitialDuration { get; private set; } = 300;
         public double ShutdownRemaining { get; private set; } = 5;
         public double Elapsed { get; private set; }
         public bool HasCard { get; private set; }
@@ -16,6 +17,14 @@ namespace FacilityBreach.Core
         public string LossReason { get; private set; }
         public bool Running => State == MissionState.Active || State == MissionState.Deactivating || State == MissionState.Escape;
         public bool ExitUnlocked => State == MissionState.Escape || State == MissionState.Won;
+        public void ConfigureDuration(double durationSeconds)
+        {
+            if (State == MissionState.Menu && durationSeconds > 0)
+            {
+                InitialDuration = durationSeconds;
+                Remaining = durationSeconds;
+            }
+        }
         public void Start() { if (State == MissionState.Menu) State = MissionState.Active; }
         public bool CollectCard() { if (!Running || Paused || HasCard) return false; HasCard = true; return true; }
         public bool Connect(bool inRange)

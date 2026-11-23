@@ -62,6 +62,9 @@ namespace FacilityBreach
         public FpsKickController KickController => kickController;
         private FpsFootstepController footstepController;
         public FpsFootstepController FootstepController => footstepController;
+        private FacilityEmergencyAlertController alertController;
+        public FacilityEmergencyAlertController AlertController => alertController;
+        public float TargetMissionDuration = 180f;
         private float reload, cadence;
         private bool waitForRelease = true, controls;
         private string feedback = "";
@@ -88,6 +91,10 @@ namespace FacilityBreach
             if (Navigation) navigationInstance = NavMesh.AddNavMeshData(Navigation);
             gameObject.AddComponent<DynamicNavigationObstacles>();
             view.nearClipPlane = .05f;
+            if (!DevelopmentDiagnostics && TargetMissionDuration > 0)
+            {
+                Run.ConfigureDuration(TargetMissionDuration);
+            }
             var spawn = Anchor("Door_Main_Entrance").position + Vector3.forward * 1.75f;
             exit = Anchor("Door_Main_Exit").position - Vector3.forward * 1.75f;
             var root = new GameObject("FB_TemporaryPlayer_BandaraAdapterPending");
@@ -106,6 +113,9 @@ namespace FacilityBreach
             if (!audioPlayer) audioPlayer = gameObject.AddComponent<FacilityAudioPlayer>();
             if (!ambiencePlayer) ambiencePlayer = GetComponent<FacilityAmbiencePlayer>();
             if (!ambiencePlayer) ambiencePlayer = gameObject.AddComponent<FacilityAmbiencePlayer>();
+            if (!alertController) alertController = GetComponent<FacilityEmergencyAlertController>();
+            if (!alertController) alertController = gameObject.AddComponent<FacilityEmergencyAlertController>();
+            alertController.Initialize(this);
             dispatcher = gameObject.AddComponent<FacilityInteractionDispatcher>();
             dispatcher.Initialize(this, view, player.transform);
             foreach (var door in FindObjectsByType<InteractiveDoor>(FindObjectsSortMode.None))
@@ -544,6 +554,10 @@ namespace FacilityBreach
         private void OnApplicationFocus(bool focus) { if (!focus && Run.Running) SetPause(true); }
         public void StartMission()
         {
+            if (!DevelopmentDiagnostics && TargetMissionDuration > 0)
+            {
+                Run.ConfigureDuration(TargetMissionDuration);
+            }
             Run.Start();
             SetPause(false);
             if (ambiencePlayer) ambiencePlayer.Play();
@@ -556,48 +570,470 @@ namespace FacilityBreach
             Time.timeScale = 1;
             foreach (var material in ownedMaterials) if (material) Destroy(material);
             if (ambiencePlayer) ambiencePlayer.Stop(true);
+            if (alertController) alertController.DeactivateEmergency();
+            if (_btnNormalTex) Destroy(_btnNormalTex);
+            if (_btnHoverTex) Destroy(_btnHoverTex);
+            if (_btnPrimaryNormalTex) Destroy(_btnPrimaryNormalTex);
+            if (_btnPrimaryHoverTex) Destroy(_btnPrimaryHoverTex);
+            if (_whiteTex) Destroy(_whiteTex);
         }
-        private void OnGUI()
+
+        // =========================================================
+        // TACTICAL UI ENGINE (Industrial Slate, Warm Amber Glow, Corner Brackets)
+        // =========================================================
+        private static Texture2D _whiteTex;
+        private static Texture2D WhiteTex
         {
-            if (!player) return;
-            GUI.Box(new Rect(15, 15, 355, 130), $"FACILITY BREACH\nHP {Resources.Health}/100\nAmmo{Resources.Equipped + 1}gun   {Resources.Magazine}/{Resources.Reserve}\n{(reload > 0 ? "RELOADING" : "")}\nCARD: {(Run.HasCard ? "ACQUIRED" : "MISSING")}");
-            string objective = Run.State == MissionState.Escape ? "DEVICE DEACTIVATED — reach the exit" : Run.State == MissionState.Deactivating ? $"Deactivating: {5 - Run.ShutdownRemaining:F1}/5 seconds" : !Run.HasCard ? "Find the access card near toxic waste" : player.transform.position.x > 10 && player.transform.position.z > 12 && player.transform.position.z < 24 ? "Connect the card to deactivate the device" : "Use the card to enter Machinery";
-            string prompt = feedbackTime > 0 ? feedback : (dispatcher != null ? dispatcher.GetContextualPrompt(target) : target ? target.Prompt : "");
-            if (string.IsNullOrEmpty(prompt) && kickController != null && kickController.HasKickableTarget(out var propName)) prompt = "F: Kick " + propName;
-            GUI.Box(new Rect(15, Screen.height - 65, 570, 50), objective + "\n" + prompt);
-            if (Run.State == MissionState.Deactivating)
+            get
             {
-                GUI.color = Color.cyan;
-                GUI.DrawTexture(new Rect(15, Screen.height - 75, 570 * (1 - (float)Run.ShutdownRemaining / 5), 6), Texture2D.whiteTexture);
-                GUI.color = Color.white;
-            }
-            GUI.Label(new Rect(Screen.width / 2f - 5, Screen.height / 2f - 10, 20, 25), "+");
-            int seconds = Mathf.CeilToInt((float)Run.Remaining);
-            GUI.Box(new Rect(Screen.width - 245, 15, 230, 35), $"{seconds / 60:00}:{seconds % 60:00}");
-            DrawMap(new Rect(Screen.width - 245, 55, 230, 330));
-            if (Run.State == MissionState.Menu || Run.Paused || Run.State == MissionState.Won || Run.State == MissionState.Lost)
-            {
-                GUILayout.BeginArea(new Rect(Screen.width / 2f - 210, Screen.height / 2f - 160, 420, 320), GUI.skin.box);
-                GUILayout.Label(Run.State == MissionState.Won ? "MISSION COMPLETE" : Run.State == MissionState.Lost ? Run.LossReason : Run.Paused ? "PAUSED" : "FACILITY BREACH");
-                if (Run.State == MissionState.Menu)
+                if (_whiteTex == null)
                 {
-                    GUILayout.Label("Retrieve the card near toxic waste. Connect it to the fictional device in Machinery within five minutes. Escape alive. Combat is optional.");
-                    if (GUILayout.Button("Start Mission")) StartMission();
-                    if (GUILayout.Button("Controls")) controls = !controls;
-                    if (controls) GUILayout.Label("WASD move • Mouse look • Shift sprint • Space jump • E interact\nF kick boxes and barrels • Left click shoot • R reload • Q can • Escape pause");
+                    _whiteTex = new Texture2D(1, 1, TextureFormat.RGBA32, false);
+                    _whiteTex.SetPixel(0, 0, Color.white);
+                    _whiteTex.Apply();
                 }
-                else if (Run.Paused && Run.Running)
+                return _whiteTex;
+            }
+        }
+
+        private static Texture2D _btnNormalTex;
+        private static Texture2D _btnHoverTex;
+        private static Texture2D _btnPrimaryNormalTex;
+        private static Texture2D _btnPrimaryHoverTex;
+
+        private GUIStyle _hudTitleStyle;
+        private GUIStyle _hudLabelStyle;
+        private GUIStyle _hudValueStyle;
+        private GUIStyle _hudBadgeStyle;
+        private GUIStyle _btnPrimaryStyle;
+        private GUIStyle _btnSecondaryStyle;
+        private GUIStyle _briefingHeaderStyle;
+        private GUIStyle _briefingBodyStyle;
+        private GUIStyle _briefingAlertStyle;
+        private GUIStyle _objectiveStyle;
+        private GUIStyle _timerStyle;
+        private bool _uiStylesReady;
+
+        private static Texture2D MakeSolidTex(int w, int h, Color col)
+        {
+            Color[] pix = new Color[w * h];
+            for (int i = 0; i < pix.Length; i++) pix[i] = col;
+            Texture2D tex = new Texture2D(w, h, TextureFormat.RGBA32, false);
+            tex.SetPixels(pix);
+            tex.Apply();
+            return tex;
+        }
+
+        private void EnsureUIStyles()
+        {
+            if (_uiStylesReady && _hudTitleStyle != null) return;
+
+            if (_btnNormalTex == null) _btnNormalTex = MakeSolidTex(2, 2, new Color(0.14f, 0.12f, 0.08f, 0.90f));
+            if (_btnHoverTex == null) _btnHoverTex = MakeSolidTex(2, 2, new Color(0.24f, 0.20f, 0.12f, 0.95f));
+            if (_btnPrimaryNormalTex == null) _btnPrimaryNormalTex = MakeSolidTex(2, 2, new Color(0.85f, 0.55f, 0.08f, 0.90f));
+            if (_btnPrimaryHoverTex == null) _btnPrimaryHoverTex = MakeSolidTex(2, 2, new Color(1.00f, 0.72f, 0.15f, 0.98f));
+
+            // Real GTA Fonts: Pricedown for Display Titles, Chalet-London for clean HUD, Text & Buttons (as in GTA V)
+            Font gtaTitleFont = UnityEngine.Resources.Load<Font>("Fonts/Pricedown");
+            Font gtaBodyFont = UnityEngine.Resources.Load<Font>("Fonts/Chalet-London");
+            if (gtaTitleFont == null) gtaTitleFont = GUI.skin.font;
+            if (gtaBodyFont == null) gtaBodyFont = GUI.skin.font;
+
+            _hudTitleStyle = new GUIStyle(GUI.skin.label)
+            {
+                font = gtaTitleFont,
+                fontSize = 17,
+                fontStyle = FontStyle.Normal,
+                alignment = TextAnchor.MiddleLeft
+            };
+            _hudTitleStyle.normal.textColor = new Color(1.00f, 0.76f, 0.18f, 1f); // Warm Tactical Amber / Gold
+
+            _hudLabelStyle = new GUIStyle(GUI.skin.label)
+            {
+                font = gtaBodyFont,
+                fontSize = 12,
+                fontStyle = FontStyle.Normal,
+                alignment = TextAnchor.MiddleLeft
+            };
+            _hudLabelStyle.normal.textColor = new Color(0.85f, 0.85f, 0.80f, 1f);
+
+            _hudValueStyle = new GUIStyle(GUI.skin.label)
+            {
+                font = gtaBodyFont,
+                fontSize = 13,
+                fontStyle = FontStyle.Bold,
+                alignment = TextAnchor.MiddleRight
+            };
+            _hudValueStyle.normal.textColor = Color.white;
+
+            _hudBadgeStyle = new GUIStyle(GUI.skin.label)
+            {
+                font = gtaBodyFont,
+                fontSize = 11,
+                fontStyle = FontStyle.Bold,
+                alignment = TextAnchor.MiddleCenter
+            };
+
+            _briefingHeaderStyle = new GUIStyle(GUI.skin.label)
+            {
+                font = gtaTitleFont,
+                fontSize = 17,
+                fontStyle = FontStyle.Normal,
+                alignment = TextAnchor.MiddleCenter
+            };
+            _briefingHeaderStyle.normal.textColor = new Color(1.00f, 0.76f, 0.18f, 1f);
+
+            _briefingBodyStyle = new GUIStyle(GUI.skin.label)
+            {
+                font = gtaBodyFont,
+                fontSize = 12,
+                wordWrap = false,
+                richText = true,
+                alignment = TextAnchor.UpperLeft
+            };
+            _briefingBodyStyle.normal.textColor = new Color(0.92f, 0.92f, 0.90f, 1f);
+
+            _briefingAlertStyle = new GUIStyle(GUI.skin.label)
+            {
+                font = gtaBodyFont,
+                fontSize = 11,
+                fontStyle = FontStyle.Normal,
+                alignment = TextAnchor.MiddleLeft
+            };
+            _briefingAlertStyle.normal.textColor = new Color(1.0f, 0.82f, 0.30f);
+
+            _objectiveStyle = new GUIStyle(GUI.skin.label)
+            {
+                font = gtaBodyFont,
+                fontSize = 13,
+                fontStyle = FontStyle.Bold,
+                alignment = TextAnchor.MiddleLeft
+            };
+            _objectiveStyle.normal.textColor = Color.white;
+
+            _timerStyle = new GUIStyle(GUI.skin.label)
+            {
+                font = gtaTitleFont,
+                fontSize = 24,
+                fontStyle = FontStyle.Normal,
+                alignment = TextAnchor.MiddleCenter
+            };
+            _timerStyle.normal.textColor = new Color(1.00f, 0.76f, 0.18f, 1f);
+
+            // In GTA V, buttons use Chalet-London for crisp, sharp, perfectly readable buttons
+            _btnPrimaryStyle = new GUIStyle(GUI.skin.button)
+            {
+                font = gtaBodyFont,
+                fontSize = 14,
+                fontStyle = FontStyle.Bold,
+                alignment = TextAnchor.MiddleCenter
+            };
+            _btnPrimaryStyle.normal.background = _btnPrimaryNormalTex;
+            _btnPrimaryStyle.normal.textColor = Color.white;
+            _btnPrimaryStyle.hover.background = _btnPrimaryHoverTex;
+            _btnPrimaryStyle.hover.textColor = new Color(0.08f, 0.05f, 0.02f, 1f);
+
+            _btnSecondaryStyle = new GUIStyle(GUI.skin.button)
+            {
+                font = gtaBodyFont,
+                fontSize = 12,
+                fontStyle = FontStyle.Bold,
+                alignment = TextAnchor.MiddleCenter
+            };
+            _btnSecondaryStyle.normal.background = _btnNormalTex;
+            _btnSecondaryStyle.normal.textColor = new Color(0.85f, 0.85f, 0.80f, 1f);
+            _btnSecondaryStyle.hover.background = _btnHoverTex;
+            _btnSecondaryStyle.hover.textColor = Color.white;
+
+            _uiStylesReady = true;
+        }
+
+        private static void UIDrawRect(Rect r, Color c)
+        {
+            Color old = GUI.color;
+            GUI.color = c;
+            GUI.DrawTexture(r, WhiteTex);
+            GUI.color = old;
+        }
+
+        private static void UIDrawPanel(Rect r, Color? border = null, Color? bg = null)
+        {
+            Color bgColor = bg ?? new Color(0.06f, 0.06f, 0.06f, 0.92f);
+            Color borderColor = border ?? new Color(0.85f, 0.60f, 0.12f, 0.45f);
+            Color cornerColor = border ?? new Color(1.00f, 0.76f, 0.18f, 0.95f);
+
+            UIDrawRect(r, bgColor);
+
+            UIDrawRect(new Rect(r.x, r.y, r.width, 1), borderColor);
+            UIDrawRect(new Rect(r.x, r.yMax - 1, r.width, 1), borderColor);
+            UIDrawRect(new Rect(r.x, r.y, 1, r.height), borderColor);
+            UIDrawRect(new Rect(r.xMax - 1, r.y, 1, r.height), borderColor);
+
+            const float cl = 7f;
+            const float ct = 2f;
+            UIDrawRect(new Rect(r.x, r.y, cl, ct), cornerColor);
+            UIDrawRect(new Rect(r.x, r.y, ct, cl), cornerColor);
+            UIDrawRect(new Rect(r.xMax - cl, r.y, cl, ct), cornerColor);
+            UIDrawRect(new Rect(r.xMax - ct, r.y, ct, cl), cornerColor);
+            UIDrawRect(new Rect(r.x, r.yMax - ct, cl, ct), cornerColor);
+            UIDrawRect(new Rect(r.x, r.yMax - cl, ct, cl), cornerColor);
+            UIDrawRect(new Rect(r.xMax - cl, r.yMax - ct, cl, ct), cornerColor);
+            UIDrawRect(new Rect(r.xMax - ct, r.yMax - cl, ct, cl), cornerColor);
+        }
+
+        private void DrawTopLeftHUD()
+        {
+            Rect hudRect = new Rect(15, 15, 260, 106);
+            UIDrawPanel(hudRect, new Color(0.85f, 0.60f, 0.12f, 0.50f));
+
+            UIDrawRect(new Rect(hudRect.x + 8, hudRect.y + 7, 3, 14), new Color(1.00f, 0.76f, 0.18f, 1f));
+            GUI.Label(new Rect(hudRect.x + 15, hudRect.y + 6, 150, 16), "FACILITY BREACH", _hudTitleStyle);
+            GUI.Label(new Rect(hudRect.xMax - 70, hudRect.y + 6, 60, 16), "TACTICAL", _hudLabelStyle);
+
+            UIDrawRect(new Rect(hudRect.x + 8, hudRect.y + 24, hudRect.width - 16, 1), new Color(0.85f, 0.60f, 0.12f, 0.25f));
+
+            // Health Bar
+            float hpY = hudRect.y + 29;
+            GUI.Label(new Rect(hudRect.x + 10, hpY, 45, 16), "HP", _hudLabelStyle);
+            int hp = Resources.Health;
+            Color hpCol = hp > 50 ? new Color(0.00f, 0.90f, 0.50f) : hp > 25 ? new Color(1.0f, 0.75f, 0.10f) : new Color(1.0f, 0.20f, 0.20f);
+            UIDrawRect(new Rect(hudRect.x + 45, hpY + 3, 125, 9), new Color(0.12f, 0.12f, 0.12f, 0.90f));
+            float hpPct = Mathf.Clamp01(hp / 100f);
+            UIDrawRect(new Rect(hudRect.x + 46, hpY + 4, 123 * hpPct, 7), hpCol);
+            GUI.Label(new Rect(hudRect.x + 175, hpY, 75, 16), $"{hp}/100", _hudValueStyle);
+
+            // Ammo
+            float ammoY = hudRect.y + 51;
+            GUI.Label(new Rect(hudRect.x + 10, ammoY, 50, 16), $"GUN-{Resources.Equipped + 1}", _hudLabelStyle);
+            if (reload > 0)
+            {
+                bool flash = Mathf.PingPong(Time.time * 4f, 1f) > 0.4f;
+                Color reloadCol = flash ? new Color(1.0f, 0.70f, 0.10f) : new Color(1.0f, 0.20f, 0.20f);
+                UIDrawRect(new Rect(hudRect.x + 65, ammoY + 1, 95, 14), new Color(reloadCol.r, reloadCol.g, reloadCol.b, 0.25f));
+                _hudBadgeStyle.normal.textColor = reloadCol;
+                GUI.Label(new Rect(hudRect.x + 65, ammoY, 95, 16), "RELOADING", _hudBadgeStyle);
+            }
+            else
+            {
+                GUI.Label(new Rect(hudRect.x + 130, ammoY, 120, 16), $"{Resources.Magazine} / {Resources.Reserve}", _hudValueStyle);
+            }
+
+            // Keycard
+            float cardY = hudRect.y + 73;
+            GUI.Label(new Rect(hudRect.x + 10, cardY, 65, 16), "KEYCARD", _hudLabelStyle);
+            Rect cardPillRect = new Rect(hudRect.x + 145, cardY + 1, 100, 16);
+            if (Run.HasCard)
+            {
+                UIDrawRect(cardPillRect, new Color(0.00f, 0.85f, 0.50f, 0.25f));
+                UIDrawRect(new Rect(cardPillRect.x, cardPillRect.y, cardPillRect.width, 1), new Color(0.00f, 0.95f, 0.60f, 0.8f));
+                UIDrawRect(new Rect(cardPillRect.x, cardPillRect.yMax - 1, cardPillRect.width, 1), new Color(0.00f, 0.95f, 0.60f, 0.8f));
+                _hudBadgeStyle.normal.textColor = new Color(0.10f, 1.0f, 0.60f);
+                GUI.Label(cardPillRect, "ACQUIRED", _hudBadgeStyle);
+            }
+            else
+            {
+                UIDrawRect(cardPillRect, new Color(1.0f, 0.40f, 0.10f, 0.20f));
+                UIDrawRect(new Rect(cardPillRect.x, cardPillRect.y, cardPillRect.width, 1), new Color(1.0f, 0.50f, 0.10f, 0.6f));
+                UIDrawRect(new Rect(cardPillRect.x, cardPillRect.yMax - 1, cardPillRect.width, 1), new Color(1.0f, 0.50f, 0.10f, 0.6f));
+                _hudBadgeStyle.normal.textColor = new Color(1.0f, 0.65f, 0.20f);
+                GUI.Label(cardPillRect, "MISSING", _hudBadgeStyle);
+            }
+        }
+
+        private void DrawCenterMenu()
+        {
+            float panelWidth = 460f;
+            float panelHeight = controls && Run.State == MissionState.Menu ? 300f : 255f;
+            Rect menuRect = new Rect(Screen.width / 2f - panelWidth / 2f, Screen.height / 2f - panelHeight / 2f, panelWidth, panelHeight);
+
+            Color headerAccent = Run.State == MissionState.Won ? new Color(0.0f, 0.95f, 0.50f) :
+                                 Run.State == MissionState.Lost ? new Color(1.0f, 0.25f, 0.25f) :
+                                 Run.Paused ? new Color(1.0f, 0.75f, 0.20f) :
+                                 new Color(1.00f, 0.76f, 0.18f);
+
+            UIDrawPanel(menuRect, headerAccent);
+
+            UIDrawRect(new Rect(menuRect.x + 1, menuRect.y + 1, menuRect.width - 2, 28), new Color(headerAccent.r, headerAccent.g, headerAccent.b, 0.18f));
+            UIDrawRect(new Rect(menuRect.x + 1, menuRect.y + 29, menuRect.width - 2, 1), new Color(headerAccent.r, headerAccent.g, headerAccent.b, 0.45f));
+
+            string title = Run.State == MissionState.Won ? "// MISSION COMPLETE" :
+                           Run.State == MissionState.Lost ? $"// FAILED: {Run.LossReason}" :
+                           Run.Paused ? "// SYSTEM PAUSED" :
+                           "// MISSION BRIEFING : FACILITY BREACH";
+            _briefingHeaderStyle.normal.textColor = headerAccent;
+            GUI.Label(new Rect(menuRect.x, menuRect.y + 5, menuRect.width, 22), title, _briefingHeaderStyle);
+
+            if (Run.State == MissionState.Menu)
+            {
+                if (!controls)
                 {
-                    if (GUILayout.Button("Resume")) SetPause(false);
-                    if (GUILayout.Button("Restart")) Restart();
-                    if (GUILayout.Button("Main Menu")) Restart();
+                    float contentY = menuRect.y + 36;
+                    string dur = TargetMissionDuration <= 180f ? "3 Minutes" : "5 Minutes";
+
+                    GUI.Label(new Rect(menuRect.x + 18, contentY, menuRect.width - 36, 72),
+                        $"<b>OBJECTIVE:</b> Infiltrate facility and retrieve access card near toxic waste.\n" +
+                        $"<b>PRIMARY TARGET:</b> Connect card to device in Machinery.\n" +
+                        $"<b>TIME LIMIT:</b> {dur} before emergency meltdown lockdown.\n" +
+                        $"<b>ENGAGEMENT:</b> Combat is optional. Escape alive.", _briefingBodyStyle);
+
+                    Rect warnRect = new Rect(menuRect.x + 18, contentY + 76, menuRect.width - 36, 22);
+                    UIDrawRect(warnRect, new Color(1.0f, 0.70f, 0.10f, 0.12f));
+                    UIDrawRect(new Rect(warnRect.x, warnRect.y, 3, warnRect.height), new Color(1.0f, 0.75f, 0.15f, 0.9f));
+                    GUI.Label(new Rect(warnRect.x + 8, warnRect.y + 2, warnRect.width - 12, 18), "ALERT: Hostile patrols active. Avoid detection where possible.", _briefingAlertStyle);
+
+                    float btnY = menuRect.y + 146;
+                    if (GUI.Button(new Rect(menuRect.x + 18, btnY, menuRect.width - 36, 38), "START MISSION", _btnPrimaryStyle))
+                    {
+                        StartMission();
+                    }
+                    if (GUI.Button(new Rect(menuRect.x + 18, btnY + 44, menuRect.width - 36, 28), "VIEW CONTROLS", _btnSecondaryStyle))
+                    {
+                        controls = true;
+                    }
                 }
                 else
                 {
-                    if (Run.State == MissionState.Won) GUILayout.Label($"Completion time: {Run.Elapsed:F1}s\nFour-agent challenge: unavailable (team AI pending)");
-                    if (GUILayout.Button(Run.State == MissionState.Won ? "Replay" : "Retry")) Restart();
+                    float cY = menuRect.y + 34;
+                    _hudTitleStyle.normal.textColor = new Color(1.00f, 0.76f, 0.18f);
+                    GUI.Label(new Rect(menuRect.x + 18, cY, 250, 18), "OPERATIONAL CONTROLS", _hudTitleStyle);
+
+                    float gridY = cY + 22;
+                    string col1 = "<b>[W][A][S][D]</b> Move\n" +
+                                  "<b>[SHIFT]</b> Tactical Sprint\n" +
+                                  "<b>[SPACE]</b> Jump / Vault\n" +
+                                  "<b>[MOUSE]</b> Look / Aim";
+                    string col2 = "<b>[L-CLICK]</b> Fire Weapon\n" +
+                                  "<b>[R]</b> Reload Magazine\n" +
+                                  "<b>[E]</b> Interact (Doors/Cards)\n" +
+                                  "<b>[F]</b> Kick Barrels & Props\n" +
+                                  "<b>[ESC]</b> Pause Mission";
+
+                    GUI.Label(new Rect(menuRect.x + 18, gridY, 205, 105), col1, _briefingBodyStyle);
+                    GUI.Label(new Rect(menuRect.x + 235, gridY, 205, 105), col2, _briefingBodyStyle);
+
+                    float btnY = menuRect.y + 195;
+                    if (GUI.Button(new Rect(menuRect.x + 18, btnY, 200, 34), "< BRIEFING", _btnSecondaryStyle))
+                    {
+                        controls = false;
+                    }
+                    if (GUI.Button(new Rect(menuRect.x + 225, btnY, 215, 34), "START MISSION", _btnPrimaryStyle))
+                    {
+                        StartMission();
+                    }
                 }
-                GUILayout.EndArea();
+            }
+            else if (Run.Paused && Run.Running)
+            {
+                float btnY = menuRect.y + 50;
+                if (GUI.Button(new Rect(menuRect.x + 30, btnY, menuRect.width - 60, 42), "RESUME MISSION", _btnPrimaryStyle))
+                {
+                    SetPause(false);
+                }
+                if (GUI.Button(new Rect(menuRect.x + 30, btnY + 52, menuRect.width - 60, 34), "RESTART", _btnSecondaryStyle))
+                {
+                    Restart();
+                }
+                if (GUI.Button(new Rect(menuRect.x + 30, btnY + 94, menuRect.width - 60, 34), "MAIN MENU", _btnSecondaryStyle))
+                {
+                    Restart();
+                }
+            }
+            else
+            {
+                float infoY = menuRect.y + 55;
+                if (Run.State == MissionState.Won)
+                {
+                    GUI.Label(new Rect(menuRect.x + 24, infoY, menuRect.width - 48, 50),
+                        $"Completion Time: <b><color=#00E676>{Run.Elapsed:F1}s</color></b>\nStatus: Target Neutralized • Extraction Confirmed", _briefingBodyStyle);
+                }
+                else
+                {
+                    GUI.Label(new Rect(menuRect.x + 24, infoY, menuRect.width - 48, 50),
+                        $"Status: <b><color=#FF5252>KIA / Mission Terminated</color></b>\nCause: {Run.LossReason}", _briefingBodyStyle);
+                }
+
+                float btnY = menuRect.y + 130;
+                if (GUI.Button(new Rect(menuRect.x + 30, btnY, menuRect.width - 60, 42), Run.State == MissionState.Won ? "REPLAY MISSION" : "RETRY MISSION", _btnPrimaryStyle))
+                {
+                    Restart();
+                }
+            }
+        }
+
+        private void DrawObjectiveBanner()
+        {
+            Rect objRect = new Rect(15, Screen.height - 62, 520, 48);
+            UIDrawPanel(objRect, new Color(0.85f, 0.60f, 0.12f, 0.40f));
+
+            string objective = Run.State == MissionState.Escape ? "DEVICE DEACTIVATED — reach the exit" :
+                               Run.State == MissionState.Deactivating ? $"Deactivating: {5 - Run.ShutdownRemaining:F1}/5 seconds" :
+                               !Run.HasCard ? "Find the access card near toxic waste" :
+                               player.transform.position.x > 10 && player.transform.position.z > 12 && player.transform.position.z < 24 ? "Connect the card to deactivate the device" : "Use the card to enter Machinery";
+
+            string prompt = feedbackTime > 0 ? feedback : (dispatcher != null ? dispatcher.GetContextualPrompt(target) : target ? target.Prompt : "");
+            if (string.IsNullOrEmpty(prompt) && kickController != null && kickController.HasKickableTarget(out var propName)) prompt = "F: Kick " + propName;
+
+            UIDrawRect(new Rect(objRect.x + 8, objRect.y + 8, 3, 16), new Color(1.00f, 0.76f, 0.18f, 1f));
+            GUI.Label(new Rect(objRect.x + 18, objRect.y + 7, objRect.width - 28, 18), objective, _objectiveStyle);
+
+            if (!string.IsNullOrEmpty(prompt))
+            {
+                _hudLabelStyle.normal.textColor = new Color(1.00f, 0.85f, 0.35f, 0.95f);
+                GUI.Label(new Rect(objRect.x + 18, objRect.y + 26, objRect.width - 28, 16), $"[ {prompt} ]", _hudLabelStyle);
+            }
+
+            if (Run.State == MissionState.Deactivating)
+            {
+                float pct = 1 - (float)Run.ShutdownRemaining / 5f;
+                UIDrawRect(new Rect(objRect.x, objRect.y - 6, objRect.width, 4), new Color(0.12f, 0.12f, 0.12f, 0.9f));
+                UIDrawRect(new Rect(objRect.x, objRect.y - 6, objRect.width * pct, 4), new Color(1.00f, 0.76f, 0.18f, 1f));
+            }
+        }
+
+        private void DrawTimerAndMinimap()
+        {
+            int seconds = Mathf.CeilToInt((float)Run.Remaining);
+            Rect timerRect = new Rect(Screen.width - 245, 15, 230, 36);
+
+            bool isAlert = seconds <= 60 && Run.Running;
+            Color timerAccent = isAlert ? (Mathf.PingPong(Time.time * 3f, 1f) > 0.4f ? new Color(1.0f, 0.2f, 0.2f) : new Color(0.7f, 0.1f, 0.1f)) :
+                                          new Color(0.85f, 0.60f, 0.12f, 0.50f);
+
+            UIDrawPanel(timerRect, timerAccent);
+
+            _timerStyle.normal.textColor = isAlert ? new Color(1.0f, 0.25f, 0.25f) : new Color(1.00f, 0.76f, 0.18f);
+            string timerText = $"{seconds / 60:00}:{seconds % 60:00}";
+            GUI.Label(timerRect, timerText, _timerStyle);
+
+            if (isAlert)
+            {
+                _hudBadgeStyle.normal.textColor = new Color(1.0f, 0.3f, 0.3f);
+                GUI.Label(new Rect(timerRect.x, timerRect.y + 20, timerRect.width, 14), "MELTDOWN WARNING", _hudBadgeStyle);
+            }
+
+            // Crosshair in center screen
+            Color crosshairCol = new Color(1.00f, 0.76f, 0.18f, 0.75f);
+            UIDrawRect(new Rect(Screen.width / 2f - 4, Screen.height / 2f, 8, 1), crosshairCol);
+            UIDrawRect(new Rect(Screen.width / 2f, Screen.height / 2f - 4, 1, 8), crosshairCol);
+
+            // Minimap
+            Rect mapRect = new Rect(Screen.width - 245, 55, 230, 330);
+            UIDrawPanel(mapRect, new Color(0.85f, 0.60f, 0.12f, 0.35f));
+            DrawMap(mapRect);
+        }
+
+        private void OnGUI()
+        {
+            if (!player) return;
+            EnsureUIStyles();
+
+            DrawTopLeftHUD();
+            DrawObjectiveBanner();
+            DrawTimerAndMinimap();
+
+            if (Run.State == MissionState.Menu || Run.Paused || Run.State == MissionState.Won || Run.State == MissionState.Lost)
+            {
+                DrawCenterMenu();
             }
         }
         private Vector2 MapPoint(Rect rect, Vector3 world) => new Vector2(rect.x + (world.x + 21) / 42 * rect.width, rect.yMax - (world.z + 30) / 60 * rect.height);

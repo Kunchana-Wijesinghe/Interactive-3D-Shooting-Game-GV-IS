@@ -18,7 +18,9 @@ namespace FacilityBreach.Audio
         FacilityAmbience,
         BarrelRollRattle,
         FootstepConcrete,
-        CrateDestroyed
+        CrateDestroyed,
+        EmergencySirenLoop,
+        ExplosionBlast
     }
 
     /// <summary>
@@ -64,6 +66,8 @@ namespace FacilityBreach.Audio
                 FacilityAudioClipType.BarrelRollRattle  => GetOrCreateRattleClip(0),
                 FacilityAudioClipType.FootstepConcrete  => GetOrCreateFootstepClip(0),
                 FacilityAudioClipType.CrateDestroyed    => SynthesizeCrateDestroyed(),
+                FacilityAudioClipType.EmergencySirenLoop=> SynthesizeEmergencySiren(),
+                FacilityAudioClipType.ExplosionBlast    => SynthesizeExplosionBlast(),
                 _                                       => SynthesizeGunshotAmmo1()
             };
 
@@ -654,6 +658,82 @@ namespace FacilityBreach.Audio
 
             NormalizeSamples(samples, 0.82f);
             AudioClip clip = AudioClip.Create("Procedural_Facility_Ambience", totalSamples, 1, SampleRate, false);
+            clip.SetData(samples, 0);
+            return clip;
+        }
+
+        private static AudioClip SynthesizeEmergencySiren()
+        {
+            float duration = 2.0f;
+            int totalSamples = Mathf.CeilToInt(SampleRate * duration);
+            float[] samples = new float[totalSamples];
+            double phase = 0;
+
+            for (int i = 0; i < totalSamples; i++)
+            {
+                float t = (float)i / SampleRate;
+                // Siren pitch wails up and down between 520Hz and 880Hz once per second
+                float currentFreq = 700f + 180f * Mathf.Sin(2f * Mathf.PI * 1.0f * t);
+                phase += 2.0 * Math.PI * currentFreq / SampleRate;
+
+                // Square-ish / sawtooth blend for piercing industrial horn alarm
+                float fundamental = (float)Math.Sin(phase);
+                float harmonic2 = (float)Math.Sin(phase * 2.0) * 0.45f;
+                float harmonic3 = (float)Math.Sin(phase * 3.0) * 0.25f;
+                float tone = fundamental + harmonic2 + harmonic3;
+
+                // Subtle tremolo amplitude modulation
+                float tremolo = 0.85f + 0.15f * Mathf.Sin(2f * Mathf.PI * 6.0f * t);
+                samples[i] = tone * tremolo;
+            }
+
+            // Smooth 5ms boundary seam for click-free looping
+            int seamSamples = Mathf.CeilToInt(SampleRate * 0.005f);
+            float targetSample = samples[0];
+            for (int k = 0; k < seamSamples; k++)
+            {
+                int idx = totalSamples - seamSamples + k;
+                float blend = (float)(k + 1) / seamSamples;
+                samples[idx] = Mathf.Lerp(samples[idx], targetSample, blend);
+            }
+
+            NormalizeSamples(samples, 0.75f);
+            AudioClip clip = AudioClip.Create("Procedural_Emergency_Siren", totalSamples, 1, SampleRate, false);
+            clip.SetData(samples, 0);
+            return clip;
+        }
+
+        private static AudioClip SynthesizeExplosionBlast()
+        {
+            float duration = 1.6f;
+            int totalSamples = Mathf.CeilToInt(SampleRate * duration);
+            float[] samples = new float[totalSamples];
+            var rng = new System.Random(8821);
+            float lowPassNoise = 0f;
+            double subPhase = 0;
+
+            for (int i = 0; i < totalSamples; i++)
+            {
+                float t = (float)i / SampleRate;
+
+                // Initial violent shockwave crack (broadband noise, steep decay)
+                float rawNoise = (float)rng.NextDouble() * 2f - 1f;
+                float crack = rawNoise * Mathf.Exp(-42f * t) * 0.85f;
+
+                // Sub-bass heavy thud sweeping down from 85Hz to 32Hz
+                float subFreq = Mathf.Lerp(85f, 32f, Mathf.Clamp01(t / 0.5f));
+                subPhase += 2.0 * Math.PI * subFreq / SampleRate;
+                float subBass = (float)Math.Sin(subPhase) * Mathf.Exp(-3.2f * t) * 0.95f;
+
+                // Rolling seismic rumble (filtered low-frequency noise)
+                lowPassNoise += (rawNoise - lowPassNoise) * 0.07f;
+                float rumble = lowPassNoise * Mathf.Exp(-1.8f * t) * 1.1f;
+
+                samples[i] = crack + subBass + rumble;
+            }
+
+            NormalizeSamples(samples, 0.90f);
+            AudioClip clip = AudioClip.Create("Procedural_Explosion_Blast", totalSamples, 1, SampleRate, false);
             clip.SetData(samples, 0);
             return clip;
         }

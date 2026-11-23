@@ -205,6 +205,33 @@ namespace FacilityBreach.Audio
             }
         }
 
+        /// <summary>
+        /// Plays an explosion blast audio effect at a spatial 3D position and subtle 2D sub-bass stereo rumble.
+        /// </summary>
+        public void PlayExplosion(Vector3 worldPosition, float volumeScale = 1.0f)
+        {
+            InitializePool();
+            if (spatialSourcePool == null || spatialSourcePool.Length == 0) return;
+
+            AudioClip clip = FacilityAudioSynthesizer.GetOrCreateClip(FacilityAudioClipType.ExplosionBlast);
+            if (clip == null) return;
+
+            AudioSource source = spatialSourcePool[nextSpatialSourceIndex];
+            nextSpatialSourceIndex = (nextSpatialSourceIndex + 1) % spatialSourcePool.Length;
+
+            if (source != null)
+            {
+                source.transform.position = worldPosition;
+                source.pitch = Random.Range(0.92f, 1.08f);
+                source.PlayOneShot(clip, Mathf.Clamp01(volumeScale * masterVolume));
+            }
+
+            if (player2dSource != null)
+            {
+                player2dSource.PlayOneShot(clip, Mathf.Clamp01(volumeScale * 0.45f * masterVolume));
+            }
+        }
+
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void ResetStatics()
         {
