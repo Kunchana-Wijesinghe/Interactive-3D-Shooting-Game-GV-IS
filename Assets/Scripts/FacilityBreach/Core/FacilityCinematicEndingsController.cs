@@ -163,6 +163,13 @@ namespace FacilityBreach.Core
             }
         }
 
+        public void Tick(float dt)
+        {
+            if (ActiveEnding == EndingSequenceType.None) return;
+            EndingTimer += dt;
+            UpdateCameraTransform();
+        }
+
         private void Update()
         {
             if (ActiveEnding == EndingSequenceType.None) return;
@@ -170,6 +177,11 @@ namespace FacilityBreach.Core
         }
 
         private void LateUpdate()
+        {
+            UpdateCameraTransform();
+        }
+
+        private void UpdateCameraTransform()
         {
             if (ActiveEnding == EndingSequenceType.None || targetCamera == null) return;
 
