@@ -702,7 +702,7 @@ namespace FacilityBreach
                 fontStyle = FontStyle.Normal,
                 alignment = TextAnchor.MiddleLeft
             };
-            _hudLabelStyle.normal.textColor = new Color(0.85f, 0.85f, 0.80f, 1f);
+            _hudLabelStyle.normal.textColor = new Color(0.92f, 0.92f, 0.90f, 1f);
 
             _hudValueStyle = new GUIStyle(GUI.skin.label)
             {
@@ -728,31 +728,31 @@ namespace FacilityBreach
                 fontStyle = FontStyle.Normal,
                 alignment = TextAnchor.MiddleCenter
             };
-            _briefingHeaderStyle.normal.textColor = new Color(1.00f, 0.76f, 0.18f, 1f);
+            _briefingHeaderStyle.normal.textColor = new Color(1.00f, 0.78f, 0.20f, 1f);
 
             _briefingBodyStyle = new GUIStyle(GUI.skin.label)
             {
                 font = gtaBodyFont,
-                fontSize = 12,
+                fontSize = 13,
                 wordWrap = false,
                 richText = true,
                 alignment = TextAnchor.UpperLeft
             };
-            _briefingBodyStyle.normal.textColor = new Color(0.92f, 0.92f, 0.90f, 1f);
+            _briefingBodyStyle.normal.textColor = Color.white;
 
             _briefingAlertStyle = new GUIStyle(GUI.skin.label)
             {
                 font = gtaBodyFont,
-                fontSize = 11,
+                fontSize = 12,
                 fontStyle = FontStyle.Bold,
                 alignment = TextAnchor.MiddleLeft
             };
-            _briefingAlertStyle.normal.textColor = new Color(1.0f, 0.82f, 0.30f);
+            _briefingAlertStyle.normal.textColor = new Color(1.0f, 0.88f, 0.40f);
 
             _objectiveStyle = new GUIStyle(GUI.skin.label)
             {
                 font = gtaBodyFont,
-                fontSize = 13,
+                fontSize = 14,
                 fontStyle = FontStyle.Bold,
                 alignment = TextAnchor.MiddleLeft
             };
@@ -807,9 +807,9 @@ namespace FacilityBreach
 
         private static void UIDrawPanel(Rect r, Color? border = null, Color? bg = null)
         {
-            Color bgColor = bg ?? new Color(0.06f, 0.06f, 0.06f, 0.92f);
-            Color borderColor = border ?? new Color(0.85f, 0.60f, 0.12f, 0.45f);
-            Color cornerColor = border ?? new Color(1.00f, 0.76f, 0.18f, 0.95f);
+            Color bgColor = bg ?? new Color(0.04f, 0.04f, 0.04f, 0.96f);
+            Color borderColor = border ?? new Color(0.85f, 0.60f, 0.12f, 0.50f);
+            Color cornerColor = border ?? new Color(1.00f, 0.78f, 0.20f, 0.95f);
 
             UIDrawRect(r, bgColor);
 
@@ -900,10 +900,10 @@ namespace FacilityBreach
                                  Run.Paused ? new Color(1.0f, 0.75f, 0.20f) :
                                  new Color(1.00f, 0.76f, 0.18f);
 
-            UIDrawPanel(menuRect, headerAccent);
+            UIDrawPanel(menuRect, headerAccent, new Color(0.03f, 0.03f, 0.03f, 0.985f));
 
-            UIDrawRect(new Rect(menuRect.x + 1, menuRect.y + 1, menuRect.width - 2, 28), new Color(headerAccent.r, headerAccent.g, headerAccent.b, 0.18f));
-            UIDrawRect(new Rect(menuRect.x + 1, menuRect.y + 29, menuRect.width - 2, 1), new Color(headerAccent.r, headerAccent.g, headerAccent.b, 0.45f));
+            UIDrawRect(new Rect(menuRect.x + 1, menuRect.y + 1, menuRect.width - 2, 28), new Color(headerAccent.r, headerAccent.g, headerAccent.b, 0.22f));
+            UIDrawRect(new Rect(menuRect.x + 1, menuRect.y + 29, menuRect.width - 2, 1), new Color(headerAccent.r, headerAccent.g, headerAccent.b, 0.55f));
 
             string title = Run.State == MissionState.Won ? "// MISSION COMPLETE" :
                            Run.State == MissionState.Lost ? $"// FAILED: {Run.LossReason}" :
@@ -921,22 +921,24 @@ namespace FacilityBreach
                     float rowH = 23f;
 
                     GUI.Label(new Rect(menuRect.x + 20, contentY, menuRect.width - 40, 20),
-                        "<color=#FFC107>[OBJECTIVE]</color>   Infiltrate facility and retrieve access card near toxic waste.", _briefingBodyStyle);
+                        "<color=#FFD54F><b>[OBJECTIVE]</b></color>   Infiltrate facility and retrieve access card near toxic waste.", _briefingBodyStyle);
 
                     GUI.Label(new Rect(menuRect.x + 20, contentY + rowH, menuRect.width - 40, 20),
-                        "<color=#FFC107>[TARGET]</color>      Connect card to device in Machinery.", _briefingBodyStyle);
+                        "<color=#FFD54F><b>[TARGET]</b></color>      Connect card to device in Machinery.", _briefingBodyStyle);
 
                     GUI.Label(new Rect(menuRect.x + 20, contentY + rowH * 2f, menuRect.width - 40, 20),
-                        $"<color=#FFC107>[TIME LIMIT]</color>  {dur} before emergency meltdown lockdown.", _briefingBodyStyle);
+                        $"<color=#FFD54F><b>[TIME LIMIT]</b></color>  {dur} before emergency meltdown lockdown.", _briefingBodyStyle);
 
                     GUI.Label(new Rect(menuRect.x + 20, contentY + rowH * 3f, menuRect.width - 40, 20),
-                        "<color=#FFC107>[ENGAGEMENT]</color>  Combat is optional. Escape alive.", _briefingBodyStyle);
+                        "<color=#FFD54F><b>[ENGAGEMENT]</b></color>  Combat is optional. Escape alive.", _briefingBodyStyle);
 
                     float warnY = contentY + rowH * 4f + 8f;
                     Rect warnRect = new Rect(menuRect.x + 20, warnY, menuRect.width - 40, 26);
-                    UIDrawRect(warnRect, new Color(1.0f, 0.70f, 0.10f, 0.12f));
-                    UIDrawRect(new Rect(warnRect.x, warnRect.y, 3, warnRect.height), new Color(1.0f, 0.75f, 0.15f, 0.9f));
-                    GUI.Label(new Rect(warnRect.x + 8, warnRect.y + 4, warnRect.width - 12, 18), "ALERT: Hostile patrols active. Avoid detection where possible.", _briefingAlertStyle);
+                    UIDrawRect(warnRect, new Color(0.18f, 0.12f, 0.02f, 0.94f));
+                    UIDrawRect(new Rect(warnRect.x, warnRect.y, warnRect.width, 1), new Color(1.0f, 0.75f, 0.15f, 0.45f));
+                    UIDrawRect(new Rect(warnRect.x, warnRect.yMax - 1, warnRect.width, 1), new Color(1.0f, 0.75f, 0.15f, 0.45f));
+                    UIDrawRect(new Rect(warnRect.x, warnRect.y, 4, warnRect.height), new Color(1.0f, 0.78f, 0.18f, 0.98f));
+                    GUI.Label(new Rect(warnRect.x + 10, warnRect.y + 4, warnRect.width - 16, 18), "ALERT: Hostile patrols active. Avoid detection where possible.", _briefingAlertStyle);
 
                     float btnY = warnY + 34f;
                     if (DrawTacticalButton(new Rect(menuRect.x + 20, btnY, menuRect.width - 40, 36), "START MISSION", true))
@@ -957,18 +959,18 @@ namespace FacilityBreach
                     float gridY = cY + 26;
                     string[] col1Lines = new string[]
                     {
-                        "<color=#FFC107>[W][A][S][D]</color>  Move",
-                        "<color=#FFC107>[SHIFT]</color>  Tactical Sprint",
-                        "<color=#FFC107>[SPACE]</color>  Jump / Vault",
-                        "<color=#FFC107>[MOUSE]</color>  Look / Aim"
+                        "<color=#FFD54F><b>[W][A][S][D]</b></color>  Move",
+                        "<color=#FFD54F><b>[SHIFT]</b></color>  Tactical Sprint",
+                        "<color=#FFD54F><b>[SPACE]</b></color>  Jump / Vault",
+                        "<color=#FFD54F><b>[MOUSE]</b></color>  Look / Aim"
                     };
                     string[] col2Lines = new string[]
                     {
-                        "<color=#FFC107>[L-CLICK]</color>  Fire Weapon",
-                        "<color=#FFC107>[R]</color>  Reload Magazine",
-                        "<color=#FFC107>[E]</color>  Interact (Doors/Cards)",
-                        "<color=#FFC107>[F]</color>  Kick Barrels & Props",
-                        "<color=#FFC107>[ESC]</color>  Pause Mission"
+                        "<color=#FFD54F><b>[L-CLICK]</b></color>  Fire Weapon",
+                        "<color=#FFD54F><b>[R]</b></color>  Reload Magazine",
+                        "<color=#FFD54F><b>[E]</b></color>  Interact (Doors/Cards)",
+                        "<color=#FFD54F><b>[F]</b></color>  Kick Barrels & Props",
+                        "<color=#FFD54F><b>[ESC]</b></color>  Pause Mission"
                     };
                     for (int i = 0; i < col1Lines.Length; i++)
                     {
