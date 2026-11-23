@@ -11,6 +11,7 @@ using FacilityBreach.AI.SoundHunter;
 using FacilityBreach.AI.Roles;
 using FacilityBreach.Audio;
 using FacilityBreach.Noise;
+using FacilityBreach.Environment;
 
 
 namespace FacilityBreach
@@ -56,6 +57,8 @@ namespace FacilityBreach
         public FpsImpactSparks ImpactSparks => impactSparks;
         private FacilityCinematicEndingsController endingsController;
         public FacilityCinematicEndingsController EndingsController => endingsController;
+        private FacilityToxicBarrelMeltdownVfx toxicMeltdownVfx;
+        public FacilityToxicBarrelMeltdownVfx ToxicMeltdownVfx => toxicMeltdownVfx;
         private FacilityAudioPlayer audioPlayer;
         public FacilityAudioPlayer AudioPlayer => audioPlayer;
         private FacilityAmbiencePlayer ambiencePlayer;
@@ -293,6 +296,8 @@ namespace FacilityBreach
                     Drum(holder.transform, "Barrel lid", at + Vector3.up * 1.005f, new Vector3(.8f, .01f, .8f), index % 3 == 0 ? glowLid : metal);
                     index++;
                 }
+            toxicMeltdownVfx = holder.AddComponent<FacilityToxicBarrelMeltdownVfx>();
+            toxicMeltdownVfx.Initialize(holder.transform, center);
         }
         private static void Drum(Transform parent, string drumName, Vector3 position, Vector3 scale, Material material)
         {
@@ -417,6 +422,7 @@ namespace FacilityBreach
                 return;
             }
             float dt = Time.deltaTime; Run.Tick(dt); GameplayTime += dt; Enemies.Tick(GameplayTime);
+            if (toxicMeltdownVfx != null && Run.Running) toxicMeltdownVfx.UpdateCountdown((float)Run.Remaining);
             CheckAndTriggerMissionEndings();
             if (!Run.Running) { CancelEnemyAttacks(); return; }
             foreach (var station in stations) station.Tick(dt);
@@ -454,6 +460,7 @@ namespace FacilityBreach
                 Vector3 playerPos = player ? player.transform.position : Vector3.zero;
                 if (Run.LossReason == "Time expired")
                 {
+                    if (toxicMeltdownVfx != null) toxicMeltdownVfx.Detonate();
                     endingsController.TriggerMeltdownExplosion(playerPos);
                 }
                 else
@@ -612,6 +619,7 @@ namespace FacilityBreach
         public void StartMission()
         {
             if (endingsController != null) endingsController.ResetSequence();
+            if (toxicMeltdownVfx != null) toxicMeltdownVfx.ResetVfx();
             if (!DevelopmentDiagnostics && TargetMissionDuration > 0)
             {
                 Run.ConfigureDuration(TargetMissionDuration);
@@ -624,6 +632,7 @@ namespace FacilityBreach
         {
             Time.timeScale = 1;
             if (endingsController != null) endingsController.ResetSequence();
+            if (toxicMeltdownVfx != null) toxicMeltdownVfx.ResetVfx();
             SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
         }
         private void OnDestroy()
