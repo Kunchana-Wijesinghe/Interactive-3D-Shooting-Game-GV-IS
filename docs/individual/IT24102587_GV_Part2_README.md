@@ -1178,7 +1178,10 @@ To provide robust, zero-dependency audio feedback without missing asset GUIDs, b
     - Hover State: Luminous golden glow fill (`Color(1.00f, 0.68f, 0.12f, 0.98f)`), bright gold border, contrasting dark charcoal text (`Color(0.06f, 0.04f, 0.02f)`).
   - **Mission Briefing Typography & Vertical Line Spacing**:
     - Disaggregated multi-line IMGUI label blocks into discrete, individually calculated label rows with 23px row spacing (`rowH = 23f`) and 20px label heights to completely eliminate line clumping ("eka godee") caused by tight custom font leading.
-    - Added high-visibility amber tags (`<color=#FFC107>[TAG]</color>`) for `[OBJECTIVE]`, `[TARGET]`, `[TIME LIMIT]`, `[ENGAGEMENT]`, and operational controls (`[W][A][S][D]`, `[SHIFT]`, `[L-CLICK]`, etc.).
+    - Upgraded body typography from 12pt to **13pt** (`fontSize = 13`) with full pure white text (`Color.white`) and increased stroke weight for razor-sharp legibility on high-DPI displays.
+    - Added high-visibility tactical gold tags (`<color=#FFD54F><b>[TAG]</b></color>`) for `[OBJECTIVE]`, `[TARGET]`, `[TIME LIMIT]`, `[ENGAGEMENT]`, and operational controls (`[W][A][S][D]`, `[SHIFT]`, `[L-CLICK]`, etc.).
+    - Implemented high-opacity dark slate backdrop backing (`98.5% opacity`, `Color(0.03f, 0.03f, 0.03f, 0.985f)`) to completely isolate modal text from background 3D wall point lights and rock texture bleeding.
+    - Redesigned the in-modal alert strip with a high-contrast dark amber-charcoal container (`Color(0.18f, 0.12f, 0.02f, 0.94f)`), a 4px solid gold indicator bar, and 12pt vibrant yellow caution text (`Color(1.0f, 0.88f, 0.40f)`).
     - Expanded modal panel dimensions (`panelWidth = 470f`, `panelHeight = 270f` / `310f`) to accommodate comfortable margins, distinct alert strip separation, and cleanly padded tactical action buttons without overlapping.
 
 ---
