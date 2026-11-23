@@ -1164,26 +1164,26 @@ To provide robust, zero-dependency audio feedback without missing asset GUIDs, b
   - Native dynamic font generation renders glyphs on-demand with hardware anti-aliasing and subpixel precision at any resolution and scale factor (1.0x, 1.3x, 2.0x, and 4K displays).
   - Restored crisp, razor-sharp HUD labels, timer readouts, objective banners, and modal dialog text matching initial baseline clarity.
 
-### 16.2 High-Contrast Button Styling & Pause Menu Ergonomics
-- **Root-Cause Resolution of Dark-on-Dark Button Illegibility**:
-  - In dark Unity editor themes or customized IMGUI skins, secondary buttons previously lacked explicit border geometry and suffered from dark text color fallbacks, rendering buttons like `RESTART` and `MAIN MENU` virtually invisible against dark facility backdrops.
-- **Tactical High-Contrast Button Engine**:
-  - **Bordered Texture Generator (`MakeBorderedTex`)**: Generates custom 9-sliced style button textures featuring a dedicated 1px bright tactical amber border (`Color(0.85f, 0.60f, 0.12f, 0.75f)`) and rich industrial charcoal fill (`Color(0.16f, 0.14f, 0.10f, 0.95f)`).
+### 16.2 High-Contrast Tactical Button Engine & Clean Geometry Rendering
+- **Root-Cause Resolution of Button Color Bleeding & Texture Banding**:
+  - Previously, attempting to bake a border into small fixed-resolution textures (`MakeBorderedTex(6, 6)`) caused IMGUI's bilinear texture magnification to stretch outer border pixels into thick, ugly horizontal/vertical bands and blended color artifacts across the buttons.
+- **Dedicated Procedural Tactical Button Renderer (`DrawTacticalButton`)**:
+  - Completely removed texture-based borders. Buttons now render solid, flat fill colors (`UIDrawRect`) with exact 1-pixel screen coordinate outline borders and 5px high-tech corner brackets.
+  - Transparent event button overlay (`_btnTransparentTex`) captures standard Unity IMGUI input clicks, mouse hover states, and audio events without texture interpolation artifacts.
   - **Secondary Buttons (`RESTART`, `MAIN MENU`, `VIEW CONTROLS`, `< BRIEFING`)**:
-    - Normal State: Crisp 1px amber border, bright white text (`Color.white`), bold typography.
-    - Hover State: Bright gold border (`Color(1.00f, 0.80f, 0.25f)`), warm amber text (`Color(1.00f, 0.82f, 0.25f)`), highlighted fill.
-    - Active & Focused States: Explicitly locked to `Color.white` to prevent skin color override.
+    - Normal State: Solid dark industrial slate fill (`Color(0.14f, 0.13f, 0.11f, 0.92f)`), crisp 1px tactical amber border (`Color(0.85f, 0.60f, 0.12f, 0.50f)`), bright clean white text (`Color(0.95f, 0.95f, 0.92f)`).
+    - Hover State: Highlighted slate fill (`Color(0.24f, 0.22f, 0.18f, 0.96f)`), luminous gold border (`Color(1.00f, 0.80f, 0.25f)`), warm gold glowing text (`Color(1.00f, 0.82f, 0.25f)`).
   - **Primary Buttons (`START MISSION`, `RESUME MISSION`, `REPLAY MISSION`)**:
-    - Normal State: Solid tactical amber fill (`Color(0.85f, 0.55f, 0.08f)`), bright white bold text.
-    - Hover State: Luminous amber-gold fill (`Color(1.00f, 0.70f, 0.15f)`), contrasting dark charcoal text (`Color(0.08f, 0.05f, 0.02f)`).
+    - Normal State: Solid rich tactical amber fill (`Color(0.85f, 0.54f, 0.08f, 0.92f)`), 1px gold border, crisp white bold text.
+    - Hover State: Luminous golden glow fill (`Color(1.00f, 0.68f, 0.12f, 0.98f)`), bright gold border, contrasting dark charcoal text (`Color(0.06f, 0.04f, 0.02f)`).
   - **Mission Briefing Formatting**: Structured objective cards with bold bracket tags (`[OBJECTIVE]`, `[TARGET]`, `[TIME LIMIT]`, `[ENGAGEMENT]`) and centered warning alert strip (`ALERT: Hostile patrols active...`) with dedicated margins preventing text overflow or clipping.
 
 ---
 
-## 17. Facility Meltdown Emergency Alert & 30-Second High-Gain Looping Klaxon Audio System
+## 17. Facility Meltdown Emergency Alert & Controlled Cadence Klaxon Audio System
 
 ### 17.1 System Overview & Architecture
-The Facility Meltdown Emergency Alert System provides an intense, multi-sensory countdown climax during the final phase of a mission run. When the countdown timer approaches zero, the facility transitions from standard security patrol mode to an escalating catastrophic emergency state.
+The Facility Meltdown Emergency Alert System provides an escalating multi-sensory countdown climax during the final phase of a mission run. When the countdown timer approaches zero, the facility transitions from standard security patrol mode to an escalating catastrophic emergency state.
 
 ```mermaid
 graph TD
@@ -1191,11 +1191,14 @@ graph TD
     Check60 -- Yes --> RedStrobe["Emergency Lighting Controller<br/>- Red Flashing Strobe (2.5 Hz)<br/>- Ambient Red Pulsing<br/>- HUD Meltdown Warning"]
     Check60 -- No --> NormalState["Normal Facility State"]
 
-    Timer --> Check30{"Remaining <= 30s?"}
-    Check30 -- Yes --> KlaxonTrigger["Emergency Alarm Trigger<br/>- soundAlertTriggered = true<br/>- AudioPlayer.StartEmergencyAlarm()"]
-    Check30 -- No --> SilentAlarm["Klaxon Idle"]
+    Timer --> Check30{"Remaining <= 30s & > 10s?"}
+    Check30 -- Yes --> KlaxonInterval["Staggered Alarm Bursts<br/>- Plays single klaxon burst (~1.5s)<br/>- 4-Second Silence Interval<br/>- Repeats until last 10 seconds"]
 
-    KlaxonTrigger --> AudioPlayer["FacilityAudioPlayer<br/>- emergencySirenSource<br/>- Loop = true<br/>- Gain Boosted = 1.0f<br/>- 2D Full Facility Coverage"]
+    Timer --> Check10{"Remaining <= 10s & > 0s?"}
+    Check10 -- Yes --> KlaxonContinuous["Continuous Meltdown Klaxon<br/>- Repeating seamless loop<br/>- Pitch escalates towards 1.15x<br/>- Rapid Red Strobe"]
+
+    Timer --> Check0{"Remaining <= 0s (Mission Expired / Timeout)?"}
+    Check0 -- Yes --> KlaxonHalt["Instant Sound Cutoff<br/>- Siren stops immediately<br/>- AudioPlayer.StopEmergencyAlarm()<br/>- Zero audio post-timeout"]
 
     EscKey["Player Presses ESC / Pauses"] --> PauseSync["FacilityBreachRuntime.SetPause(true)"]
     PauseSync --> AlertPause["AlertController.PauseSiren(true)<br/>- AudioSource Paused Immediately"]
@@ -1208,19 +1211,25 @@ graph TD
 - **Camera Trauma & Environmental Shake**: Subtle Perlin camera trauma ($\text{trauma} = 0.18$) applied to the player camera pivot, evoking imminent structural collapse without inducing motion sickness.
 - **HUD Alarm Indication**: HUD timer banner pulses red at 3.0 Hz with a glowing `MELTDOWN WARNING` status badge.
 
-### 17.3 30-Second High-Gain Repeating Klaxon Alarm Audio Pipeline
+### 17.3 Controlled Cadence Klaxon Alarm Audio Pipeline & Volume Calibration
 - **Asset Provenance & Specification**:
   - **Source Clip**: Provided by user (`uploaded_media_1795428625921.mp3`, 17,280 bytes, authentic tactical alarm / klaxon buzzer burst).
   - **Asset Location**: Placed at both `Assets/Resources/Audio/Emergency/facility_emergency_alarm.mp3` and `Assets/Audio/Emergency/facility_emergency_alarm.mp3`.
   - **Import Configuration (`.meta`)**: Configured with `3D: 0` (2D non-spatialized for crisp facility-wide emergency broadcast), `loadType: 0` (DecompressOnLoad for zero-latency instant playback), `preloadAudioData: 1`, and `normalize: 1`.
-- **Audio Pipeline Integration ([FacilityAudioPlayer.cs](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/Audio/FacilityAudioPlayer.cs))**:
-  - **Dedicated AudioSource (`[FacilityEmergencySirenSource]`)**: Dedicated child GameObject attached to `FacilityAudioPlayer`, isolated from standard SFX and footstep sources.
-  - **Seamless Repeating Loop**: Configured with `loop = true`, repeating the 1.5-second emergency klaxon burst continuously throughout the final 30 seconds of the mission.
-  - **Gain Amplification**: Configured with target volume $1.0f$ (`sirenVolumeTarget = 1.0f`), providing maximum clean audible punch across laptop and external speakers without distortion or clipping.
-  - **Full 2D Broadcast**: `spatialBlend = 0.0` ensures the siren remains equally loud throughout all corridors, machinery rooms, and airlocks.
+- **Calibrated Volume (50% Attenuation)**:
+  - Reduced master target volume from `1.0f` to `0.50f` (`sirenVolumeTarget = 0.50f`), eliminating harsh listener ear fatigue while preserving distinct warning clarity.
+  - Eliminated dual-source conflict: siren audio is routed through `sirenSource` on `FacilityEmergencyAlertController`, preventing double-playback amplification.
+- **Dynamic Countdown Cadence**:
+  1. **Final 30s to 10s Window ($30\text{s} \ge \text{Remaining} > 10\text{s}$)**:
+     - Non-looping single burst playback (`sirenSource.loop = false`).
+     - Enforces a strict 4.0-second silence interval between successive alarm bursts (`nextSirenPlayTime = Time.time + clipDuration + 4.0f`), creating an authentic military warning pulse.
+  2. **Final 10 Seconds Climax ($10\text{s} \ge \text{Remaining} > 0\text{s}$)**:
+     - Shifts dynamically into seamless continuous looping (`sirenSource.loop = true`), building urgency as time runs out.
+  3. **3-Minute Mission Expiration Cutoff ($\text{Remaining} \le 0\text{s}$)**:
+     - Audio is immediately and unconditionally silenced upon timeout or mission termination (`sirenSource.Stop()`), guaranteeing zero sound playback after the 3-minute limit expires.
 - **Strict Lifecycle & Pause Synchronization**:
-  - **Pause Integration**: Controlled via `SetEmergencyAlarmPause(bool paused)`. When the player pauses the game or opens the menu, `FacilityBreachRuntime.SetPause` immediately halts the siren so loud alarm audio does not blast while reading controls or settings.
+  - **Pause Integration**: Controlled via `SetEmergencyAlarmPause(bool paused)`. When the player pauses the game or opens the menu, `FacilityBreachRuntime.SetPause` immediately halts the siren so alarm audio never bleeds into pause menus or settings.
   - **Deactivation**: Stops cleanly upon mission victory (`Run.State == Won`), mission loss (`Run.State == Lost`), or mission restart (`Restart()`).
 - **Automated Unit Test Verification ([FacilityEmergencyAlertTests.cs](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Editor/FacilityBreach/FacilityEmergencyAlertTests.cs))**:
-  - `AudioPlayer_EmergencyAlarmPlaybackAndPauseLifecycle`: Verifies initialization, 1.0f volume assignment, pause/unpause state consistency, and clean stop.
-  - `AlertController_EmergencyAlarm30sThresholdAndVolumeTarget`: Verifies `SoundAlertRemainingSeconds == 30f` and `LightAlertRemainingSeconds == 60f`.
+  - `AudioPlayer_EmergencyAlarmPlaybackAndPauseLifecycle`: Verifies initialization, 0.50f volume assignment, pause/unpause state consistency, and clean stop.
+  - `AlertController_EmergencyAlarm30sThresholdAndVolumeTarget`: Verifies `SoundAlertRemainingSeconds == 30f`, `LightAlertRemainingSeconds == 60f`, and `ClimaxRemainingSeconds == 10f`.
