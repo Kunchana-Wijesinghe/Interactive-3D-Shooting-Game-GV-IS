@@ -84,10 +84,10 @@ namespace FacilityBreach.Environment
             smokeGo.transform.position = clusterCenter + Vector3.up * 0.9f;
 
             smokeParticleSystem = smokeGo.AddComponent<ParticleSystem>();
+            smokeParticleSystem.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
             var main = smokeParticleSystem.main;
             main.playOnAwake = false;
             main.loop = true;
-            main.duration = 5.0f;
             main.startLifetime = 2.2f;
             main.startSpeed = 1.8f;
             main.startSize = new ParticleSystem.MinMaxCurve(0.45f, 0.95f);
@@ -149,6 +149,7 @@ namespace FacilityBreach.Environment
             expGo.transform.position = clusterCenter + Vector3.up * 0.5f;
 
             explosionParticleSystem = expGo.AddComponent<ParticleSystem>();
+            explosionParticleSystem.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
             var main = explosionParticleSystem.main;
             main.playOnAwake = false;
             main.loop = false;
