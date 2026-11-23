@@ -229,6 +229,7 @@ namespace FacilityBreach
             obj.AddComponent<SoundHunterNavMeshMover>();
             obj.AddComponent<EnemyModelAnimation>();
             obj.AddComponent<EnemyPresentation>();
+            obj.AddComponent<RobotLegLocomotion>();
             return obj;
         }
         private static void RemoveVisualColliders(GameObject visual)
