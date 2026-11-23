@@ -50,9 +50,16 @@ In Play mode, enter the facility through its existing entrance door, traverse th
 | Member | Part | Role | Responsibilities |
 |---|---|---|---|
 | **Pesanjith** | Part 1 | World Builder | Level architecture, lighting, environmental meshes, scene coordination |
-| **Wijesinghe K** | Part 2 | Systems Engineer | Rendering pipeline, camera systems, VFX, UI/HUD integration |
+| **Wijesinghe K** | Part 2 | Systems Engineer | Rendering pipeline, camera systems, VFX, tactical UI/HUD engine, 5.0m wall & lighting architecture, facility emergency alert & 30s klaxon audio systems |
 | **Perera** | Part 3 | Core Developer | Core gameplay loop, weapon mechanics, ballistics, damage system |
 | **Bandara** | Part 4 | Agent Controller | Animation state machines, character physics, shared movement controller |
+
+#### Systems Engineering Deliverables (Wijesinghe K - IT24102587)
+- **Interactive Environment Mechanics**: Safe interactive doors (`InteractiveDoor.cs`, `DoorTrigger.cs`), movable non-destructible barricades (`MovableBarricade.cs`), centralized arbitration (`FacilityInteractionDispatcher.cs`), and dynamic NavMesh obstacle carving.
+- **Physical Prop Dynamics & Audio**: Kickable physics props (`KickablePhysicsProp.cs`), metallic rolling rattle scheduling, continuous roll sound, impact transients, authentic recorded footstep locomotion, and dedicated 2D industrial ambience.
+- **Facility Architecture & Lighting Upgrade**: 5.0m concrete wall height upgrade, structural beam adjustments, and dual-directional industrial wall sconce up/down corridor lighting (`FacilityWallSconces.cs`).
+- **Tactical High-Definition UI Engine**: Native dynamic vector typography (100% crisp at any DPI/scaling), high-contrast amber-bordered interactive buttons, structured mission briefing cards, and clear pause/game-over menus (`FacilityBreachRuntime.cs`).
+- **Emergency Meltdown & Klaxon Siren**: Facility emergency alert controller (`FacilityEmergencyAlertController.cs`) with 60s red strobe lighting and camera trauma, plus a repeating high-gain 30-second klaxon alarm (`FacilityAudioPlayer.cs`) with strict pause menu synchronization.
 
 ---
 
