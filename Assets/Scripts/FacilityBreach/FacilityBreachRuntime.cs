@@ -891,8 +891,8 @@ namespace FacilityBreach
 
         private void DrawCenterMenu()
         {
-            float panelWidth = 460f;
-            float panelHeight = controls && Run.State == MissionState.Menu ? 300f : 255f;
+            float panelWidth = 470f;
+            float panelHeight = controls && Run.State == MissionState.Menu ? 310f : 270f;
             Rect menuRect = new Rect(Screen.width / 2f - panelWidth / 2f, Screen.height / 2f - panelHeight / 2f, panelWidth, panelHeight);
 
             Color headerAccent = Run.State == MissionState.Won ? new Color(0.0f, 0.95f, 0.50f) :
@@ -916,56 +916,75 @@ namespace FacilityBreach
             {
                 if (!controls)
                 {
-                    float contentY = menuRect.y + 36;
+                    float contentY = menuRect.y + 40;
                     string dur = TargetMissionDuration <= 180f ? "3 Minutes" : "5 Minutes";
+                    float rowH = 23f;
 
-                    GUI.Label(new Rect(menuRect.x + 18, contentY, menuRect.width - 36, 72),
-                        $"<b>[OBJECTIVE]</b> Infiltrate facility and retrieve access card near toxic waste.\n" +
-                        $"<b>[TARGET]</b> Connect card to device in Machinery.\n" +
-                        $"<b>[TIME LIMIT]</b> {dur} before emergency meltdown lockdown.\n" +
-                        $"<b>[ENGAGEMENT]</b> Combat is optional. Escape alive.", _briefingBodyStyle);
+                    GUI.Label(new Rect(menuRect.x + 20, contentY, menuRect.width - 40, 20),
+                        "<color=#FFC107>[OBJECTIVE]</color>   Infiltrate facility and retrieve access card near toxic waste.", _briefingBodyStyle);
 
-                    Rect warnRect = new Rect(menuRect.x + 18, contentY + 76, menuRect.width - 36, 24);
+                    GUI.Label(new Rect(menuRect.x + 20, contentY + rowH, menuRect.width - 40, 20),
+                        "<color=#FFC107>[TARGET]</color>      Connect card to device in Machinery.", _briefingBodyStyle);
+
+                    GUI.Label(new Rect(menuRect.x + 20, contentY + rowH * 2f, menuRect.width - 40, 20),
+                        $"<color=#FFC107>[TIME LIMIT]</color>  {dur} before emergency meltdown lockdown.", _briefingBodyStyle);
+
+                    GUI.Label(new Rect(menuRect.x + 20, contentY + rowH * 3f, menuRect.width - 40, 20),
+                        "<color=#FFC107>[ENGAGEMENT]</color>  Combat is optional. Escape alive.", _briefingBodyStyle);
+
+                    float warnY = contentY + rowH * 4f + 8f;
+                    Rect warnRect = new Rect(menuRect.x + 20, warnY, menuRect.width - 40, 26);
                     UIDrawRect(warnRect, new Color(1.0f, 0.70f, 0.10f, 0.12f));
                     UIDrawRect(new Rect(warnRect.x, warnRect.y, 3, warnRect.height), new Color(1.0f, 0.75f, 0.15f, 0.9f));
-                    GUI.Label(new Rect(warnRect.x + 8, warnRect.y + 3, warnRect.width - 12, 18), "ALERT: Hostile patrols active. Avoid detection where possible.", _briefingAlertStyle);
+                    GUI.Label(new Rect(warnRect.x + 8, warnRect.y + 4, warnRect.width - 12, 18), "ALERT: Hostile patrols active. Avoid detection where possible.", _briefingAlertStyle);
 
-                    float btnY = menuRect.y + 146;
-                    if (DrawTacticalButton(new Rect(menuRect.x + 18, btnY, menuRect.width - 36, 38), "START MISSION", true))
+                    float btnY = warnY + 34f;
+                    if (DrawTacticalButton(new Rect(menuRect.x + 20, btnY, menuRect.width - 40, 36), "START MISSION", true))
                     {
                         StartMission();
                     }
-                    if (DrawTacticalButton(new Rect(menuRect.x + 18, btnY + 44, menuRect.width - 36, 28), "VIEW CONTROLS", false))
+                    if (DrawTacticalButton(new Rect(menuRect.x + 20, btnY + 42, menuRect.width - 40, 28), "VIEW CONTROLS", false))
                     {
                         controls = true;
                     }
                 }
                 else
                 {
-                    float cY = menuRect.y + 34;
+                    float cY = menuRect.y + 38;
                     _hudTitleStyle.normal.textColor = new Color(1.00f, 0.76f, 0.18f);
-                    GUI.Label(new Rect(menuRect.x + 18, cY, 250, 18), "OPERATIONAL CONTROLS", _hudTitleStyle);
+                    GUI.Label(new Rect(menuRect.x + 20, cY, 250, 18), "OPERATIONAL CONTROLS", _hudTitleStyle);
 
-                    float gridY = cY + 22;
-                    string col1 = "<b>[W][A][S][D]</b> Move\n" +
-                                  "<b>[SHIFT]</b> Tactical Sprint\n" +
-                                  "<b>[SPACE]</b> Jump / Vault\n" +
-                                  "<b>[MOUSE]</b> Look / Aim";
-                    string col2 = "<b>[L-CLICK]</b> Fire Weapon\n" +
-                                  "<b>[R]</b> Reload Magazine\n" +
-                                  "<b>[E]</b> Interact (Doors/Cards)\n" +
-                                  "<b>[F]</b> Kick Barrels & Props\n" +
-                                  "<b>[ESC]</b> Pause Mission";
+                    float gridY = cY + 26;
+                    string[] col1Lines = new string[]
+                    {
+                        "<color=#FFC107>[W][A][S][D]</color>  Move",
+                        "<color=#FFC107>[SHIFT]</color>  Tactical Sprint",
+                        "<color=#FFC107>[SPACE]</color>  Jump / Vault",
+                        "<color=#FFC107>[MOUSE]</color>  Look / Aim"
+                    };
+                    string[] col2Lines = new string[]
+                    {
+                        "<color=#FFC107>[L-CLICK]</color>  Fire Weapon",
+                        "<color=#FFC107>[R]</color>  Reload Magazine",
+                        "<color=#FFC107>[E]</color>  Interact (Doors/Cards)",
+                        "<color=#FFC107>[F]</color>  Kick Barrels & Props",
+                        "<color=#FFC107>[ESC]</color>  Pause Mission"
+                    };
+                    for (int i = 0; i < col1Lines.Length; i++)
+                    {
+                        GUI.Label(new Rect(menuRect.x + 20, gridY + i * 23f, 205, 20), col1Lines[i], _briefingBodyStyle);
+                    }
+                    for (int i = 0; i < col2Lines.Length; i++)
+                    {
+                        GUI.Label(new Rect(menuRect.x + 232, gridY + i * 23f, 210, 20), col2Lines[i], _briefingBodyStyle);
+                    }
 
-                    GUI.Label(new Rect(menuRect.x + 18, gridY, 205, 105), col1, _briefingBodyStyle);
-                    GUI.Label(new Rect(menuRect.x + 235, gridY, 205, 105), col2, _briefingBodyStyle);
-
-                    float btnY = menuRect.y + 195;
-                    if (DrawTacticalButton(new Rect(menuRect.x + 18, btnY, 200, 34), "< BRIEFING", false))
+                    float btnY = menuRect.y + 215;
+                    if (DrawTacticalButton(new Rect(menuRect.x + 20, btnY, 205, 34), "< BRIEFING", false))
                     {
                         controls = false;
                     }
-                    if (DrawTacticalButton(new Rect(menuRect.x + 225, btnY, 215, 34), "START MISSION", true))
+                    if (DrawTacticalButton(new Rect(menuRect.x + 235, btnY, 215, 34), "START MISSION", true))
                     {
                         StartMission();
                     }
