@@ -306,13 +306,13 @@ namespace FacilityBreach.EditorTests
                 Assert(!vfx.IsVentingSmoke, "IsVentingSmoke initially false");
                 Assert(!vfx.HasDetonated, "HasDetonated initially false");
 
-                // Update with remaining = 8.0s (no smoke yet)
-                vfx.UpdateCountdown(8.0f);
-                Assert(!vfx.IsVentingSmoke, "Should not vent smoke at remaining 8.0s (>5s)");
+                // Update with remaining = 20.0s (no smoke yet, >15s threshold)
+                vfx.UpdateCountdown(20.0f);
+                Assert(!vfx.IsVentingSmoke, "Should not vent smoke at remaining 20.0s (>15s)");
 
-                // Update with remaining = 4.5s (triggers smoke venting in last 5s)
-                vfx.UpdateCountdown(4.5f);
-                Assert(vfx.IsVentingSmoke, "Should vent smoke at remaining 4.5s (<=5s)");
+                // Update with remaining = 14.5s (triggers smoke venting in last 15s)
+                vfx.UpdateCountdown(14.5f);
+                Assert(vfx.IsVentingSmoke, "Should vent smoke at remaining 14.5s (<=15s)");
                 Assert(!vfx.HasDetonated, "HasDetonated should remain false while venting");
 
                 // Detonate at 0.0s

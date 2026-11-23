@@ -1260,11 +1260,12 @@ graph TD
 ```
 
 ### 18.2 Sequence 1: Meltdown Detonation & Toxic Barrel Pre-Detonation Smoke ([FacilityToxicBarrelMeltdownVfx.cs](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/Environment/FacilityToxicBarrelMeltdownVfx.cs))
-- **Pre-Detonation Smoke Venting (Final 5 Seconds: $\text{Remaining} \le 5.0\text{s}$)**:
-  - As the mission countdown enters its final 5 seconds, the toxic barrels near the access card containment zone begin violently venting dense toxic smoke.
-  - Procedural particle smoke plumes (dark toxic soot `#334733` with radioactive green haze) billow upwards into the ceiling at $1.8\text{m/s}$, expanding to $2.4\text{m}$ radius.
-  - Barrel lids exhibit rapid 8Hz overpressure flashing, transitioning from radioactive green to high-intensity warning amber/yellow.
-  - Spatialized 3D pneumatic steam venting audio cues warn the player of imminent containment breach.
+- **Pre-Detonation Multi-Directional Smoke Venting (Final 15 Seconds: $\text{Remaining} \le 15.0\text{s}$)**:
+  - As the mission countdown enters its final 15 seconds, the toxic barrels near the access card containment zone begin venting dense toxic smoke that disperses and billows radially in all directions.
+  - Procedural particle smoke plumes feature wide $38^\circ$ cone dispersion with dynamic velocity over lifetime ($\pm 1.6\text{m/s}$ in X and Z, rising in Y) and organic Perlin noise turbulence (strength $0.85$, frequency $0.45$), simulating realistic billowing eddies and expanding clouds ($0.6\text{m} \rightarrow 4.5\text{m}$).
+  - Particle emission rate dynamically escalates from $25\text{/s}$ at $15\text{s}$ up to $65\text{/s}$ at meltdown, creating an escalating thick toxic fog covering Sector A.
+  - Barrel lids exhibit escalating overpressure flashing (ramping from 4Hz to 18Hz) transitioning from radioactive green to high-intensity caution amber/yellow.
+  - Spatialized 3D pneumatic steam venting audio cues scale dynamically in volume and pitch as pressure mounts.
 - **Catastrophic Detonation (Timeout: $\text{Remaining} \le 0\text{s}$)**:
   - The toxic barrel cluster near the access card violently detonates with a concentrated fireball burst and high-velocity shrapnel.
   - **Physical Barrel Launch**: Each toxic barrel is dynamically converted into an active Rigidbody and propelled across the facility using `rb.AddExplosionForce(1200f, clusterCenter, 16f, 2.4f, ForceMode.Impulse)` and high angular torque.

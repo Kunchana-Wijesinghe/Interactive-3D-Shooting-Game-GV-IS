@@ -20,7 +20,7 @@ namespace FacilityBreach.Environment
 
         [Header("Timing & Thresholds")]
         [Tooltip("Remaining seconds threshold at which smoke venting begins.")]
-        [SerializeField] private float smokeWarningThreshold = 5.0f;
+        [SerializeField] private float smokeWarningThreshold = 15.0f;
 
         [Header("Physical Explosion Parameters")]
         [SerializeField] private float blastForce = 1200f;
@@ -88,27 +88,55 @@ namespace FacilityBreach.Environment
             var main = smokeParticleSystem.main;
             main.playOnAwake = false;
             main.loop = true;
-            main.startLifetime = 2.2f;
-            main.startSpeed = 1.8f;
-            main.startSize = new ParticleSystem.MinMaxCurve(0.45f, 0.95f);
-            main.startColor = new Color(0.20f, 0.28f, 0.18f, 0.70f); // Dark toxic soot/green
+            main.startLifetime = new ParticleSystem.MinMaxCurve(2.8f, 4.2f);
+            main.startSpeed = new ParticleSystem.MinMaxCurve(1.2f, 2.6f);
+            main.startSize = new ParticleSystem.MinMaxCurve(0.6f, 1.3f);
+            main.startRotation = new ParticleSystem.MinMaxCurve(0f, 360f * Mathf.Deg2Rad);
+            main.startColor = new Color(0.18f, 0.22f, 0.16f, 0.78f); // Dark toxic soot/green
             main.simulationSpace = ParticleSystemSimulationSpace.World;
-            main.gravityModifier = -0.15f; // Rises naturally
+            main.gravityModifier = -0.18f; // Naturally buoyant, rises upward
 
             var emission = smokeParticleSystem.emission;
             emission.enabled = true;
             emission.rateOverTime = 30f;
 
+            // Wide Cone shape to billow outward in 360-degree radial dispersion
             var shape = smokeParticleSystem.shape;
             shape.enabled = true;
-            shape.shapeType = ParticleSystemShapeType.Box;
-            shape.scale = new Vector3(3.2f, 0.3f, 3.0f);
+            shape.shapeType = ParticleSystemShapeType.Cone;
+            shape.angle = 38f;
+            shape.radius = 1.9f;
+            shape.radiusThickness = 1.0f;
 
+            // Multidirectional dispersion velocity: spreading out across X and Z while rising in Y
+            var velocityOverLifetime = smokeParticleSystem.velocityOverLifetime;
+            velocityOverLifetime.enabled = true;
+            velocityOverLifetime.space = ParticleSystemSimulationSpace.World;
+            velocityOverLifetime.x = new ParticleSystem.MinMaxCurve(-1.6f, 1.6f);
+            velocityOverLifetime.y = new ParticleSystem.MinMaxCurve(0.8f, 2.4f);
+            velocityOverLifetime.z = new ParticleSystem.MinMaxCurve(-1.6f, 1.6f);
+
+            // Realistic Perlin noise turbulence for swirling eddies and organic smoke curls
+            var noise = smokeParticleSystem.noise;
+            noise.enabled = true;
+            noise.strength = 0.85f;
+            noise.frequency = 0.45f;
+            noise.scrollSpeed = 0.55f;
+            noise.damping = true;
+            noise.octaveCount = 2;
+
+            // Angular rotation over lifetime to swirl while expanding
+            var rotationOverLifetime = smokeParticleSystem.rotationOverLifetime;
+            rotationOverLifetime.enabled = true;
+            rotationOverLifetime.z = new ParticleSystem.MinMaxCurve(-45f * Mathf.Deg2Rad, 45f * Mathf.Deg2Rad);
+
+            // Size expansion curve: starts compact at barrel vent (0.6x), expands to 4.5x at full dispersion
             var sizeOverLifetime = smokeParticleSystem.sizeOverLifetime;
             sizeOverLifetime.enabled = true;
             var curve = new AnimationCurve();
-            curve.AddKey(0.0f, 0.5f);
-            curve.AddKey(1.0f, 2.4f);
+            curve.AddKey(0.0f, 0.6f);
+            curve.AddKey(0.35f, 2.2f);
+            curve.AddKey(1.0f, 4.5f);
             sizeOverLifetime.size = new ParticleSystem.MinMaxCurve(1.0f, curve);
 
             var colorOverLifetime = smokeParticleSystem.colorOverLifetime;
@@ -116,13 +144,14 @@ namespace FacilityBreach.Environment
             var grad = new Gradient();
             grad.SetKeys(
                 new GradientColorKey[] {
-                    new GradientColorKey(new Color(0.25f, 0.35f, 0.20f), 0.0f),
-                    new GradientColorKey(new Color(0.12f, 0.14f, 0.10f), 0.6f),
-                    new GradientColorKey(new Color(0.08f, 0.08f, 0.08f), 1.0f)
+                    new GradientColorKey(new Color(0.22f, 0.32f, 0.18f), 0.0f),
+                    new GradientColorKey(new Color(0.12f, 0.15f, 0.10f), 0.5f),
+                    new GradientColorKey(new Color(0.06f, 0.06f, 0.06f), 1.0f)
                 },
                 new GradientAlphaKey[] {
-                    new GradientAlphaKey(0.1f, 0.0f),
-                    new GradientAlphaKey(0.75f, 0.25f),
+                    new GradientAlphaKey(0.15f, 0.0f),
+                    new GradientAlphaKey(0.85f, 0.20f),
+                    new GradientAlphaKey(0.40f, 0.70f),
                     new GradientAlphaKey(0.0f, 1.0f)
                 }
             );
@@ -134,7 +163,7 @@ namespace FacilityBreach.Environment
                          ?? Shader.Find("Sprites/Default")
                          ?? Shader.Find("Standard");
             var mat = new Material(shader);
-            mat.color = new Color(0.25f, 0.35f, 0.20f, 0.7f);
+            mat.color = new Color(0.22f, 0.32f, 0.18f, 0.75f);
             rend.material = mat;
 
             smokeParticleSystem.Stop();
@@ -202,7 +231,7 @@ namespace FacilityBreach.Environment
         {
             if (hasDetonated) return;
 
-            // Trigger smoke venting in last 5 seconds of countdown
+            // Trigger smoke venting in last 15 seconds of countdown with realistic dynamic escalation
             if (remainingSeconds <= smokeWarningThreshold && remainingSeconds > 0f)
             {
                 if (!isVentingSmoke)
@@ -212,11 +241,29 @@ namespace FacilityBreach.Environment
 
                 ventingTimer += Time.deltaTime;
 
-                // Rapid warning pulse on glowing barrel lids (8 Hz flashing)
-                float pulse = (Mathf.Sin(ventingTimer * 16f) * 0.5f + 0.5f);
+                // Urgency progression (0 at 15s remaining -> 1.0 at 0s remaining)
+                float urgency = Mathf.Clamp01((smokeWarningThreshold - remainingSeconds) / smokeWarningThreshold);
+
+                // Dynamically ramp up particle emission rate as meltdown draws nearer (25 -> 65 particles/s)
+                if (smokeParticleSystem != null)
+                {
+                    var em = smokeParticleSystem.emission;
+                    em.rateOverTime = Mathf.Lerp(25f, 65f, urgency);
+                }
+
+                // Dynamically escalate audio venting volume and pitch
+                if (ventingHissSource != null)
+                {
+                    ventingHissSource.volume = Mathf.Lerp(0.35f, 0.75f, urgency);
+                    ventingHissSource.pitch = Mathf.Lerp(1.4f, 2.1f, urgency);
+                }
+
+                // Escalating warning pulse on glowing barrel lids (flashing speed ramps from 4Hz to 18Hz)
+                float pulseFreq = Mathf.Lerp(4f, 18f, urgency);
+                float pulse = (Mathf.Sin(ventingTimer * pulseFreq) * 0.5f + 0.5f);
                 Color warningEmission = Color.Lerp(
                     new Color(0.2f, 1.0f, 0.25f) * 1.5f,
-                    new Color(1.0f, 0.7f, 0.1f) * 3.2f,
+                    new Color(1.0f, 0.7f, 0.1f) * 3.5f,
                     pulse
                 );
 
