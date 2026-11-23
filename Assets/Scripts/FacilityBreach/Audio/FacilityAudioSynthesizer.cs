@@ -744,13 +744,13 @@ namespace FacilityBreach.Audio
 
         private static AudioClip SynthesizePlayerDeathVitals()
         {
-            float duration = 2.8f;
+            float duration = 5.0f;
             int totalSamples = Mathf.CeilToInt(SampleRate * duration);
             float[] samples = new float[totalSamples];
 
-            // 3 Heartbeat thumps at slowing intervals (t=0.15s, t=0.85s, t=1.85s), followed by soft flatline drone
-            float[] beatTimes = new float[] { 0.15f, 0.85f, 1.85f };
-            float[] beatAmplitudes = new float[] { 0.90f, 0.65f, 0.35f };
+            // 4 Heartbeat thumps at slowing intervals (t=0.2s, t=0.95s, t=1.9s, t=3.1s), followed by soft flatline drone
+            float[] beatTimes = new float[] { 0.20f, 0.95f, 1.90f, 3.10f };
+            float[] beatAmplitudes = new float[] { 0.95f, 0.75f, 0.50f, 0.28f };
 
             for (int i = 0; i < totalSamples; i++)
             {
@@ -761,18 +761,19 @@ namespace FacilityBreach.Audio
                 for (int b = 0; b < beatTimes.Length; b++)
                 {
                     float dt = t - beatTimes[b];
-                    if (dt >= 0f && dt < 0.35f)
+                    if (dt >= 0f && dt < 0.38f)
                     {
-                        float env = Mathf.Sin(dt / 0.35f * Mathf.PI) * Mathf.Exp(-7.5f * dt);
+                        float env = Mathf.Sin(dt / 0.38f * Mathf.PI) * Mathf.Exp(-6.5f * dt);
                         sampleVal += Mathf.Sin(2f * Mathf.PI * 55f * dt) * env * beatAmplitudes[b];
                     }
                 }
 
-                // Soft flatline / vitals monitor tone starting after last heartbeat (t > 2.0s)
-                if (t > 2.0f)
+                // Soft flatline / vitals monitor tone starting after last heartbeat (t > 3.3s) fading to 5.0s
+                if (t > 3.3f)
                 {
-                    float flatlineEnv = Mathf.Clamp01((t - 2.0f) / 0.3f) * Mathf.Exp(-1.2f * (t - 2.0f)) * 0.18f;
-                    sampleVal += Mathf.Sin(2f * Mathf.PI * 880f * (t - 2.0f)) * flatlineEnv;
+                    float flatlineT = t - 3.3f;
+                    float flatlineEnv = Mathf.Clamp01(flatlineT / 0.4f) * Mathf.Exp(-0.75f * flatlineT) * 0.18f;
+                    sampleVal += Mathf.Sin(2f * Mathf.PI * 880f * flatlineT) * flatlineEnv;
                 }
 
                 samples[i] = sampleVal;

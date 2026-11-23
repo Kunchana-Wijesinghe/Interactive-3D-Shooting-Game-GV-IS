@@ -30,7 +30,7 @@ namespace FacilityBreach.Core
 
         [Header("Sequence Durations")]
         [SerializeField] private float meltdownDuration = 3.2f;
-        [SerializeField] private float deathDuration = 2.6f;
+        [SerializeField] private float deathDuration = 5.0f;
         [SerializeField] private float extractionDuration = 2.2f;
 
         [Header("Explosion Blast Physics")]
@@ -201,7 +201,7 @@ namespace FacilityBreach.Core
             else if (ActiveEnding == EndingSequenceType.PlayerDeathKIA)
             {
                 // Smooth camera ground collapse (eye level 1.6m down to concrete floor 0.22m) and sideways roll
-                float dropProgress = Mathf.Clamp01(EndingTimer / 1.6f);
+                float dropProgress = Mathf.Clamp01(EndingTimer / 2.5f);
                 // Ease-out ground impact curve with subtle bounce
                 float easeDrop = Mathf.Sin(dropProgress * Mathf.PI * 0.5f);
 
