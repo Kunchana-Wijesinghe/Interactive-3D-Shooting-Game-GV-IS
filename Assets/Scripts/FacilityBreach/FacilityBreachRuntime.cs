@@ -628,33 +628,55 @@ namespace FacilityBreach
             return tex;
         }
 
+        private static Texture2D MakeBorderedTex(int w, int h, Color fill, Color border)
+        {
+            Color[] pix = new Color[w * h];
+            for (int y = 0; y < h; y++)
+            {
+                for (int x = 0; x < w; x++)
+                {
+                    bool isBorder = (x == 0 || x == w - 1 || y == 0 || y == h - 1);
+                    pix[y * w + x] = isBorder ? border : fill;
+                }
+            }
+            Texture2D tex = new Texture2D(w, h, TextureFormat.RGBA32, false)
+            {
+                filterMode = FilterMode.Point
+            };
+            tex.SetPixels(pix);
+            tex.Apply();
+            return tex;
+        }
+
         private void EnsureUIStyles()
         {
             if (_uiStylesReady && _hudTitleStyle != null) return;
 
-            if (_btnNormalTex == null) _btnNormalTex = MakeSolidTex(2, 2, new Color(0.14f, 0.12f, 0.08f, 0.90f));
-            if (_btnHoverTex == null) _btnHoverTex = MakeSolidTex(2, 2, new Color(0.24f, 0.20f, 0.12f, 0.95f));
-            if (_btnPrimaryNormalTex == null) _btnPrimaryNormalTex = MakeSolidTex(2, 2, new Color(0.85f, 0.55f, 0.08f, 0.90f));
-            if (_btnPrimaryHoverTex == null) _btnPrimaryHoverTex = MakeSolidTex(2, 2, new Color(1.00f, 0.72f, 0.15f, 0.98f));
+            // Bordered high-contrast tactical button textures
+            if (_btnNormalTex == null)
+                _btnNormalTex = MakeBorderedTex(6, 6, new Color(0.16f, 0.14f, 0.10f, 0.95f), new Color(0.85f, 0.60f, 0.12f, 0.75f));
+            if (_btnHoverTex == null)
+                _btnHoverTex = MakeBorderedTex(6, 6, new Color(0.26f, 0.22f, 0.14f, 0.98f), new Color(1.00f, 0.80f, 0.25f, 1.0f));
+            if (_btnPrimaryNormalTex == null)
+                _btnPrimaryNormalTex = MakeBorderedTex(6, 6, new Color(0.85f, 0.55f, 0.08f, 0.95f), new Color(1.00f, 0.76f, 0.18f, 1.0f));
+            if (_btnPrimaryHoverTex == null)
+                _btnPrimaryHoverTex = MakeBorderedTex(6, 6, new Color(1.00f, 0.70f, 0.15f, 1.0f), new Color(1.00f, 0.90f, 0.40f, 1.0f));
 
-            // Real GTA Fonts: Pricedown for Display Titles, Chalet-London for clean HUD, Text & Buttons (as in GTA V)
-            Font gtaTitleFont = UnityEngine.Resources.Load<Font>("Fonts/Pricedown");
-            Font gtaBodyFont = UnityEngine.Resources.Load<Font>("Fonts/Chalet-London");
-            if (gtaTitleFont == null) gtaTitleFont = GUI.skin.font;
-            if (gtaBodyFont == null) gtaBodyFont = GUI.skin.font;
+            // Dynamic High-DPI System Font (zero blur, vector crispness at any scale)
+            Font uiFont = GUI.skin.font;
 
             _hudTitleStyle = new GUIStyle(GUI.skin.label)
             {
-                font = gtaTitleFont,
-                fontSize = 17,
-                fontStyle = FontStyle.Normal,
+                font = uiFont,
+                fontSize = 15,
+                fontStyle = FontStyle.Bold,
                 alignment = TextAnchor.MiddleLeft
             };
             _hudTitleStyle.normal.textColor = new Color(1.00f, 0.76f, 0.18f, 1f); // Warm Tactical Amber / Gold
 
             _hudLabelStyle = new GUIStyle(GUI.skin.label)
             {
-                font = gtaBodyFont,
+                font = uiFont,
                 fontSize = 12,
                 fontStyle = FontStyle.Normal,
                 alignment = TextAnchor.MiddleLeft
@@ -663,7 +685,7 @@ namespace FacilityBreach
 
             _hudValueStyle = new GUIStyle(GUI.skin.label)
             {
-                font = gtaBodyFont,
+                font = uiFont,
                 fontSize = 13,
                 fontStyle = FontStyle.Bold,
                 alignment = TextAnchor.MiddleRight
@@ -672,7 +694,7 @@ namespace FacilityBreach
 
             _hudBadgeStyle = new GUIStyle(GUI.skin.label)
             {
-                font = gtaBodyFont,
+                font = uiFont,
                 fontSize = 11,
                 fontStyle = FontStyle.Bold,
                 alignment = TextAnchor.MiddleCenter
@@ -680,16 +702,16 @@ namespace FacilityBreach
 
             _briefingHeaderStyle = new GUIStyle(GUI.skin.label)
             {
-                font = gtaTitleFont,
-                fontSize = 17,
-                fontStyle = FontStyle.Normal,
+                font = uiFont,
+                fontSize = 15,
+                fontStyle = FontStyle.Bold,
                 alignment = TextAnchor.MiddleCenter
             };
             _briefingHeaderStyle.normal.textColor = new Color(1.00f, 0.76f, 0.18f, 1f);
 
             _briefingBodyStyle = new GUIStyle(GUI.skin.label)
             {
-                font = gtaBodyFont,
+                font = uiFont,
                 fontSize = 12,
                 wordWrap = false,
                 richText = true,
@@ -699,16 +721,16 @@ namespace FacilityBreach
 
             _briefingAlertStyle = new GUIStyle(GUI.skin.label)
             {
-                font = gtaBodyFont,
+                font = uiFont,
                 fontSize = 11,
-                fontStyle = FontStyle.Normal,
+                fontStyle = FontStyle.Bold,
                 alignment = TextAnchor.MiddleLeft
             };
             _briefingAlertStyle.normal.textColor = new Color(1.0f, 0.82f, 0.30f);
 
             _objectiveStyle = new GUIStyle(GUI.skin.label)
             {
-                font = gtaBodyFont,
+                font = uiFont,
                 fontSize = 13,
                 fontStyle = FontStyle.Bold,
                 alignment = TextAnchor.MiddleLeft
@@ -717,17 +739,17 @@ namespace FacilityBreach
 
             _timerStyle = new GUIStyle(GUI.skin.label)
             {
-                font = gtaTitleFont,
-                fontSize = 24,
-                fontStyle = FontStyle.Normal,
+                font = uiFont,
+                fontSize = 22,
+                fontStyle = FontStyle.Bold,
                 alignment = TextAnchor.MiddleCenter
             };
             _timerStyle.normal.textColor = new Color(1.00f, 0.76f, 0.18f, 1f);
 
-            // In GTA V, buttons use Chalet-London for crisp, sharp, perfectly readable buttons
+            // Primary Button: Bright White text on Tactical Amber with Gold Border
             _btnPrimaryStyle = new GUIStyle(GUI.skin.button)
             {
-                font = gtaBodyFont,
+                font = uiFont,
                 fontSize = 14,
                 fontStyle = FontStyle.Bold,
                 alignment = TextAnchor.MiddleCenter
@@ -736,18 +758,27 @@ namespace FacilityBreach
             _btnPrimaryStyle.normal.textColor = Color.white;
             _btnPrimaryStyle.hover.background = _btnPrimaryHoverTex;
             _btnPrimaryStyle.hover.textColor = new Color(0.08f, 0.05f, 0.02f, 1f);
+            _btnPrimaryStyle.active.background = _btnPrimaryHoverTex;
+            _btnPrimaryStyle.active.textColor = Color.white;
+            _btnPrimaryStyle.focused.background = _btnPrimaryNormalTex;
+            _btnPrimaryStyle.focused.textColor = Color.white;
 
+            // Secondary Button: High-Contrast Bright White text with Amber Border (never dark-on-dark)
             _btnSecondaryStyle = new GUIStyle(GUI.skin.button)
             {
-                font = gtaBodyFont,
-                fontSize = 12,
+                font = uiFont,
+                fontSize = 13,
                 fontStyle = FontStyle.Bold,
                 alignment = TextAnchor.MiddleCenter
             };
             _btnSecondaryStyle.normal.background = _btnNormalTex;
-            _btnSecondaryStyle.normal.textColor = new Color(0.85f, 0.85f, 0.80f, 1f);
+            _btnSecondaryStyle.normal.textColor = Color.white;
             _btnSecondaryStyle.hover.background = _btnHoverTex;
-            _btnSecondaryStyle.hover.textColor = Color.white;
+            _btnSecondaryStyle.hover.textColor = new Color(1.00f, 0.82f, 0.25f, 1f);
+            _btnSecondaryStyle.active.background = _btnHoverTex;
+            _btnSecondaryStyle.active.textColor = Color.white;
+            _btnSecondaryStyle.focused.background = _btnNormalTex;
+            _btnSecondaryStyle.focused.textColor = Color.white;
 
             _uiStylesReady = true;
         }
@@ -875,15 +906,15 @@ namespace FacilityBreach
                     string dur = TargetMissionDuration <= 180f ? "3 Minutes" : "5 Minutes";
 
                     GUI.Label(new Rect(menuRect.x + 18, contentY, menuRect.width - 36, 72),
-                        $"<b>OBJECTIVE:</b> Infiltrate facility and retrieve access card near toxic waste.\n" +
-                        $"<b>PRIMARY TARGET:</b> Connect card to device in Machinery.\n" +
-                        $"<b>TIME LIMIT:</b> {dur} before emergency meltdown lockdown.\n" +
-                        $"<b>ENGAGEMENT:</b> Combat is optional. Escape alive.", _briefingBodyStyle);
+                        $"<b>[OBJECTIVE]</b> Infiltrate facility and retrieve access card near toxic waste.\n" +
+                        $"<b>[TARGET]</b> Connect card to device in Machinery.\n" +
+                        $"<b>[TIME LIMIT]</b> {dur} before emergency meltdown lockdown.\n" +
+                        $"<b>[ENGAGEMENT]</b> Combat is optional. Escape alive.", _briefingBodyStyle);
 
-                    Rect warnRect = new Rect(menuRect.x + 18, contentY + 76, menuRect.width - 36, 22);
+                    Rect warnRect = new Rect(menuRect.x + 18, contentY + 76, menuRect.width - 36, 24);
                     UIDrawRect(warnRect, new Color(1.0f, 0.70f, 0.10f, 0.12f));
                     UIDrawRect(new Rect(warnRect.x, warnRect.y, 3, warnRect.height), new Color(1.0f, 0.75f, 0.15f, 0.9f));
-                    GUI.Label(new Rect(warnRect.x + 8, warnRect.y + 2, warnRect.width - 12, 18), "ALERT: Hostile patrols active. Avoid detection where possible.", _briefingAlertStyle);
+                    GUI.Label(new Rect(warnRect.x + 8, warnRect.y + 3, warnRect.width - 12, 18), "ALERT: Hostile patrols active. Avoid detection where possible.", _briefingAlertStyle);
 
                     float btnY = menuRect.y + 146;
                     if (GUI.Button(new Rect(menuRect.x + 18, btnY, menuRect.width - 36, 38), "START MISSION", _btnPrimaryStyle))
