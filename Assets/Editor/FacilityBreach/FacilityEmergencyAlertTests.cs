@@ -40,6 +40,8 @@ namespace FacilityBreach.EditorTests
             RunTest("AlertController_CameraTraumaClamping", Test_AlertController_CameraTraumaClamping);
             RunTest("WallSconces_PlacementDefinitionsAndGeneration", Test_WallSconces_PlacementDefinitionsAndGeneration);
             RunTest("AudioPlayer_ExplosionPlaybackSafeExecution", Test_AudioPlayer_ExplosionPlaybackSafeExecution);
+            RunTest("AudioPlayer_EmergencyAlarmPlaybackAndPauseLifecycle", Test_AudioPlayer_EmergencyAlarmPlaybackAndPauseLifecycle);
+            RunTest("AlertController_EmergencyAlarm30sThresholdAndVolumeTarget", Test_AlertController_EmergencyAlarm30sThresholdAndVolumeTarget);
             RunTest("NoiseHub_ExplosionAcousticEmissionAndReception", Test_NoiseHub_ExplosionAcousticEmissionAndReception);
 
             string summary = $"<color={(failedCount == 0 ? "green" : "red")}>=== EMERGENCY ALERT TESTS COMPLETE: {passedCount} PASSED, {failedCount} FAILED ===</color>";
@@ -273,6 +275,47 @@ namespace FacilityBreach.EditorTests
             finally
             {
                 FacilityNoiseHub.OnNoiseEmitted -= handler;
+            }
+        }
+
+        private static void Test_AudioPlayer_EmergencyAlarmPlaybackAndPauseLifecycle()
+        {
+            var go = new GameObject("Test_AudioPlayer_Alarm");
+            try
+            {
+                var player = go.AddComponent<FacilityAudioPlayer>();
+                player.InitializePool();
+
+                // Test start alarm with 1.0f volume
+                player.StartEmergencyAlarm(null, 1.0f);
+                Assert(player.EmergencyAlarmVolume > 0f, "Emergency alarm volume must be greater than zero when started");
+
+                // Test pause and unpause
+                player.SetEmergencyAlarmPause(true);
+                player.SetEmergencyAlarmPause(false);
+
+                // Test stop
+                player.StopEmergencyAlarm();
+                Assert(!player.IsEmergencyAlarmPlaying, "Emergency alarm must be stopped after StopEmergencyAlarm call");
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(go);
+            }
+        }
+
+        private static void Test_AlertController_EmergencyAlarm30sThresholdAndVolumeTarget()
+        {
+            var go = new GameObject("Test_AlertController_30s");
+            try
+            {
+                var controller = go.AddComponent<FacilityEmergencyAlertController>();
+                Assert(controller.SoundAlertRemainingSeconds == 30f, "SoundAlertRemainingSeconds must default to 30s");
+                Assert(controller.LightAlertRemainingSeconds == 60f, "LightAlertRemainingSeconds must default to 60s");
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(go);
             }
         }
     }
