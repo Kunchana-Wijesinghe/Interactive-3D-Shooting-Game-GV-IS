@@ -294,6 +294,77 @@ namespace FacilityBreach.Audio
             }
         }
 
+        /// <summary>
+        /// Plays full-spectrum catastrophic meltdown explosion audio (2D blast shockwave + 3D spatial roar).
+        /// </summary>
+        public void PlayCatastrophicExplosion(Vector3 worldPosition, float volumeScale = 1.0f)
+        {
+            InitializePool();
+            AudioClip clip = FacilityAudioSynthesizer.GetOrCreateClip(FacilityAudioClipType.ExplosionBlast);
+            if (clip == null) return;
+
+            if (player2dSource != null)
+            {
+                player2dSource.pitch = 0.95f;
+                player2dSource.PlayOneShot(clip, Mathf.Clamp01(volumeScale * masterVolume));
+            }
+
+            if (spatialSourcePool != null && spatialSourcePool.Length > 0)
+            {
+                var src = spatialSourcePool[nextSpatialSourceIndex];
+                nextSpatialSourceIndex = (nextSpatialSourceIndex + 1) % spatialSourcePool.Length;
+                if (src != null)
+                {
+                    src.transform.position = worldPosition;
+                    src.pitch = 0.90f;
+                    src.maxDistance = 100f;
+                    src.PlayOneShot(clip, Mathf.Clamp01(volumeScale * masterVolume));
+                }
+            }
+        }
+
+        /// <summary>
+        /// Plays slowing cardiac heartbeat fading into monitor flatline for fatal player death.
+        /// </summary>
+        public void PlayPlayerDeathVitals(float volumeScale = 1.0f)
+        {
+            InitializePool();
+            AudioClip clip = FacilityAudioSynthesizer.GetOrCreateClip(FacilityAudioClipType.PlayerDeathVitals);
+            if (clip != null && player2dSource != null)
+            {
+                player2dSource.pitch = 1.0f;
+                player2dSource.PlayOneShot(clip, Mathf.Clamp01(volumeScale * masterVolume));
+            }
+        }
+
+        /// <summary>
+        /// Plays heavy hydraulic blast door slam, pneumatic hiss, and deadbolt latch lock for mission completion.
+        /// </summary>
+        public void PlayBlastDoorLock(Vector3 worldPosition, float volumeScale = 1.0f)
+        {
+            InitializePool();
+            AudioClip clip = FacilityAudioSynthesizer.GetOrCreateClip(FacilityAudioClipType.BlastDoorLock);
+            if (clip == null) return;
+
+            if (player2dSource != null)
+            {
+                player2dSource.pitch = 1.0f;
+                player2dSource.PlayOneShot(clip, Mathf.Clamp01(volumeScale * 0.85f * masterVolume));
+            }
+
+            if (spatialSourcePool != null && spatialSourcePool.Length > 0)
+            {
+                var src = spatialSourcePool[nextSpatialSourceIndex];
+                nextSpatialSourceIndex = (nextSpatialSourceIndex + 1) % spatialSourcePool.Length;
+                if (src != null)
+                {
+                    src.transform.position = worldPosition;
+                    src.maxDistance = 50f;
+                    src.PlayOneShot(clip, Mathf.Clamp01(volumeScale * masterVolume));
+                }
+            }
+        }
+
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void ResetStatics()
         {

@@ -11,6 +11,7 @@ using FacilityBreach.AI.SoundHunter;
 using FacilityBreach.AI.Roles;
 using FacilityBreach.Audio;
 using FacilityBreach.Noise;
+using FacilityBreach.Environment;
 
 
 namespace FacilityBreach
@@ -54,6 +55,10 @@ namespace FacilityBreach
         public FpsMuzzleFlashV2 MuzzleFlash => muzzleFlash;
         private FpsImpactSparks impactSparks;
         public FpsImpactSparks ImpactSparks => impactSparks;
+        private FacilityCinematicEndingsController endingsController;
+        public FacilityCinematicEndingsController EndingsController => endingsController;
+        private FacilityToxicBarrelMeltdownVfx toxicMeltdownVfx;
+        public FacilityToxicBarrelMeltdownVfx ToxicMeltdownVfx => toxicMeltdownVfx;
         private FacilityAudioPlayer audioPlayer;
         public FacilityAudioPlayer AudioPlayer => audioPlayer;
         private FacilityAmbiencePlayer ambiencePlayer;
@@ -116,6 +121,9 @@ namespace FacilityBreach
             if (!alertController) alertController = GetComponent<FacilityEmergencyAlertController>();
             if (!alertController) alertController = gameObject.AddComponent<FacilityEmergencyAlertController>();
             alertController.Initialize(this);
+            if (!endingsController) endingsController = GetComponent<FacilityCinematicEndingsController>();
+            if (!endingsController) endingsController = gameObject.AddComponent<FacilityCinematicEndingsController>();
+            endingsController.BindCamera(view);
             dispatcher = gameObject.AddComponent<FacilityInteractionDispatcher>();
             dispatcher.Initialize(this, view, player.transform);
             foreach (var door in FindObjectsByType<InteractiveDoor>(FindObjectsSortMode.None))
@@ -289,6 +297,8 @@ namespace FacilityBreach
                     Drum(holder.transform, "Barrel lid", at + Vector3.up * 1.005f, new Vector3(.8f, .01f, .8f), index % 3 == 0 ? glowLid : metal);
                     index++;
                 }
+            toxicMeltdownVfx = holder.AddComponent<FacilityToxicBarrelMeltdownVfx>();
+            toxicMeltdownVfx.Initialize(holder.transform, center);
         }
         private static void Drum(Transform parent, string drumName, Vector3 position, Vector3 scale, Material material)
         {
@@ -387,14 +397,34 @@ namespace FacilityBreach
             GameplayDiagnostics.Enabled = DevelopmentDiagnostics;
             if (Run.Running && Input.GetKeyDown(KeyCode.Escape)) SetPause(!Run.Paused);
             if (!Application.isBatchMode && Run.Running && Cursor.lockState != CursorLockMode.Locked && !Run.Paused) SetPause(true);
-            player.InputEnabled = Run.Running && !Run.Paused;
+            CheckAndTriggerMissionEndings();
+
+            bool isEndingPlaying = endingsController != null && endingsController.IsPlaying;
+            player.InputEnabled = Run.Running && !Run.Paused && !isEndingPlaying;
             if (!player.InputEnabled)
             {
                 waitForRelease = true; target = null;
-                if (!Run.Running) { reload = 0; Time.timeScale = 0; Cursor.lockState = CursorLockMode.None; Cursor.visible = true; if (ambiencePlayer) ambiencePlayer.Pause(); }
+                if (!Run.Running)
+                {
+                    reload = 0;
+                    if (isEndingPlaying)
+                    {
+                        Time.timeScale = 1.0f;
+                    }
+                    else
+                    {
+                        Time.timeScale = 0;
+                        Cursor.lockState = CursorLockMode.None;
+                        Cursor.visible = true;
+                        if (ambiencePlayer) ambiencePlayer.Pause();
+                    }
+                }
+                if (isEndingPlaying) return;
                 return;
             }
             float dt = Time.deltaTime; Run.Tick(dt); GameplayTime += dt; Enemies.Tick(GameplayTime);
+            if (toxicMeltdownVfx != null && Run.Running) toxicMeltdownVfx.UpdateCountdown((float)Run.Remaining);
+            CheckAndTriggerMissionEndings();
             if (!Run.Running) { CancelEnemyAttacks(); return; }
             foreach (var station in stations) station.Tick(dt);
             if (device) device.SetDeviceActive(Run.State != MissionState.Escape && Run.State != MissionState.Won);
@@ -413,7 +443,37 @@ namespace FacilityBreach
             if (Input.GetKeyDown(KeyCode.R) || Resources.Magazine == 0) BeginReload();
             if (Input.GetMouseButton(0)) TryFire();
             if (Input.GetKeyDown(KeyCode.Q)) ThrowCan();
-            if (Run.ExitUnlocked && Vector2.Distance(new Vector2(player.transform.position.x, player.transform.position.z), new Vector2(exit.x, exit.z)) < 1.2f && Run.Exit(Resources.Alive)) CancelEnemyAttacks();
+            if (Run.ExitUnlocked && Vector2.Distance(new Vector2(player.transform.position.x, player.transform.position.z), new Vector2(exit.x, exit.z)) < 1.2f && Run.Exit(Resources.Alive))
+            {
+                CancelEnemyAttacks();
+                CheckAndTriggerMissionEndings();
+            }
+        }
+
+        private void CheckAndTriggerMissionEndings()
+        {
+            if (endingsController == null) return;
+            if (endingsController.ActiveEnding != EndingSequenceType.None) return;
+
+            if (Run.State == MissionState.Lost)
+            {
+                CancelEnemyAttacks();
+                Vector3 playerPos = player ? player.transform.position : Vector3.zero;
+                if (Run.LossReason == "Time expired")
+                {
+                    if (toxicMeltdownVfx != null) toxicMeltdownVfx.Detonate();
+                    endingsController.TriggerMeltdownExplosion(playerPos);
+                }
+                else
+                {
+                    endingsController.TriggerPlayerDeathKIA(playerPos);
+                }
+            }
+            else if (Run.State == MissionState.Won)
+            {
+                CancelEnemyAttacks();
+                endingsController.TriggerExtractionLockdown(exit);
+            }
         }
         public void BeginReload()
         { if (reload > 0) return; if (Resources.CanReload) reload = ReloadSeconds; else if (Resources.Reserve == 0) Say("NO RESERVE AMMO"); }
@@ -559,6 +619,8 @@ namespace FacilityBreach
         private void OnApplicationFocus(bool focus) { if (!focus && Run.Running) SetPause(true); }
         public void StartMission()
         {
+            if (endingsController != null) endingsController.ResetSequence();
+            if (toxicMeltdownVfx != null) toxicMeltdownVfx.ResetVfx();
             if (!DevelopmentDiagnostics && TargetMissionDuration > 0)
             {
                 Run.ConfigureDuration(TargetMissionDuration);
@@ -567,7 +629,13 @@ namespace FacilityBreach
             SetPause(false);
             if (ambiencePlayer) ambiencePlayer.Play();
         }
-        public void Restart() { Time.timeScale = 1; SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex); }
+        public void Restart()
+        {
+            Time.timeScale = 1;
+            if (endingsController != null) endingsController.ResetSequence();
+            if (toxicMeltdownVfx != null) toxicMeltdownVfx.ResetVfx();
+            SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+        }
         private void OnDestroy()
         {
             if (Instance == this) Instance = null;
@@ -1098,11 +1166,15 @@ namespace FacilityBreach
             if (!player) return;
             EnsureUIStyles();
 
-            DrawTopLeftHUD();
-            DrawObjectiveBanner();
-            DrawTimerAndMinimap();
+            bool isEndingPlaying = endingsController != null && endingsController.IsPlaying;
+            if (!isEndingPlaying)
+            {
+                DrawTopLeftHUD();
+                DrawObjectiveBanner();
+                DrawTimerAndMinimap();
+            }
 
-            if (Run.State == MissionState.Menu || Run.Paused || Run.State == MissionState.Won || Run.State == MissionState.Lost)
+            if (!isEndingPlaying && (Run.State == MissionState.Menu || Run.Paused || Run.State == MissionState.Won || Run.State == MissionState.Lost))
             {
                 DrawCenterMenu();
             }

@@ -60,6 +60,7 @@ In Play mode, enter the facility through its existing entrance door, traverse th
 - **Facility Architecture & Lighting Upgrade**: 5.0m concrete wall height upgrade, structural beam adjustments, and dual-directional industrial wall sconce up/down corridor lighting (`FacilityWallSconces.cs`).
 - **Tactical High-Definition UI Engine**: Native dynamic vector typography (100% crisp at any DPI/scaling), high-contrast amber-bordered interactive buttons, structured mission briefing cards, and clear pause/game-over menus (`FacilityBreachRuntime.cs`).
 - **Emergency Meltdown & Klaxon Siren**: Facility emergency alert controller (`FacilityEmergencyAlertController.cs`) with 60s red strobe lighting and camera trauma, plus a repeating high-gain 30-second klaxon alarm (`FacilityAudioPlayer.cs`) with strict pause menu synchronization.
+- **Cinematic Mission Endings**: Fully scripted dynamic climax sequences (`FacilityCinematicEndingsController.cs`) featuring procedural radial blast physics (`AddExplosionForce`) launching barrels/crates during meltdowns, first-person ground collapse & cardiac flatline vitals on player death, and blast door hydraulic lock transitions upon extraction victory.
 
 ---
 
