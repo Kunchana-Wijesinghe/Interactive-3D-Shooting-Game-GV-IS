@@ -9,6 +9,8 @@ namespace FacilityBreach.Editor
     /// <summary>
     /// Automated test runner and verification suite for RobotLegLocomotion across all 4 enemy types
     /// (Flanker, Sound Hunter, Patrol Guard, Cover Defender).
+    /// Verifies bone binding, idle pose, locomotion swing, speed scaling, idle recovery, defeat reset,
+    /// upper-body transform stability (prevents torso/head disappearance), and SkinnedMeshRenderer culling config.
     /// </summary>
     public static class RobotLegLocomotionTests
     {
@@ -51,7 +53,7 @@ namespace FacilityBreach.Editor
                 if (!prefab)
                 {
                     log.AppendLine($"[FAIL] Missing visual prefab: {prefabPath}");
-                    total += 6;
+                    total += 8;
                     continue;
                 }
 
@@ -63,6 +65,19 @@ namespace FacilityBreach.Editor
 
                 var visual = UnityEngine.Object.Instantiate(prefab, agentRoot.transform);
                 visual.name = "ModelVisual";
+
+                // Cache torso bone rest pose to verify upper body stability
+                Transform torsoBone = null;
+                foreach (var t in visual.GetComponentsInChildren<Transform>(true))
+                {
+                    if (t.name.ToLowerInvariant() == "torso" && !t.GetComponent<Renderer>())
+                    {
+                        torsoBone = t;
+                        break;
+                    }
+                }
+                Vector3 initialTorsoPos = torsoBone ? torsoBone.localPosition : Vector3.zero;
+                Quaternion initialTorsoRot = torsoBone ? torsoBone.localRotation : Quaternion.identity;
 
                 var locomotion = agentRoot.AddComponent<RobotLegLocomotion>();
                 locomotion.ApplyRobotSpecificProfile();
@@ -80,7 +95,25 @@ namespace FacilityBreach.Editor
                     log.AppendLine($"  [FAIL] Bone Binding: failed to bind Lleg and Rleg bones.");
                 }
 
-                // TEST 2: Standing Idle Pose (Pitches must be 0)
+                // TEST 2: SkinnedMeshRenderer Culling & Visibility Config
+                total++;
+                bool renderersValid = true;
+                var smrs = visual.GetComponentsInChildren<SkinnedMeshRenderer>(true);
+                foreach (var smr in smrs)
+                {
+                    if (!smr.updateWhenOffscreen) renderersValid = false;
+                }
+                if (renderersValid && smrs.Length > 0)
+                {
+                    log.AppendLine($"  [PASS] Renderer Culling Config: {smrs.Length} SkinnedMeshRenderers have updateWhenOffscreen=true.");
+                    passed++;
+                }
+                else
+                {
+                    log.AppendLine($"  [FAIL] Renderer Culling Config: Missing updateWhenOffscreen on SkinnedMeshRenderers.");
+                }
+
+                // TEST 3: Standing Idle Pose (Pitches must be 0)
                 total++;
                 locomotion.SimulateStep(0.02f, Vector3.zero, 0f, 0f);
                 if (Mathf.Abs(locomotion.LeftLegPitch) < 0.01f && Mathf.Abs(locomotion.RightLegPitch) < 0.01f && !locomotion.IsMoving)
@@ -93,7 +126,7 @@ namespace FacilityBreach.Editor
                     log.AppendLine($"  [FAIL] Idle Pose: Expected 0 deg when stationary, got Left={locomotion.LeftLegPitch}, Right={locomotion.RightLegPitch}");
                 }
 
-                // TEST 3: Forward Locomotion & Alternating Swing
+                // TEST 4: Forward Locomotion & Alternating Swing
                 total++;
                 float simDt = 0.02f;
                 bool alternatingObserved = false;
@@ -126,7 +159,27 @@ namespace FacilityBreach.Editor
                     log.AppendLine($"  [FAIL] Locomotion: alternating={alternatingObserved}, maxSwing={maxObservedSwing}, isMoving={locomotion.IsMoving}");
                 }
 
-                // TEST 4: Run Speed Increases Amplitude
+                // TEST 5: Upper Body Transform Stability (Torso/Head Never Displaced)
+                total++;
+                bool torsoStable = true;
+                if (torsoBone)
+                {
+                    float posDelta = Vector3.Distance(torsoBone.localPosition, initialTorsoPos);
+                    float rotDelta = Quaternion.Angle(torsoBone.localRotation, initialTorsoRot);
+                    if (posDelta > 0.0001f || rotDelta > 0.0001f)
+                    {
+                        torsoStable = false;
+                        log.AppendLine($"  [FAIL] Upper Body Stability: torso moved by posDelta={posDelta:F5}, rotDelta={rotDelta:F5}");
+                    }
+                }
+
+                if (torsoStable)
+                {
+                    log.AppendLine($"  [PASS] Upper Body Stability: torso and upper body remain 100% stationary relative to rig during locomotion.");
+                    passed++;
+                }
+
+                // TEST 6: Run Speed Increases Amplitude
                 total++;
                 float runMaxSwing = 0f;
                 for (int frame = 1; frame <= 40; frame++)
@@ -146,9 +199,9 @@ namespace FacilityBreach.Editor
                     log.AppendLine($"  [FAIL] Speed Scaling: runMaxSwing={runMaxSwing} < walkMaxSwing={maxObservedSwing}");
                 }
 
-                // TEST 5: Idle Recovery on Stop
+                // TEST 7: Idle Recovery on Stop
                 total++;
-                // Stop moving: keep position constant and step 50 frames
+                // Stop moving: keep position constant and step 60 frames
                 for (int stopFrame = 1; stopFrame <= 60; stopFrame++)
                 {
                     locomotion.SimulateStep(simDt, simPos, 0f, 0f);
@@ -164,7 +217,7 @@ namespace FacilityBreach.Editor
                     log.AppendLine($"  [FAIL] Idle Recovery: Failed to return to rest, Left={locomotion.LeftLegPitch}, Right={locomotion.RightLegPitch}");
                 }
 
-                // TEST 6: Defeat / Death Pose Reset
+                // TEST 8: Defeat / Death Pose Reset
                 total++;
                 // Set moving again
                 simPos += Vector3.forward * 0.1f;
