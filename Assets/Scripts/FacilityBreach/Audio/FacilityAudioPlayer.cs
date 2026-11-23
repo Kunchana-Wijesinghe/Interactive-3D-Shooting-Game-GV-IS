@@ -36,12 +36,15 @@ namespace FacilityBreach.Audio
         [SerializeField] private float maxImpactDistance = 35.0f;
 
         private AudioSource player2dSource;
+        private AudioSource emergencySirenSource;
         private AudioSource[] spatialSourcePool;
         private int nextSpatialSourceIndex;
         private bool initialized;
 
         public int SpatialPoolCapacity => spatialPoolCapacity;
         public float MasterVolume => masterVolume;
+        public bool IsEmergencyAlarmPlaying => emergencySirenSource != null && emergencySirenSource.isPlaying;
+        public float EmergencyAlarmVolume => emergencySirenSource != null ? emergencySirenSource.volume : 0f;
 
         private void Awake()
         {
@@ -58,6 +61,13 @@ namespace FacilityBreach.Audio
             player2dSource.playOnAwake = false;
             player2dSource.spatialBlend = 0f; // 2D stereo
             player2dSource.volume = masterVolume;
+
+            // Dedicated 2D omnidirectional loop source for facility emergency siren
+            emergencySirenSource = gameObject.AddComponent<AudioSource>();
+            emergencySirenSource.playOnAwake = false;
+            emergencySirenSource.spatialBlend = 0f; // 2D facility-wide
+            emergencySirenSource.loop = true;
+            emergencySirenSource.volume = masterVolume;
 
             // Bounded ring-buffer pool of 3D sources for spatial physics impacts
             spatialSourcePool = new AudioSource[spatialPoolCapacity];
@@ -229,6 +239,58 @@ namespace FacilityBreach.Audio
             if (player2dSource != null)
             {
                 player2dSource.PlayOneShot(clip, Mathf.Clamp01(volumeScale * 0.45f * masterVolume));
+            }
+        }
+
+        /// <summary>
+        /// Plays repeating calibrated emergency alarm audio throughout the facility during countdown alerts.
+        /// </summary>
+        public void StartEmergencyAlarm(AudioClip customClip = null, float volumeScale = 0.50f)
+        {
+            InitializePool();
+            if (emergencySirenSource == null) return;
+
+            AudioClip clip = customClip != null
+                ? customClip
+                : UnityEngine.Resources.Load<AudioClip>("Audio/Emergency/facility_emergency_alarm");
+
+            if (clip != null)
+            {
+                emergencySirenSource.clip = clip;
+                emergencySirenSource.loop = true;
+                emergencySirenSource.volume = Mathf.Clamp01(volumeScale * masterVolume);
+                emergencySirenSource.pitch = 1.0f;
+                if (!emergencySirenSource.isPlaying)
+                {
+                    emergencySirenSource.Play();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Stops the repeating emergency alarm siren.
+        /// </summary>
+        public void StopEmergencyAlarm()
+        {
+            if (emergencySirenSource != null && emergencySirenSource.isPlaying)
+            {
+                emergencySirenSource.Stop();
+            }
+        }
+
+        /// <summary>
+        /// Pauses or unpauses the emergency alarm when the game menu is opened/closed.
+        /// </summary>
+        public void SetEmergencyAlarmPause(bool paused)
+        {
+            if (emergencySirenSource == null) return;
+            if (paused && emergencySirenSource.isPlaying)
+            {
+                emergencySirenSource.Pause();
+            }
+            else if (!paused && emergencySirenSource.clip != null && !emergencySirenSource.isPlaying)
+            {
+                emergencySirenSource.UnPause();
             }
         }
 

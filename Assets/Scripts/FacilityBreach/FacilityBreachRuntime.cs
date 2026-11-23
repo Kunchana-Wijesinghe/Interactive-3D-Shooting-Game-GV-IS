@@ -550,6 +550,10 @@ namespace FacilityBreach
             {
                 footstepController.OnGameplayPaused();
             }
+            if (alertController)
+            {
+                alertController.PauseSiren(paused);
+            }
         }
         private void OnApplicationFocus(bool focus) { if (!focus && Run.Running) SetPause(true); }
         public void StartMission()
@@ -571,10 +575,7 @@ namespace FacilityBreach
             foreach (var material in ownedMaterials) if (material) Destroy(material);
             if (ambiencePlayer) ambiencePlayer.Stop(true);
             if (alertController) alertController.DeactivateEmergency();
-            if (_btnNormalTex) Destroy(_btnNormalTex);
-            if (_btnHoverTex) Destroy(_btnHoverTex);
-            if (_btnPrimaryNormalTex) Destroy(_btnPrimaryNormalTex);
-            if (_btnPrimaryHoverTex) Destroy(_btnPrimaryHoverTex);
+            if (_btnTransparentTex) Destroy(_btnTransparentTex);
             if (_whiteTex) Destroy(_whiteTex);
         }
 
@@ -596,23 +597,20 @@ namespace FacilityBreach
             }
         }
 
-        private static Texture2D _btnNormalTex;
-        private static Texture2D _btnHoverTex;
-        private static Texture2D _btnPrimaryNormalTex;
-        private static Texture2D _btnPrimaryHoverTex;
+        private static Texture2D _btnTransparentTex;
+        private static bool _uiStylesReady;
 
         private GUIStyle _hudTitleStyle;
         private GUIStyle _hudLabelStyle;
         private GUIStyle _hudValueStyle;
         private GUIStyle _hudBadgeStyle;
-        private GUIStyle _btnPrimaryStyle;
-        private GUIStyle _btnSecondaryStyle;
+        private static GUIStyle _btnPrimaryStyle;
+        private static GUIStyle _btnSecondaryStyle;
         private GUIStyle _briefingHeaderStyle;
         private GUIStyle _briefingBodyStyle;
         private GUIStyle _briefingAlertStyle;
         private GUIStyle _objectiveStyle;
         private GUIStyle _timerStyle;
-        private bool _uiStylesReady;
 
         private static Texture2D MakeSolidTex(int w, int h, Color col)
         {
@@ -624,16 +622,65 @@ namespace FacilityBreach
             return tex;
         }
 
+        private static bool DrawTacticalButton(Rect r, string text, bool isPrimary = false)
+        {
+            Vector2 mouse = Event.current.mousePosition;
+            bool hover = r.Contains(mouse);
+
+            Color bgColor = isPrimary
+                ? (hover ? new Color(1.00f, 0.68f, 0.12f, 0.98f) : new Color(0.85f, 0.54f, 0.08f, 0.92f))
+                : (hover ? new Color(0.24f, 0.22f, 0.18f, 0.96f) : new Color(0.14f, 0.13f, 0.11f, 0.92f));
+
+            Color borderColor = isPrimary
+                ? (hover ? new Color(1.00f, 0.88f, 0.40f, 1.0f) : new Color(1.00f, 0.76f, 0.18f, 0.85f))
+                : (hover ? new Color(1.00f, 0.80f, 0.25f, 0.90f) : new Color(0.85f, 0.60f, 0.12f, 0.50f));
+
+            Color textColor = isPrimary
+                ? (hover ? new Color(0.06f, 0.04f, 0.02f, 1.0f) : Color.white)
+                : (hover ? new Color(1.00f, 0.82f, 0.25f, 1.0f) : new Color(0.95f, 0.95f, 0.92f, 1.0f));
+
+            // Solid clean background fill (no texture stretching or color bleed)
+            UIDrawRect(r, bgColor);
+
+            // Clean 1px outline border
+            UIDrawRect(new Rect(r.x, r.y, r.width, 1), borderColor);
+            UIDrawRect(new Rect(r.x, r.yMax - 1, r.width, 1), borderColor);
+            UIDrawRect(new Rect(r.x, r.y, 1, r.height), borderColor);
+            UIDrawRect(new Rect(r.xMax - 1, r.y, 1, r.height), borderColor);
+
+            // Corner accent markers matching tactical UI aesthetic
+            const float cl = 5f;
+            const float ct = 1.5f;
+            Color cornerCol = isPrimary ? borderColor : (hover ? new Color(1.00f, 0.80f, 0.25f, 1.0f) : new Color(1.00f, 0.76f, 0.18f, 0.85f));
+            UIDrawRect(new Rect(r.x, r.y, cl, ct), cornerCol);
+            UIDrawRect(new Rect(r.x, r.y, ct, cl), cornerCol);
+            UIDrawRect(new Rect(r.xMax - cl, r.y, cl, ct), cornerCol);
+            UIDrawRect(new Rect(r.xMax - ct, r.y, ct, cl), cornerCol);
+            UIDrawRect(new Rect(r.x, r.yMax - ct, cl, ct), cornerCol);
+            UIDrawRect(new Rect(r.x, r.yMax - cl, ct, cl), cornerCol);
+            UIDrawRect(new Rect(r.xMax - cl, r.yMax - ct, cl, ct), cornerCol);
+            UIDrawRect(new Rect(r.xMax - ct, r.yMax - cl, ct, cl), cornerCol);
+
+            GUIStyle style = isPrimary ? _btnPrimaryStyle : _btnSecondaryStyle;
+            if (style != null)
+            {
+                style.normal.textColor = textColor;
+                style.hover.textColor = textColor;
+                style.active.textColor = textColor;
+                style.focused.textColor = textColor;
+            }
+
+            return GUI.Button(r, text, style ?? GUI.skin.button);
+        }
+
         private void EnsureUIStyles()
         {
             if (_uiStylesReady && _hudTitleStyle != null) return;
 
-            if (_btnNormalTex == null) _btnNormalTex = MakeSolidTex(2, 2, new Color(0.14f, 0.12f, 0.08f, 0.90f));
-            if (_btnHoverTex == null) _btnHoverTex = MakeSolidTex(2, 2, new Color(0.24f, 0.20f, 0.12f, 0.95f));
-            if (_btnPrimaryNormalTex == null) _btnPrimaryNormalTex = MakeSolidTex(2, 2, new Color(0.85f, 0.55f, 0.08f, 0.90f));
-            if (_btnPrimaryHoverTex == null) _btnPrimaryHoverTex = MakeSolidTex(2, 2, new Color(1.00f, 0.72f, 0.15f, 0.98f));
+            if (_btnTransparentTex == null)
+                _btnTransparentTex = MakeSolidTex(2, 2, Color.clear);
 
-            // Real GTA Fonts: Pricedown for Display Titles, Chalet-London for clean HUD, Text & Buttons (as in GTA V)
+            // Real GTA Fonts: Pricedown for Display Titles/Timer/Headers, Chalet-London for clean HUD, Text & Buttons (as in GTA V)
             Font gtaTitleFont = UnityEngine.Resources.Load<Font>("Fonts/Pricedown");
             Font gtaBodyFont = UnityEngine.Resources.Load<Font>("Fonts/Chalet-London");
             if (gtaTitleFont == null) gtaTitleFont = GUI.skin.font;
@@ -655,7 +702,7 @@ namespace FacilityBreach
                 fontStyle = FontStyle.Normal,
                 alignment = TextAnchor.MiddleLeft
             };
-            _hudLabelStyle.normal.textColor = new Color(0.85f, 0.85f, 0.80f, 1f);
+            _hudLabelStyle.normal.textColor = new Color(0.92f, 0.92f, 0.90f, 1f);
 
             _hudValueStyle = new GUIStyle(GUI.skin.label)
             {
@@ -681,31 +728,31 @@ namespace FacilityBreach
                 fontStyle = FontStyle.Normal,
                 alignment = TextAnchor.MiddleCenter
             };
-            _briefingHeaderStyle.normal.textColor = new Color(1.00f, 0.76f, 0.18f, 1f);
+            _briefingHeaderStyle.normal.textColor = new Color(1.00f, 0.78f, 0.20f, 1f);
 
             _briefingBodyStyle = new GUIStyle(GUI.skin.label)
             {
                 font = gtaBodyFont,
-                fontSize = 12,
+                fontSize = 13,
                 wordWrap = false,
                 richText = true,
                 alignment = TextAnchor.UpperLeft
             };
-            _briefingBodyStyle.normal.textColor = new Color(0.92f, 0.92f, 0.90f, 1f);
+            _briefingBodyStyle.normal.textColor = Color.white;
 
             _briefingAlertStyle = new GUIStyle(GUI.skin.label)
             {
                 font = gtaBodyFont,
-                fontSize = 11,
-                fontStyle = FontStyle.Normal,
+                fontSize = 12,
+                fontStyle = FontStyle.Bold,
                 alignment = TextAnchor.MiddleLeft
             };
-            _briefingAlertStyle.normal.textColor = new Color(1.0f, 0.82f, 0.30f);
+            _briefingAlertStyle.normal.textColor = new Color(1.0f, 0.88f, 0.40f);
 
             _objectiveStyle = new GUIStyle(GUI.skin.label)
             {
                 font = gtaBodyFont,
-                fontSize = 13,
+                fontSize = 14,
                 fontStyle = FontStyle.Bold,
                 alignment = TextAnchor.MiddleLeft
             };
@@ -720,7 +767,7 @@ namespace FacilityBreach
             };
             _timerStyle.normal.textColor = new Color(1.00f, 0.76f, 0.18f, 1f);
 
-            // In GTA V, buttons use Chalet-London for crisp, sharp, perfectly readable buttons
+            // Primary Button style with transparent background (rendered with crisp geometry via DrawTacticalButton)
             _btnPrimaryStyle = new GUIStyle(GUI.skin.button)
             {
                 font = gtaBodyFont,
@@ -728,22 +775,24 @@ namespace FacilityBreach
                 fontStyle = FontStyle.Bold,
                 alignment = TextAnchor.MiddleCenter
             };
-            _btnPrimaryStyle.normal.background = _btnPrimaryNormalTex;
-            _btnPrimaryStyle.normal.textColor = Color.white;
-            _btnPrimaryStyle.hover.background = _btnPrimaryHoverTex;
-            _btnPrimaryStyle.hover.textColor = new Color(0.08f, 0.05f, 0.02f, 1f);
+            _btnPrimaryStyle.normal.background = _btnTransparentTex;
+            _btnPrimaryStyle.hover.background = _btnTransparentTex;
+            _btnPrimaryStyle.active.background = _btnTransparentTex;
+            _btnPrimaryStyle.focused.background = _btnTransparentTex;
 
+            // Secondary Button style with transparent background
             _btnSecondaryStyle = new GUIStyle(GUI.skin.button)
             {
                 font = gtaBodyFont,
-                fontSize = 12,
+                fontSize = 13,
                 fontStyle = FontStyle.Bold,
                 alignment = TextAnchor.MiddleCenter
             };
-            _btnSecondaryStyle.normal.background = _btnNormalTex;
-            _btnSecondaryStyle.normal.textColor = new Color(0.85f, 0.85f, 0.80f, 1f);
-            _btnSecondaryStyle.hover.background = _btnHoverTex;
-            _btnSecondaryStyle.hover.textColor = Color.white;
+            _btnSecondaryStyle.normal.background = _btnTransparentTex;
+            _btnSecondaryStyle.hover.background = _btnTransparentTex;
+            _btnSecondaryStyle.active.background = _btnTransparentTex;
+            _btnSecondaryStyle.focused.background = _btnTransparentTex;
+            _btnSecondaryStyle.focused.background = _btnTransparentTex;
 
             _uiStylesReady = true;
         }
@@ -758,9 +807,9 @@ namespace FacilityBreach
 
         private static void UIDrawPanel(Rect r, Color? border = null, Color? bg = null)
         {
-            Color bgColor = bg ?? new Color(0.06f, 0.06f, 0.06f, 0.92f);
-            Color borderColor = border ?? new Color(0.85f, 0.60f, 0.12f, 0.45f);
-            Color cornerColor = border ?? new Color(1.00f, 0.76f, 0.18f, 0.95f);
+            Color bgColor = bg ?? new Color(0.04f, 0.04f, 0.04f, 0.96f);
+            Color borderColor = border ?? new Color(0.85f, 0.60f, 0.12f, 0.50f);
+            Color cornerColor = border ?? new Color(1.00f, 0.78f, 0.20f, 0.95f);
 
             UIDrawRect(r, bgColor);
 
@@ -842,8 +891,8 @@ namespace FacilityBreach
 
         private void DrawCenterMenu()
         {
-            float panelWidth = 460f;
-            float panelHeight = controls && Run.State == MissionState.Menu ? 300f : 255f;
+            float panelWidth = 470f;
+            float panelHeight = controls && Run.State == MissionState.Menu ? 310f : 270f;
             Rect menuRect = new Rect(Screen.width / 2f - panelWidth / 2f, Screen.height / 2f - panelHeight / 2f, panelWidth, panelHeight);
 
             Color headerAccent = Run.State == MissionState.Won ? new Color(0.0f, 0.95f, 0.50f) :
@@ -851,10 +900,10 @@ namespace FacilityBreach
                                  Run.Paused ? new Color(1.0f, 0.75f, 0.20f) :
                                  new Color(1.00f, 0.76f, 0.18f);
 
-            UIDrawPanel(menuRect, headerAccent);
+            UIDrawPanel(menuRect, headerAccent, new Color(0.03f, 0.03f, 0.03f, 0.985f));
 
-            UIDrawRect(new Rect(menuRect.x + 1, menuRect.y + 1, menuRect.width - 2, 28), new Color(headerAccent.r, headerAccent.g, headerAccent.b, 0.18f));
-            UIDrawRect(new Rect(menuRect.x + 1, menuRect.y + 29, menuRect.width - 2, 1), new Color(headerAccent.r, headerAccent.g, headerAccent.b, 0.45f));
+            UIDrawRect(new Rect(menuRect.x + 1, menuRect.y + 1, menuRect.width - 2, 28), new Color(headerAccent.r, headerAccent.g, headerAccent.b, 0.22f));
+            UIDrawRect(new Rect(menuRect.x + 1, menuRect.y + 29, menuRect.width - 2, 1), new Color(headerAccent.r, headerAccent.g, headerAccent.b, 0.55f));
 
             string title = Run.State == MissionState.Won ? "// MISSION COMPLETE" :
                            Run.State == MissionState.Lost ? $"// FAILED: {Run.LossReason}" :
@@ -867,56 +916,77 @@ namespace FacilityBreach
             {
                 if (!controls)
                 {
-                    float contentY = menuRect.y + 36;
+                    float contentY = menuRect.y + 40;
                     string dur = TargetMissionDuration <= 180f ? "3 Minutes" : "5 Minutes";
+                    float rowH = 23f;
 
-                    GUI.Label(new Rect(menuRect.x + 18, contentY, menuRect.width - 36, 72),
-                        $"<b>OBJECTIVE:</b> Infiltrate facility and retrieve access card near toxic waste.\n" +
-                        $"<b>PRIMARY TARGET:</b> Connect card to device in Machinery.\n" +
-                        $"<b>TIME LIMIT:</b> {dur} before emergency meltdown lockdown.\n" +
-                        $"<b>ENGAGEMENT:</b> Combat is optional. Escape alive.", _briefingBodyStyle);
+                    GUI.Label(new Rect(menuRect.x + 20, contentY, menuRect.width - 40, 20),
+                        "<color=#FFD54F><b>[OBJECTIVE]</b></color>   Infiltrate facility and retrieve access card near toxic waste.", _briefingBodyStyle);
 
-                    Rect warnRect = new Rect(menuRect.x + 18, contentY + 76, menuRect.width - 36, 22);
-                    UIDrawRect(warnRect, new Color(1.0f, 0.70f, 0.10f, 0.12f));
-                    UIDrawRect(new Rect(warnRect.x, warnRect.y, 3, warnRect.height), new Color(1.0f, 0.75f, 0.15f, 0.9f));
-                    GUI.Label(new Rect(warnRect.x + 8, warnRect.y + 2, warnRect.width - 12, 18), "ALERT: Hostile patrols active. Avoid detection where possible.", _briefingAlertStyle);
+                    GUI.Label(new Rect(menuRect.x + 20, contentY + rowH, menuRect.width - 40, 20),
+                        "<color=#FFD54F><b>[TARGET]</b></color>      Connect card to device in Machinery.", _briefingBodyStyle);
 
-                    float btnY = menuRect.y + 146;
-                    if (GUI.Button(new Rect(menuRect.x + 18, btnY, menuRect.width - 36, 38), "START MISSION", _btnPrimaryStyle))
+                    GUI.Label(new Rect(menuRect.x + 20, contentY + rowH * 2f, menuRect.width - 40, 20),
+                        $"<color=#FFD54F><b>[TIME LIMIT]</b></color>  {dur} before emergency meltdown lockdown.", _briefingBodyStyle);
+
+                    GUI.Label(new Rect(menuRect.x + 20, contentY + rowH * 3f, menuRect.width - 40, 20),
+                        "<color=#FFD54F><b>[ENGAGEMENT]</b></color>  Combat is optional. Escape alive.", _briefingBodyStyle);
+
+                    float warnY = contentY + rowH * 4f + 8f;
+                    Rect warnRect = new Rect(menuRect.x + 20, warnY, menuRect.width - 40, 26);
+                    UIDrawRect(warnRect, new Color(0.18f, 0.12f, 0.02f, 0.94f));
+                    UIDrawRect(new Rect(warnRect.x, warnRect.y, warnRect.width, 1), new Color(1.0f, 0.75f, 0.15f, 0.45f));
+                    UIDrawRect(new Rect(warnRect.x, warnRect.yMax - 1, warnRect.width, 1), new Color(1.0f, 0.75f, 0.15f, 0.45f));
+                    UIDrawRect(new Rect(warnRect.x, warnRect.y, 4, warnRect.height), new Color(1.0f, 0.78f, 0.18f, 0.98f));
+                    GUI.Label(new Rect(warnRect.x + 10, warnRect.y + 4, warnRect.width - 16, 18), "ALERT: Hostile patrols active. Avoid detection where possible.", _briefingAlertStyle);
+
+                    float btnY = warnY + 34f;
+                    if (DrawTacticalButton(new Rect(menuRect.x + 20, btnY, menuRect.width - 40, 36), "START MISSION", true))
                     {
                         StartMission();
                     }
-                    if (GUI.Button(new Rect(menuRect.x + 18, btnY + 44, menuRect.width - 36, 28), "VIEW CONTROLS", _btnSecondaryStyle))
+                    if (DrawTacticalButton(new Rect(menuRect.x + 20, btnY + 42, menuRect.width - 40, 28), "VIEW CONTROLS", false))
                     {
                         controls = true;
                     }
                 }
                 else
                 {
-                    float cY = menuRect.y + 34;
+                    float cY = menuRect.y + 38;
                     _hudTitleStyle.normal.textColor = new Color(1.00f, 0.76f, 0.18f);
-                    GUI.Label(new Rect(menuRect.x + 18, cY, 250, 18), "OPERATIONAL CONTROLS", _hudTitleStyle);
+                    GUI.Label(new Rect(menuRect.x + 20, cY, 250, 18), "OPERATIONAL CONTROLS", _hudTitleStyle);
 
-                    float gridY = cY + 22;
-                    string col1 = "<b>[W][A][S][D]</b> Move\n" +
-                                  "<b>[SHIFT]</b> Tactical Sprint\n" +
-                                  "<b>[SPACE]</b> Jump / Vault\n" +
-                                  "<b>[MOUSE]</b> Look / Aim";
-                    string col2 = "<b>[L-CLICK]</b> Fire Weapon\n" +
-                                  "<b>[R]</b> Reload Magazine\n" +
-                                  "<b>[E]</b> Interact (Doors/Cards)\n" +
-                                  "<b>[F]</b> Kick Barrels & Props\n" +
-                                  "<b>[ESC]</b> Pause Mission";
+                    float gridY = cY + 26;
+                    string[] col1Lines = new string[]
+                    {
+                        "<color=#FFD54F><b>[W][A][S][D]</b></color>  Move",
+                        "<color=#FFD54F><b>[SHIFT]</b></color>  Tactical Sprint",
+                        "<color=#FFD54F><b>[SPACE]</b></color>  Jump / Vault",
+                        "<color=#FFD54F><b>[MOUSE]</b></color>  Look / Aim"
+                    };
+                    string[] col2Lines = new string[]
+                    {
+                        "<color=#FFD54F><b>[L-CLICK]</b></color>  Fire Weapon",
+                        "<color=#FFD54F><b>[R]</b></color>  Reload Magazine",
+                        "<color=#FFD54F><b>[E]</b></color>  Interact (Doors/Cards)",
+                        "<color=#FFD54F><b>[F]</b></color>  Kick Barrels & Props",
+                        "<color=#FFD54F><b>[ESC]</b></color>  Pause Mission"
+                    };
+                    for (int i = 0; i < col1Lines.Length; i++)
+                    {
+                        GUI.Label(new Rect(menuRect.x + 20, gridY + i * 23f, 205, 20), col1Lines[i], _briefingBodyStyle);
+                    }
+                    for (int i = 0; i < col2Lines.Length; i++)
+                    {
+                        GUI.Label(new Rect(menuRect.x + 232, gridY + i * 23f, 210, 20), col2Lines[i], _briefingBodyStyle);
+                    }
 
-                    GUI.Label(new Rect(menuRect.x + 18, gridY, 205, 105), col1, _briefingBodyStyle);
-                    GUI.Label(new Rect(menuRect.x + 235, gridY, 205, 105), col2, _briefingBodyStyle);
-
-                    float btnY = menuRect.y + 195;
-                    if (GUI.Button(new Rect(menuRect.x + 18, btnY, 200, 34), "< BRIEFING", _btnSecondaryStyle))
+                    float btnY = menuRect.y + 215;
+                    if (DrawTacticalButton(new Rect(menuRect.x + 20, btnY, 205, 34), "< BRIEFING", false))
                     {
                         controls = false;
                     }
-                    if (GUI.Button(new Rect(menuRect.x + 225, btnY, 215, 34), "START MISSION", _btnPrimaryStyle))
+                    if (DrawTacticalButton(new Rect(menuRect.x + 235, btnY, 215, 34), "START MISSION", true))
                     {
                         StartMission();
                     }
@@ -925,15 +995,15 @@ namespace FacilityBreach
             else if (Run.Paused && Run.Running)
             {
                 float btnY = menuRect.y + 50;
-                if (GUI.Button(new Rect(menuRect.x + 30, btnY, menuRect.width - 60, 42), "RESUME MISSION", _btnPrimaryStyle))
+                if (DrawTacticalButton(new Rect(menuRect.x + 30, btnY, menuRect.width - 60, 42), "RESUME MISSION", true))
                 {
                     SetPause(false);
                 }
-                if (GUI.Button(new Rect(menuRect.x + 30, btnY + 52, menuRect.width - 60, 34), "RESTART", _btnSecondaryStyle))
+                if (DrawTacticalButton(new Rect(menuRect.x + 30, btnY + 52, menuRect.width - 60, 34), "RESTART", false))
                 {
                     Restart();
                 }
-                if (GUI.Button(new Rect(menuRect.x + 30, btnY + 94, menuRect.width - 60, 34), "MAIN MENU", _btnSecondaryStyle))
+                if (DrawTacticalButton(new Rect(menuRect.x + 30, btnY + 94, menuRect.width - 60, 34), "MAIN MENU", false))
                 {
                     Restart();
                 }
@@ -953,7 +1023,7 @@ namespace FacilityBreach
                 }
 
                 float btnY = menuRect.y + 130;
-                if (GUI.Button(new Rect(menuRect.x + 30, btnY, menuRect.width - 60, 42), Run.State == MissionState.Won ? "REPLAY MISSION" : "RETRY MISSION", _btnPrimaryStyle))
+                if (DrawTacticalButton(new Rect(menuRect.x + 30, btnY, menuRect.width - 60, 42), Run.State == MissionState.Won ? "REPLAY MISSION" : "RETRY MISSION", true))
                 {
                     Restart();
                 }
