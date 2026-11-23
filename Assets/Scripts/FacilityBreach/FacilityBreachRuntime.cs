@@ -550,6 +550,10 @@ namespace FacilityBreach
             {
                 footstepController.OnGameplayPaused();
             }
+            if (alertController)
+            {
+                alertController.PauseSiren(paused);
+            }
         }
         private void OnApplicationFocus(bool focus) { if (!focus && Run.Running) SetPause(true); }
         public void StartMission()
