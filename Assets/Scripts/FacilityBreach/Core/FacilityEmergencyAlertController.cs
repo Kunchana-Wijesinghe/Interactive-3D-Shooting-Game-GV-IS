@@ -28,6 +28,9 @@ namespace FacilityBreach.Core
         [Tooltip("Remaining seconds when meltdown urgency reaches climax (Default: 10s).")]
         [SerializeField] private float climaxRemainingSeconds = 10f;
 
+        [Tooltip("Silence gap between alarm bursts before the final 10 seconds (Default: 2s).")]
+        [SerializeField] private float sirenStaggerIntervalSeconds = 2.0f;
+
         [Header("Custom Audio Hook")]
         [Tooltip("Assign your chosen alarm sound file (.wav/.mp3) here. If unassigned, audio remains safely muted until your sound is ready.")]
         [SerializeField] private AudioClip customAlarmClip;
@@ -72,6 +75,7 @@ namespace FacilityBreach.Core
         public float LightAlertRemainingSeconds => lightAlertRemainingSeconds;
         public float SoundAlertRemainingSeconds => soundAlertRemainingSeconds;
         public float ClimaxRemainingSeconds => climaxRemainingSeconds;
+        public float SirenStaggerIntervalSeconds => sirenStaggerIntervalSeconds;
 
         private FacilityBreachRuntime runtime;
         private AudioSource sirenSource;
@@ -83,7 +87,8 @@ namespace FacilityBreach.Core
         private float colorTransitionProgress;
         private float nextExplosionTime;
         private float cameraTrauma;
-        private float sirenVolumeTarget = 0.85f;
+        private float sirenVolumeTarget = 0.50f; // Reduced by half (50%) per user requirement
+        private float nextSirenPlayTime;
         private Vector3 originalCameraLocalPos;
         private Quaternion originalCameraLocalRot;
         private bool cameraTransformCached;
@@ -131,7 +136,12 @@ namespace FacilityBreach.Core
                 sirenSource.loop = true;
                 sirenSource.playOnAwake = false;
                 sirenSource.spatialBlend = 0f; // 2D omnidirectional facility announcement
-                sirenSource.volume = 0f;
+                sirenSource.volume = sirenVolumeTarget;
+
+                if (customAlarmClip == null)
+                {
+                    customAlarmClip = UnityEngine.Resources.Load<AudioClip>("Audio/Emergency/facility_emergency_alarm");
+                }
 
                 if (customAlarmClip != null)
                 {
@@ -182,22 +192,51 @@ namespace FacilityBreach.Core
             {
                 double remaining = runtime.Run.Remaining;
 
-                // 1. Red Alert Lights: Triggers at last 1 minute (<= 60s)
-                if (remaining <= lightAlertRemainingSeconds)
+                // Stop siren immediately if mission time has expired (3 minutes over / remaining <= 0)
+                if (remaining <= 0.0)
                 {
-                    if (!AreLightsRedAlert) ActivateRedAlertLights();
+                    if (sirenSource != null && sirenSource.isPlaying)
+                    {
+                        sirenSource.Stop();
+                    }
+                    if (FacilityBreach.Audio.FacilityAudioPlayer.Instance != null && FacilityBreach.Audio.FacilityAudioPlayer.Instance.IsEmergencyAlarmPlaying)
+                    {
+                        FacilityBreach.Audio.FacilityAudioPlayer.Instance.StopEmergencyAlarm();
+                    }
+                    IsSoundAlertActive = false;
                 }
-
-                // 2. Sound Siren: Triggers at last 30 seconds (<= 30s)
-                if (remaining <= soundAlertRemainingSeconds)
+                else
                 {
-                    if (!IsSoundAlertActive) ActivateSoundAlert();
+                    // 1. Red Alert Lights: Triggers at last 1 minute (<= 60s)
+                    if (remaining <= lightAlertRemainingSeconds)
+                    {
+                        if (!AreLightsRedAlert) ActivateRedAlertLights();
+                    }
+
+                    // 2. Sound Siren: Controlled timing during last 30 seconds (<= 30s)
+                    if (remaining <= soundAlertRemainingSeconds)
+                    {
+                        UpdateSirenTiming(remaining);
+                    }
+
+                    // 3. Meltdown Climax: Triggers at last 10 seconds (<= 10s)
+                    if (remaining <= climaxRemainingSeconds)
+                    {
+                        if (!IsClimaxActive) ActivateClimax();
+                    }
                 }
-
-                // 3. Meltdown Climax: Triggers at last 10 seconds (<= 10s)
-                if (remaining <= climaxRemainingSeconds)
+            }
+            else
+            {
+                // When mission is not running (won, lost, menu) or remaining <= 0, ensure sound is stopped
+                if (!runtime.Run.Running)
                 {
-                    if (!IsClimaxActive) ActivateClimax();
+                    if (sirenSource != null && sirenSource.isPlaying) sirenSource.Stop();
+                    if (FacilityBreach.Audio.FacilityAudioPlayer.Instance != null && FacilityBreach.Audio.FacilityAudioPlayer.Instance.IsEmergencyAlarmPlaying)
+                    {
+                        FacilityBreach.Audio.FacilityAudioPlayer.Instance.StopEmergencyAlarm();
+                    }
+                    IsSoundAlertActive = false;
                 }
             }
 
@@ -207,11 +246,10 @@ namespace FacilityBreach.Core
                 UpdateLighting();
             }
 
-            // Fade in siren audio if sound alert is active and an audio clip is assigned
+            // Maintain volume & pitch modulation during climax
             if (IsSoundAlertActive && sirenSource != null && sirenSource.isPlaying)
             {
-                float targetVol = IsClimaxActive ? 1.0f : sirenVolumeTarget;
-                sirenSource.volume = Mathf.MoveTowards(sirenSource.volume, targetVol, Time.deltaTime * 0.5f);
+                sirenSource.volume = sirenVolumeTarget;
                 if (IsClimaxActive)
                 {
                     sirenSource.pitch = Mathf.MoveTowards(sirenSource.pitch, 1.15f, Time.deltaTime * 0.1f);
@@ -240,16 +278,52 @@ namespace FacilityBreach.Core
             ScheduleNextExplosion(3.0f);
         }
 
+        private void UpdateSirenTiming(double remaining)
+        {
+            if (sirenSource == null) SetupSirenAudioSource();
+            if (sirenSource == null) return;
+
+            if (sirenSource.clip == null)
+            {
+                if (customAlarmClip == null)
+                    customAlarmClip = UnityEngine.Resources.Load<AudioClip>("Audio/Emergency/facility_emergency_alarm");
+                sirenSource.clip = customAlarmClip;
+            }
+
+            if (sirenSource.clip == null) return;
+
+            IsSoundAlertActive = true;
+            sirenSource.volume = sirenVolumeTarget;
+
+            // In the last 10 seconds: Play continuously without interval
+            if (remaining <= climaxRemainingSeconds)
+            {
+                sirenSource.loop = true;
+                if (!sirenSource.isPlaying)
+                {
+                    sirenSource.Play();
+                }
+            }
+            // Between 30s and 10s: Play once, then 2s interval before next play
+            else
+            {
+                sirenSource.loop = false;
+                if (!sirenSource.isPlaying && Time.time >= nextSirenPlayTime)
+                {
+                    sirenSource.Play();
+                    float clipDuration = sirenSource.clip != null ? sirenSource.clip.length : 1.5f;
+                    nextSirenPlayTime = Time.time + clipDuration + sirenStaggerIntervalSeconds; // 2 second interval after play
+                }
+            }
+        }
+
         public void ActivateSoundAlert()
         {
             if (IsSoundAlertActive) return;
-            IsSoundAlertActive = true;
-
-            if (sirenSource != null && sirenSource.clip != null)
+            nextSirenPlayTime = 0f;
+            if (runtime != null && runtime.Run != null)
             {
-                sirenSource.volume = 0f;
-                sirenSource.pitch = 1.0f;
-                sirenSource.Play();
+                UpdateSirenTiming(runtime.Run.Remaining);
             }
         }
 
@@ -268,14 +342,34 @@ namespace FacilityBreach.Core
             AreLightsRedAlert = false;
             IsSoundAlertActive = false;
             IsClimaxActive = false;
+            nextSirenPlayTime = 0f;
 
             if (sirenSource != null && sirenSource.isPlaying)
             {
                 sirenSource.Stop();
             }
 
+            if (FacilityBreach.Audio.FacilityAudioPlayer.Instance != null)
+            {
+                FacilityBreach.Audio.FacilityAudioPlayer.Instance.StopEmergencyAlarm();
+            }
+
             RestoreNormalLighting();
             cameraTrauma = 0f;
+        }
+
+        public void PauseSiren(bool pause)
+        {
+            if (sirenSource != null)
+            {
+                if (pause && sirenSource.isPlaying) sirenSource.Pause();
+                else if (!pause && IsSoundAlertActive && !sirenSource.isPlaying) sirenSource.UnPause();
+            }
+
+            if (FacilityBreach.Audio.FacilityAudioPlayer.Instance != null)
+            {
+                FacilityBreach.Audio.FacilityAudioPlayer.Instance.SetEmergencyAlarmPause(pause);
+            }
         }
 
         private void UpdateLighting()
