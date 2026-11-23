@@ -286,8 +286,8 @@ namespace FacilityBreach.EditorTests
                 var player = go.AddComponent<FacilityAudioPlayer>();
                 player.InitializePool();
 
-                // Test start alarm with 1.0f volume
-                player.StartEmergencyAlarm(null, 1.0f);
+                // Test start alarm with 0.50f calibrated volume
+                player.StartEmergencyAlarm(null, 0.50f);
                 Assert(player.EmergencyAlarmVolume > 0f, "Emergency alarm volume must be greater than zero when started");
 
                 // Test pause and unpause
@@ -312,6 +312,7 @@ namespace FacilityBreach.EditorTests
                 var controller = go.AddComponent<FacilityEmergencyAlertController>();
                 Assert(controller.SoundAlertRemainingSeconds == 30f, "SoundAlertRemainingSeconds must default to 30s");
                 Assert(controller.LightAlertRemainingSeconds == 60f, "LightAlertRemainingSeconds must default to 60s");
+                Assert(controller.ClimaxRemainingSeconds == 10f, "ClimaxRemainingSeconds must default to 10s");
             }
             finally
             {
