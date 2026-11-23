@@ -575,10 +575,7 @@ namespace FacilityBreach
             foreach (var material in ownedMaterials) if (material) Destroy(material);
             if (ambiencePlayer) ambiencePlayer.Stop(true);
             if (alertController) alertController.DeactivateEmergency();
-            if (_btnNormalTex) Destroy(_btnNormalTex);
-            if (_btnHoverTex) Destroy(_btnHoverTex);
-            if (_btnPrimaryNormalTex) Destroy(_btnPrimaryNormalTex);
-            if (_btnPrimaryHoverTex) Destroy(_btnPrimaryHoverTex);
+            if (_btnTransparentTex) Destroy(_btnTransparentTex);
             if (_whiteTex) Destroy(_whiteTex);
         }
 
@@ -600,23 +597,20 @@ namespace FacilityBreach
             }
         }
 
-        private static Texture2D _btnNormalTex;
-        private static Texture2D _btnHoverTex;
-        private static Texture2D _btnPrimaryNormalTex;
-        private static Texture2D _btnPrimaryHoverTex;
+        private static Texture2D _btnTransparentTex;
+        private static bool _uiStylesReady;
 
         private GUIStyle _hudTitleStyle;
         private GUIStyle _hudLabelStyle;
         private GUIStyle _hudValueStyle;
         private GUIStyle _hudBadgeStyle;
-        private GUIStyle _btnPrimaryStyle;
-        private GUIStyle _btnSecondaryStyle;
+        private static GUIStyle _btnPrimaryStyle;
+        private static GUIStyle _btnSecondaryStyle;
         private GUIStyle _briefingHeaderStyle;
         private GUIStyle _briefingBodyStyle;
         private GUIStyle _briefingAlertStyle;
         private GUIStyle _objectiveStyle;
         private GUIStyle _timerStyle;
-        private bool _uiStylesReady;
 
         private static Texture2D MakeSolidTex(int w, int h, Color col)
         {
@@ -628,39 +622,63 @@ namespace FacilityBreach
             return tex;
         }
 
-        private static Texture2D MakeBorderedTex(int w, int h, Color fill, Color border)
+        private static bool DrawTacticalButton(Rect r, string text, bool isPrimary = false)
         {
-            Color[] pix = new Color[w * h];
-            for (int y = 0; y < h; y++)
+            Vector2 mouse = Event.current.mousePosition;
+            bool hover = r.Contains(mouse);
+
+            Color bgColor = isPrimary
+                ? (hover ? new Color(1.00f, 0.68f, 0.12f, 0.98f) : new Color(0.85f, 0.54f, 0.08f, 0.92f))
+                : (hover ? new Color(0.24f, 0.22f, 0.18f, 0.96f) : new Color(0.14f, 0.13f, 0.11f, 0.92f));
+
+            Color borderColor = isPrimary
+                ? (hover ? new Color(1.00f, 0.88f, 0.40f, 1.0f) : new Color(1.00f, 0.76f, 0.18f, 0.85f))
+                : (hover ? new Color(1.00f, 0.80f, 0.25f, 0.90f) : new Color(0.85f, 0.60f, 0.12f, 0.50f));
+
+            Color textColor = isPrimary
+                ? (hover ? new Color(0.06f, 0.04f, 0.02f, 1.0f) : Color.white)
+                : (hover ? new Color(1.00f, 0.82f, 0.25f, 1.0f) : new Color(0.95f, 0.95f, 0.92f, 1.0f));
+
+            // Solid clean background fill (no texture stretching or color bleed)
+            UIDrawRect(r, bgColor);
+
+            // Clean 1px outline border
+            UIDrawRect(new Rect(r.x, r.y, r.width, 1), borderColor);
+            UIDrawRect(new Rect(r.x, r.yMax - 1, r.width, 1), borderColor);
+            UIDrawRect(new Rect(r.x, r.y, 1, r.height), borderColor);
+            UIDrawRect(new Rect(r.xMax - 1, r.y, 1, r.height), borderColor);
+
+            // Corner accent markers matching tactical UI aesthetic
+            const float cl = 5f;
+            const float ct = 1.5f;
+            Color cornerCol = isPrimary ? borderColor : (hover ? new Color(1.00f, 0.80f, 0.25f, 1.0f) : new Color(1.00f, 0.76f, 0.18f, 0.85f));
+            UIDrawRect(new Rect(r.x, r.y, cl, ct), cornerCol);
+            UIDrawRect(new Rect(r.x, r.y, ct, cl), cornerCol);
+            UIDrawRect(new Rect(r.xMax - cl, r.y, cl, ct), cornerCol);
+            UIDrawRect(new Rect(r.xMax - ct, r.y, ct, cl), cornerCol);
+            UIDrawRect(new Rect(r.x, r.yMax - ct, cl, ct), cornerCol);
+            UIDrawRect(new Rect(r.x, r.yMax - cl, ct, cl), cornerCol);
+            UIDrawRect(new Rect(r.xMax - cl, r.yMax - ct, cl, ct), cornerCol);
+            UIDrawRect(new Rect(r.xMax - ct, r.yMax - cl, ct, cl), cornerCol);
+
+            GUIStyle style = isPrimary ? _btnPrimaryStyle : _btnSecondaryStyle;
+            if (style != null)
             {
-                for (int x = 0; x < w; x++)
-                {
-                    bool isBorder = (x == 0 || x == w - 1 || y == 0 || y == h - 1);
-                    pix[y * w + x] = isBorder ? border : fill;
-                }
+                style.normal.textColor = textColor;
+                style.hover.textColor = textColor;
+                style.active.textColor = textColor;
+                style.focused.textColor = textColor;
             }
-            Texture2D tex = new Texture2D(w, h, TextureFormat.RGBA32, false)
-            {
-                filterMode = FilterMode.Point
-            };
-            tex.SetPixels(pix);
-            tex.Apply();
-            return tex;
+
+            return GUI.Button(r, text, style ?? GUI.skin.button);
         }
 
         private void EnsureUIStyles()
         {
             if (_uiStylesReady && _hudTitleStyle != null) return;
 
-            // Bordered high-contrast tactical button textures
-            if (_btnNormalTex == null)
-                _btnNormalTex = MakeBorderedTex(6, 6, new Color(0.16f, 0.14f, 0.10f, 0.95f), new Color(0.85f, 0.60f, 0.12f, 0.75f));
-            if (_btnHoverTex == null)
-                _btnHoverTex = MakeBorderedTex(6, 6, new Color(0.26f, 0.22f, 0.14f, 0.98f), new Color(1.00f, 0.80f, 0.25f, 1.0f));
-            if (_btnPrimaryNormalTex == null)
-                _btnPrimaryNormalTex = MakeBorderedTex(6, 6, new Color(0.85f, 0.55f, 0.08f, 0.95f), new Color(1.00f, 0.76f, 0.18f, 1.0f));
-            if (_btnPrimaryHoverTex == null)
-                _btnPrimaryHoverTex = MakeBorderedTex(6, 6, new Color(1.00f, 0.70f, 0.15f, 1.0f), new Color(1.00f, 0.90f, 0.40f, 1.0f));
+            if (_btnTransparentTex == null)
+                _btnTransparentTex = MakeSolidTex(2, 2, Color.clear);
 
             // Dynamic High-DPI System Font (zero blur, vector crispness at any scale)
             Font uiFont = GUI.skin.font;
@@ -746,7 +764,7 @@ namespace FacilityBreach
             };
             _timerStyle.normal.textColor = new Color(1.00f, 0.76f, 0.18f, 1f);
 
-            // Primary Button: Bright White text on Tactical Amber with Gold Border
+            // Primary Button style with transparent background (rendered with crisp geometry via DrawTacticalButton)
             _btnPrimaryStyle = new GUIStyle(GUI.skin.button)
             {
                 font = uiFont,
@@ -754,16 +772,12 @@ namespace FacilityBreach
                 fontStyle = FontStyle.Bold,
                 alignment = TextAnchor.MiddleCenter
             };
-            _btnPrimaryStyle.normal.background = _btnPrimaryNormalTex;
-            _btnPrimaryStyle.normal.textColor = Color.white;
-            _btnPrimaryStyle.hover.background = _btnPrimaryHoverTex;
-            _btnPrimaryStyle.hover.textColor = new Color(0.08f, 0.05f, 0.02f, 1f);
-            _btnPrimaryStyle.active.background = _btnPrimaryHoverTex;
-            _btnPrimaryStyle.active.textColor = Color.white;
-            _btnPrimaryStyle.focused.background = _btnPrimaryNormalTex;
-            _btnPrimaryStyle.focused.textColor = Color.white;
+            _btnPrimaryStyle.normal.background = _btnTransparentTex;
+            _btnPrimaryStyle.hover.background = _btnTransparentTex;
+            _btnPrimaryStyle.active.background = _btnTransparentTex;
+            _btnPrimaryStyle.focused.background = _btnTransparentTex;
 
-            // Secondary Button: High-Contrast Bright White text with Amber Border (never dark-on-dark)
+            // Secondary Button style with transparent background
             _btnSecondaryStyle = new GUIStyle(GUI.skin.button)
             {
                 font = uiFont,
@@ -771,14 +785,10 @@ namespace FacilityBreach
                 fontStyle = FontStyle.Bold,
                 alignment = TextAnchor.MiddleCenter
             };
-            _btnSecondaryStyle.normal.background = _btnNormalTex;
-            _btnSecondaryStyle.normal.textColor = Color.white;
-            _btnSecondaryStyle.hover.background = _btnHoverTex;
-            _btnSecondaryStyle.hover.textColor = new Color(1.00f, 0.82f, 0.25f, 1f);
-            _btnSecondaryStyle.active.background = _btnHoverTex;
-            _btnSecondaryStyle.active.textColor = Color.white;
-            _btnSecondaryStyle.focused.background = _btnNormalTex;
-            _btnSecondaryStyle.focused.textColor = Color.white;
+            _btnSecondaryStyle.normal.background = _btnTransparentTex;
+            _btnSecondaryStyle.hover.background = _btnTransparentTex;
+            _btnSecondaryStyle.active.background = _btnTransparentTex;
+            _btnSecondaryStyle.focused.background = _btnTransparentTex;
 
             _uiStylesReady = true;
         }
@@ -917,11 +927,11 @@ namespace FacilityBreach
                     GUI.Label(new Rect(warnRect.x + 8, warnRect.y + 3, warnRect.width - 12, 18), "ALERT: Hostile patrols active. Avoid detection where possible.", _briefingAlertStyle);
 
                     float btnY = menuRect.y + 146;
-                    if (GUI.Button(new Rect(menuRect.x + 18, btnY, menuRect.width - 36, 38), "START MISSION", _btnPrimaryStyle))
+                    if (DrawTacticalButton(new Rect(menuRect.x + 18, btnY, menuRect.width - 36, 38), "START MISSION", true))
                     {
                         StartMission();
                     }
-                    if (GUI.Button(new Rect(menuRect.x + 18, btnY + 44, menuRect.width - 36, 28), "VIEW CONTROLS", _btnSecondaryStyle))
+                    if (DrawTacticalButton(new Rect(menuRect.x + 18, btnY + 44, menuRect.width - 36, 28), "VIEW CONTROLS", false))
                     {
                         controls = true;
                     }
@@ -947,11 +957,11 @@ namespace FacilityBreach
                     GUI.Label(new Rect(menuRect.x + 235, gridY, 205, 105), col2, _briefingBodyStyle);
 
                     float btnY = menuRect.y + 195;
-                    if (GUI.Button(new Rect(menuRect.x + 18, btnY, 200, 34), "< BRIEFING", _btnSecondaryStyle))
+                    if (DrawTacticalButton(new Rect(menuRect.x + 18, btnY, 200, 34), "< BRIEFING", false))
                     {
                         controls = false;
                     }
-                    if (GUI.Button(new Rect(menuRect.x + 225, btnY, 215, 34), "START MISSION", _btnPrimaryStyle))
+                    if (DrawTacticalButton(new Rect(menuRect.x + 225, btnY, 215, 34), "START MISSION", true))
                     {
                         StartMission();
                     }
@@ -960,15 +970,15 @@ namespace FacilityBreach
             else if (Run.Paused && Run.Running)
             {
                 float btnY = menuRect.y + 50;
-                if (GUI.Button(new Rect(menuRect.x + 30, btnY, menuRect.width - 60, 42), "RESUME MISSION", _btnPrimaryStyle))
+                if (DrawTacticalButton(new Rect(menuRect.x + 30, btnY, menuRect.width - 60, 42), "RESUME MISSION", true))
                 {
                     SetPause(false);
                 }
-                if (GUI.Button(new Rect(menuRect.x + 30, btnY + 52, menuRect.width - 60, 34), "RESTART", _btnSecondaryStyle))
+                if (DrawTacticalButton(new Rect(menuRect.x + 30, btnY + 52, menuRect.width - 60, 34), "RESTART", false))
                 {
                     Restart();
                 }
-                if (GUI.Button(new Rect(menuRect.x + 30, btnY + 94, menuRect.width - 60, 34), "MAIN MENU", _btnSecondaryStyle))
+                if (DrawTacticalButton(new Rect(menuRect.x + 30, btnY + 94, menuRect.width - 60, 34), "MAIN MENU", false))
                 {
                     Restart();
                 }
@@ -988,7 +998,7 @@ namespace FacilityBreach
                 }
 
                 float btnY = menuRect.y + 130;
-                if (GUI.Button(new Rect(menuRect.x + 30, btnY, menuRect.width - 60, 42), Run.State == MissionState.Won ? "REPLAY MISSION" : "RETRY MISSION", _btnPrimaryStyle))
+                if (DrawTacticalButton(new Rect(menuRect.x + 30, btnY, menuRect.width - 60, 42), Run.State == MissionState.Won ? "REPLAY MISSION" : "RETRY MISSION", true))
                 {
                     Restart();
                 }
