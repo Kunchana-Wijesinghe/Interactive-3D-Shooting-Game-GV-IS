@@ -313,6 +313,7 @@ namespace FacilityBreach.EditorTests
                 Assert(controller.SoundAlertRemainingSeconds == 30f, "SoundAlertRemainingSeconds must default to 30s");
                 Assert(controller.LightAlertRemainingSeconds == 60f, "LightAlertRemainingSeconds must default to 60s");
                 Assert(controller.ClimaxRemainingSeconds == 10f, "ClimaxRemainingSeconds must default to 10s");
+                Assert(controller.SirenStaggerIntervalSeconds == 2.0f, "SirenStaggerIntervalSeconds must default to 2s");
             }
             finally
             {
