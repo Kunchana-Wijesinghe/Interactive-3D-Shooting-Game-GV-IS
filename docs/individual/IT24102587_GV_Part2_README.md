@@ -1176,7 +1176,10 @@ To provide robust, zero-dependency audio feedback without missing asset GUIDs, b
   - **Primary Buttons (`START MISSION`, `RESUME MISSION`, `REPLAY MISSION`)**:
     - Normal State: Solid rich tactical amber fill (`Color(0.85f, 0.54f, 0.08f, 0.92f)`), 1px gold border, crisp white bold text.
     - Hover State: Luminous golden glow fill (`Color(1.00f, 0.68f, 0.12f, 0.98f)`), bright gold border, contrasting dark charcoal text (`Color(0.06f, 0.04f, 0.02f)`).
-  - **Mission Briefing Formatting**: Structured objective cards with bold bracket tags (`[OBJECTIVE]`, `[TARGET]`, `[TIME LIMIT]`, `[ENGAGEMENT]`) and centered warning alert strip (`ALERT: Hostile patrols active...`) with dedicated margins preventing text overflow or clipping.
+  - **Mission Briefing Typography & Vertical Line Spacing**:
+    - Disaggregated multi-line IMGUI label blocks into discrete, individually calculated label rows with 23px row spacing (`rowH = 23f`) and 20px label heights to completely eliminate line clumping ("eka godee") caused by tight custom font leading.
+    - Added high-visibility amber tags (`<color=#FFC107>[TAG]</color>`) for `[OBJECTIVE]`, `[TARGET]`, `[TIME LIMIT]`, `[ENGAGEMENT]`, and operational controls (`[W][A][S][D]`, `[SHIFT]`, `[L-CLICK]`, etc.).
+    - Expanded modal panel dimensions (`panelWidth = 470f`, `panelHeight = 270f` / `310f`) to accommodate comfortable margins, distinct alert strip separation, and cleanly padded tactical action buttons without overlapping.
 
 ---
 
