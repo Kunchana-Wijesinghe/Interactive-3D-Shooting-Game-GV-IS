@@ -1259,27 +1259,31 @@ graph TD
     Lockdown --> DelayMenu3["Delayed Menu Display<br/>- Time.timeScale = 1.0f during sequence<br/>- Suppresses HUD overlays during animation<br/>- Unfreezes cursor & presents debrief only upon IsComplete"]
 ```
 
-### 18.2 Sequence 1: Meltdown Detonation (Timeout / Critical Failure)
-- **Trigger**: Activates automatically when `Run.LossReason == "Time expired"`.
-- **Radial Explosive Shockwave**:
-  - Epicenter calculated at the player's world position.
-  - Performs physical sphere overlap query (`blastRadius = 35.0f`).
-  - Executes `rb.AddExplosionForce(850f, epicenter, 35f, 2.2f, ForceMode.Impulse)` on all nearby dynamic rigidbodies.
-  - Imparts dynamic 3D torque (`rb.AddTorque(...)`) to all kickable metal barrels and wooden crates within Sector A, causing them to tumble, crash, and roll violently across corridors.
-- **Seismic Camera Tremor**: High-frequency dual Perlin noise trauma algorithm (38Hz evaluation frequency) driving camera pitch, yaw, and roll shake, decaying smoothly over 2.5 seconds via quadratic attenuation curve ($trauma^2$).
+### 18.2 Sequence 1: Meltdown Detonation & Toxic Barrel Pre-Detonation Smoke ([FacilityToxicBarrelMeltdownVfx.cs](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Scripts/FacilityBreach/Environment/FacilityToxicBarrelMeltdownVfx.cs))
+- **Pre-Detonation Smoke Venting (Final 5 Seconds: $\text{Remaining} \le 5.0\text{s}$)**:
+  - As the mission countdown enters its final 5 seconds, the toxic barrels near the access card containment zone begin violently venting dense toxic smoke.
+  - Procedural particle smoke plumes (dark toxic soot `#334733` with radioactive green haze) billow upwards into the ceiling at $1.8\text{m/s}$, expanding to $2.4\text{m}$ radius.
+  - Barrel lids exhibit rapid 8Hz overpressure flashing, transitioning from radioactive green to high-intensity warning amber/yellow.
+  - Spatialized 3D pneumatic steam venting audio cues warn the player of imminent containment breach.
+- **Catastrophic Detonation (Timeout: $\text{Remaining} \le 0\text{s}$)**:
+  - The toxic barrel cluster near the access card violently detonates with a concentrated fireball burst and high-velocity shrapnel.
+  - **Physical Barrel Launch**: Each toxic barrel is dynamically converted into an active Rigidbody and propelled across the facility using `rb.AddExplosionForce(1200f, clusterCenter, 16f, 2.4f, ForceMode.Impulse)` and high angular torque.
+  - **Facility-Wide Shockwave**: Imparts radial explosive impulse ($850\text{N}$, $35\text{m}$ radius) knocking over all clutter crates, barrels, and dynamic props.
+- **Seismic Camera Tremor**: High-frequency dual Perlin noise trauma algorithm (38Hz evaluation frequency) driving camera pitch, yaw, and roll shake, decaying smoothly over 3.2 seconds via quadratic attenuation curve ($trauma^2$).
 - **Blinding Flash Overlay**: Full-screen IMGUI procedural overlay bursting to pure nuclear white (`alpha = 1.0`), cross-fading into toxic fire-orange, and dissolving into deep charred black.
 - **Sub-Bass Explosion Audio**: Procedurally synthesized sub-bass detonation impulse with white-noise gravel debris decay via `FacilityAudioSynthesizer.SynthesizeExplosionBlast()`.
 
-### 18.3 Sequence 2: Operative Fatal KIA (Health Depletion)
+### 18.3 Sequence 2: Extended Operative Fatal KIA (5.0s Immersion)
 - **Trigger**: Activates automatically when player HP reaches 0 (`Run.LossReason == "Killed in action"`).
+- **Extended 5.0-Second Climax Duration**: Upgraded from initial 2.4s to **5.0 seconds**, ensuring an impactful, suspenseful death sequence before menu presentation.
 - **First-Person Camera Ground Collapse**:
-  - Camera height smoothly transitions from standing eye level ($y = 1.6\text{m}$) down to concrete floor level ($y = 0.22\text{m}$) using an ease-out sinusoidal deceleration curve ($\sin(\frac{\pi}{2} \cdot t)$).
-  - Simulates natural human forward pitch nodding followed by a sharp $72^\circ$ sideways roll along the Z-axis, resting the camera view flat against the corridor floor.
-- **Cardiac Vitals Audio Pipeline**:
-  - Procedural synthesis of slowing cardiac pulse thumps (55Hz sub-bass sinusoidal pulses) with increasing diastolic intervals (0.45s $\rightarrow$ 0.95s).
-  - Seamlessly resolves into a soft 880Hz resuscitation monitor flatline tone fading to silence.
+  - During the first 2.5 seconds, camera height smoothly descends from standing eye level ($y = 1.6\text{m}$) down to concrete floor level ($y = 0.22\text{m}$) using an ease-out sinusoidal deceleration curve ($\sin(\frac{\pi}{2} \cdot t)$).
+  - Simulates natural human forward pitch nodding followed by a sharp $72^\circ$ sideways roll along the Z-axis, resting the camera view flat against the corridor floor for the remaining 2.5 seconds.
+- **Extended Cardiac Vitals Audio Pipeline**:
+  - 5.0-second procedurally synthesized audio track featuring 4 slowing sub-bass cardiac pulse thumps (55Hz pulses at $t=0.20\text{s}, 0.95\text{s}, 1.90\text{s}, 3.10\text{s}$) with decaying amplitude ($0.95 \rightarrow 0.28$).
+  - Seamlessly resolves into a sustained 880Hz vitals monitor flatline tone from $t=3.3\text{s}$ to $5.0\text{s}$, gradually fading out as life expires.
 - **Blood-Red Tunnel Vignette Blackout**:
-  - Procedural multi-quad radial border vignette darkening screen edges with deep arterial crimson (`#880808`), collapsing inward to complete black as consciousness fades.
+  - Procedural multi-quad radial border vignette darkening screen edges with deep arterial crimson (`#880808`), expanding inward over the full 5 seconds into complete pitch blackness.
 
 ### 18.4 Sequence 3: Extraction & Tactical Lockdown (Mission Victory)
 - **Trigger**: Activates when player successfully traverses into the extraction trigger zone with the decrypted access card.
@@ -1297,19 +1301,20 @@ graph TD
   - `FacilityBreachRuntime` now keeps `Time.timeScale = 1.0f` while `endingsController.IsPlaying` is active, while disabling player movement and weapon controls (`player.InputEnabled = false`).
   - Only after `endingsController.IsComplete` becomes `true` does the runtime freeze `Time.timeScale = 0`, release the mouse cursor, and present the center mission debrief menu.
 - **Reset & Restart Safety**:
-  - Calling `StartMission()` or `Restart()` invokes `endingsController.ResetSequence()`, which restores original camera local transforms, resets timer state machines, and clears full-screen overlay textures.
+  - Calling `StartMission()` or `Restart()` invokes `endingsController.ResetSequence()` and `toxicMeltdownVfx.ResetVfx()`, restoring original camera local transforms, resetting timer state machines, clearing particle systems, and extinguishing full-screen overlay textures.
 
 ### 18.6 Automated Unit Test Verification ([FacilityCinematicEndingsTests.cs](file:///c:/Users/Kunchana%20Wijesinghe/Pictures/GV,IS/FacilityBreach/Assets/Editor/FacilityBreach/FacilityCinematicEndingsTests.cs))
-The test suite validates 9 automated programmatic checks:
+The test suite validates 10 automated programmatic checks:
 | Test Method | Verification Target | Status |
 | :--- | :--- | :---: |
 | `ProceduralAudio_MeltdownExplosion_ValidSynthesizedBuffer` | 44.1kHz PCM buffer, finite samples, peak > 0.1f | **PASS** |
-| `ProceduralAudio_PlayerDeathVitals_ValidSynthesizedBuffer` | Mono cardiac thumps + 880Hz flatline, peak > 0.05f | **PASS** |
+| `ProceduralAudio_PlayerDeathVitals_ValidSynthesizedBuffer` | 5.0s duration, 4 cardiac thumps + 880Hz flatline, peak > 0.05f | **PASS** |
 | `ProceduralAudio_BlastDoorLock_ValidSynthesizedBuffer` | Hydraulic slam, hiss & deadbolt latching buffer | **PASS** |
 | `CinematicEndingsController_InitialStateAndDefaults` | Verified initial `None` state, `IsPlaying == false` | **PASS** |
-| `MeltdownExplosion_TriggerAndTimerProgression` | Sequence triggering, timer progression, finish at 2.5s | **PASS** |
-| `PlayerDeathKIA_TriggerAndCameraFallTransform` | Eye-level 1.6m to 0.22m descent, >10° sideways roll | **PASS** |
+| `MeltdownExplosion_TriggerAndTimerProgression` | Sequence triggering, timer progression, finish at duration | **PASS** |
+| `PlayerDeathKIA_TriggerAndCameraFallTransform` | Eye-level 1.6m to 0.22m descent, >10° roll, 5.0s progression | **PASS** |
 | `ExtractionLockdown_TriggerAndStatusTransition` | State transition, 2.0s duration progression | **PASS** |
 | `ResetSequence_RestoresCameraAndFlags` | Full camera transform restoration to default origin | **PASS** |
+| `ToxicBarrelMeltdown_SmokeVentingThresholdAndDetonationLifecycle` | Smoke venting at <=5.0s threshold, detonation at 0s | **PASS** |
 | `AudioPlayer_EndingHelperMethodsSafeExecution` | Safe execution in headless/batch audio environments | **PASS** |
 

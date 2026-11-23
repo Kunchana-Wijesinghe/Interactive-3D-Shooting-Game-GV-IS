@@ -37,6 +37,7 @@ namespace FacilityBreach.EditorTests
             RunTest("PlayerDeathKIA_TriggerAndCameraFallTransform", Test_PlayerDeathKIA_TriggerAndCameraFallTransform);
             RunTest("ExtractionLockdown_TriggerAndStatusTransition", Test_ExtractionLockdown_TriggerAndStatusTransition);
             RunTest("ResetSequence_RestoresCameraAndFlags", Test_ResetSequence_RestoresCameraAndFlags);
+            RunTest("ToxicBarrelMeltdown_SmokeVentingThresholdAndDetonationLifecycle", Test_ToxicBarrelMeltdown_SmokeVentingThresholdAndDetonationLifecycle);
             RunTest("AudioPlayer_EndingHelperMethodsSafeExecution", Test_AudioPlayer_EndingHelperMethodsSafeExecution);
 
             string summary = $"<color={(failedCount == 0 ? "green" : "red")}>=== CINEMATIC ENDINGS TESTS COMPLETE: {passedCount} PASSED, {failedCount} FAILED ===</color>";
@@ -103,6 +104,7 @@ namespace FacilityBreach.EditorTests
             Assert(clip.samples > 0, "PlayerDeathVitals clip must contain audio samples");
             Assert(clip.channels == 1, "PlayerDeathVitals clip must be mono");
             Assert(clip.frequency == 44100, "PlayerDeathVitals frequency must be 44.1kHz");
+            Assert(clip.length >= 4.9f, $"PlayerDeathVitals duration should be at least 4.9s for 5.0s sequence, got {clip.length}");
 
             float[] data = new float[clip.samples];
             clip.GetData(data, 0);
@@ -204,14 +206,15 @@ namespace FacilityBreach.EditorTests
                 Assert(controller.ActiveEnding == EndingSequenceType.PlayerDeathKIA, "ActiveEnding should be PlayerDeathKIA");
                 Assert(controller.IsPlaying, "IsPlaying should be true");
 
-                // Advance by 1.2s (half of 2.4s duration)
-                controller.Tick(1.2f);
+                // Advance by 2.0s
+                controller.Tick(2.0f);
                 Assert(camGo.transform.localPosition.y < 1.6f,
                     $"Camera height should descend from 1.6m during KIA fall, got {camGo.transform.localPosition.y}");
+                Assert(controller.IsPlaying, "IsPlaying should still be true at t=2.0s during 5.0s death sequence");
 
-                // Advance past duration
-                controller.Tick(1.5f);
-                Assert(controller.IsComplete, "IsComplete should be true after 2.4s");
+                // Advance past 5.0s duration
+                controller.Tick(3.2f);
+                Assert(controller.IsComplete, "IsComplete should be true after 5.0s");
                 Assert(camGo.transform.localPosition.y <= 0.35f,
                     $"Camera height should reach ground level (<=0.35m), got {camGo.transform.localPosition.y}");
                 
@@ -281,6 +284,49 @@ namespace FacilityBreach.EditorTests
             finally
             {
                 UnityEngine.Object.DestroyImmediate(camGo);
+                UnityEngine.Object.DestroyImmediate(root);
+            }
+        }
+
+        private static void Test_ToxicBarrelMeltdown_SmokeVentingThresholdAndDetonationLifecycle()
+        {
+            var root = new GameObject("Test_ToxicBarrelsRoot");
+            var drum1 = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            drum1.name = "Barrel"; drum1.transform.SetParent(root.transform);
+            var lid1 = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            lid1.name = "Barrel lid"; lid1.transform.SetParent(root.transform);
+
+            try
+            {
+                var vfx = root.AddComponent<FacilityBreach.Environment.FacilityToxicBarrelMeltdownVfx>();
+                vfx.Initialize(root.transform, new Vector3(-2, 0, 20));
+
+                Assert(vfx.ClusterCenter == new Vector3(-2, 0, 20), "ClusterCenter matches initialized vector");
+                Assert(vfx.TrackedBarrelCount == 2, $"TrackedBarrelCount should be 2, got {vfx.TrackedBarrelCount}");
+                Assert(!vfx.IsVentingSmoke, "IsVentingSmoke initially false");
+                Assert(!vfx.HasDetonated, "HasDetonated initially false");
+
+                // Update with remaining = 8.0s (no smoke yet)
+                vfx.UpdateCountdown(8.0f);
+                Assert(!vfx.IsVentingSmoke, "Should not vent smoke at remaining 8.0s (>5s)");
+
+                // Update with remaining = 4.5s (triggers smoke venting in last 5s)
+                vfx.UpdateCountdown(4.5f);
+                Assert(vfx.IsVentingSmoke, "Should vent smoke at remaining 4.5s (<=5s)");
+                Assert(!vfx.HasDetonated, "HasDetonated should remain false while venting");
+
+                // Detonate at 0.0s
+                vfx.UpdateCountdown(0.0f);
+                Assert(vfx.HasDetonated, "HasDetonated should be true after reaching 0s");
+                Assert(!vfx.IsVentingSmoke, "IsVentingSmoke should become false upon detonation");
+
+                // Reset
+                vfx.ResetVfx();
+                Assert(!vfx.IsVentingSmoke, "IsVentingSmoke reset to false");
+                Assert(!vfx.HasDetonated, "HasDetonated reset to false");
+            }
+            finally
+            {
                 UnityEngine.Object.DestroyImmediate(root);
             }
         }
