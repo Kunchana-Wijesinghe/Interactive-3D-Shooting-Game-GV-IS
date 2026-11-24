@@ -95,6 +95,7 @@ namespace FacilityBreach.Editor
                 new NavMeshBuildSource { shape = NavMeshBuildSourceShape.Box, size = new Vector3(80, .2f, 80), transform = Matrix4x4.TRS(floor.transform.position, Quaternion.identity, Vector3.one) }
             }, new Bounds(new Vector3(1000, 0, 1000), new Vector3(84, 6, 84)), Vector3.zero, Quaternion.identity);
             var mesh = NavMesh.AddNavMeshData(data);
+            GameObject sightBlocker = null;
             try
             {
                 Check(nav.Warp(new Vector3(1000, 0, 1000)), "real Flanker warped onto isolated legal navigation fixture");
@@ -116,13 +117,36 @@ namespace FacilityBreach.Editor
                 nav.speed = 3; Vector3 start = fl.transform.position;
                 until = runtime.GameplayTime + 1; while (runtime.GameplayTime < until) yield return null;
                 Check(Vector3.Distance(start, fl.transform.position) > .3f, "new tactical decision produces actual shared-controller movement across frames");
+                nav.speed = 0;
+                brain.ResetEnemyActions();
+                int queriesAfterReset = brain.NavigationQueries;
+                Check(nav.Warp(new Vector3(1000, 0, 1000)), "return to fixture origin for idle perception regression");
+                fl.transform.rotation = Quaternion.identity;
+                WarpPlayer(runtime, new Vector3(1000, .1f, 991));
+                sightBlocker = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                sightBlocker.transform.position = new Vector3(1000, 1.5f, 995);
+                sightBlocker.transform.localScale = new Vector3(4, 3, .5f);
+                Physics.SyncTransforms();
+                until = runtime.GameplayTime + 4.25f;
+                while (runtime.GameplayTime < until) yield return null;
+                Check(!brain.Policy.HasObservation && brain.NavigationQueries == queriesAfterReset,
+                    "idle scan cannot observe a player behind a solid wall");
+                sightBlocker.SetActive(false);
+                fl.transform.rotation = Quaternion.identity;
+                Physics.SyncTransforms();
+                Check(!AgentPerception.Visible(fl.transform, runtime.PlayerTransform, brain.SightRange, out _, brain.FieldOfView),
+                    "unobstructed player starts outside the Flanker's forward sight cone");
+                until = runtime.GameplayTime + 4.25f;
+                while (!brain.SeesPlayer && runtime.GameplayTime < until) yield return null;
+                Check(brain.SeesPlayer && brain.Policy.HasObservation,
+                    "idle scan acquires an unobstructed player initially behind the Flanker");
                 fl.TakeDamage(new Perera.Core.DamageInfo(70, fl.transform.position, Vector3.forward, runtime.PlayerTransform.gameObject));
                 Check(fl.IsDead && !brain.Policy.HasObservation && brain.Plans == 0 && brain.Policy.Phase == FlankPhase.Inactive, "actual combat activity sink clears IS state immediately on death");
                 Check(!fl.Warning && fl.GetComponent<SoundHunterNavMeshMover>().Status == Perera.SoundHunter.MoveStatus.Idle, "death preserves existing attack cancellation and shared movement stop");
                 Check(errors.Count == 0, "no unexpected integration Console errors");
                 Debug.Log($"[IS Flanker] PASS {count} Prototype integration checks (controlled Play Mode fixture).");
             }
-            finally { UnityEngine.Object.Destroy(floor); if (mesh.valid) mesh.Remove(); UnityEngine.Object.Destroy(data); }
+            finally { UnityEngine.Object.Destroy(sightBlocker); UnityEngine.Object.Destroy(floor); if (mesh.valid) mesh.Remove(); UnityEngine.Object.Destroy(data); }
         }
     }
 }

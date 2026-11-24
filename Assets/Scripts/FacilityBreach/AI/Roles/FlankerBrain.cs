@@ -57,6 +57,9 @@ namespace FacilityBreach.AI.Roles
                 default:
                     Mover.Stop();
                     if (SeesPlayer) Mover.FacePoint(Policy.ObservedTarget);
+                    // Sweep the existing sight cone without moving or using the player's hidden position.
+                    else if (Policy.Phase == FlankPhase.Idle || Policy.Phase == FlankPhase.Holding)
+                        Mover.Scan();
                     break;
             }
             if (tracedPlan != Plans)

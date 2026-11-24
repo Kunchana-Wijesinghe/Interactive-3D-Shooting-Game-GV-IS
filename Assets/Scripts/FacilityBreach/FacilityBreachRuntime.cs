@@ -202,7 +202,6 @@ namespace FacilityBreach
             // FL-04 Flanker (70 HP, Lime)
             var flanker = CreateAgent(agentsRoot, "FB_Agent_FL04", "FL-04", 70, new Vector3(13, 0, 21), new Color(0.7f, 1, 0.2f), 3);
             flanker.AddComponent<FlankerBrain>();
-            flanker.AddComponent<RestingWallFacing>(); // rests facing the nearest wall; turns to the player on sight
 
             foreach (var collider in FindObjectsByType<BoxCollider>())
                 if (collider.transform.parent && collider.transform.parent.name == "Generated_Facility" && collider.bounds.size.y >= 3) mapWalls.Add(collider);
