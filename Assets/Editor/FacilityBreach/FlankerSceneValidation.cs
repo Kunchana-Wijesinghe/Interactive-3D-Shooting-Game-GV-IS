@@ -143,6 +143,16 @@ namespace FacilityBreach.Editor
                 fl.TakeDamage(new Perera.Core.DamageInfo(70, fl.transform.position, Vector3.forward, runtime.PlayerTransform.gameObject));
                 Check(fl.IsDead && !brain.Policy.HasObservation && brain.Plans == 0 && brain.Policy.Phase == FlankPhase.Inactive, "actual combat activity sink clears IS state immediately on death");
                 Check(!fl.Warning && fl.GetComponent<SoundHunterNavMeshMover>().Status == Perera.SoundHunter.MoveStatus.Idle, "death preserves existing attack cancellation and shared movement stop");
+                var inside = new Vector3(1000, 0, 997);
+                var outside = new Vector3(1000, 0, 993);
+                Check(!NavMesh.Raycast(inside, outside, out _, nav.areaMask),
+                    "fixture bake initially allows a straight path across the added wall location");
+                sightBlocker.SetActive(true);
+                DynamicNavigationObstacles.CarveStaticWall(sightBlocker.GetComponent<BoxCollider>(), sightBlocker.transform);
+                until = runtime.GameplayTime + 1f;
+                while (runtime.GameplayTime < until) yield return null;
+                Check(NavMesh.Raycast(inside, outside, out _, nav.areaMask),
+                    "runtime wall carving blocks a straight navigation path across an added wall");
                 Check(errors.Count == 0, "no unexpected integration Console errors");
                 Debug.Log($"[IS Flanker] PASS {count} Prototype integration checks (controlled Play Mode fixture).");
             }
