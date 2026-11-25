@@ -204,7 +204,14 @@ namespace FacilityBreach
             flanker.AddComponent<FlankerBrain>();
 
             foreach (var collider in FindObjectsByType<BoxCollider>())
-                if (collider.transform.parent && collider.transform.parent.name == "Generated_Facility" && collider.bounds.size.y >= 3) mapWalls.Add(collider);
+            {
+                if (!collider.transform.parent || collider.transform.parent.name != "Generated_Facility" || collider.bounds.size.y < 3)
+                    continue;
+
+                mapWalls.Add(collider);
+                if (collider.enabled && !collider.isTrigger && !collider.GetComponentInParent<InteractiveDoor>())
+                    DynamicNavigationObstacles.CarveStaticWall(collider, transform);
+            }
             SetPause(false); Time.timeScale = 0; Cursor.lockState = CursorLockMode.None; Cursor.visible = true;
         }
         private GameObject CreateAgent(GameObject parent, string name, string identity, int hp, Vector3 position, Color color, int visualIndex)
